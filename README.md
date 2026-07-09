@@ -1,7 +1,7 @@
-# Synestix — auth page
+# Auth page
 
-Minimal sign-in / sign-up page with a single coral accent color (`#D97757`)
-and Cloudflare Turnstile captcha.
+Modern minimal sign-in / sign-up page with a single coral accent color
+(`#D97757`) and Cloudflare Turnstile captcha.
 
 ## Files
 
