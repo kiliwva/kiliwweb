@@ -1,4 +1,4 @@
-/* Auth page — Apple-inspired: frosted glass, ambient light.
+/* Auth page — solid card over a fully coral-filled animated background.
    Typeface: Manrope (self-hosted variable font).
    Accent color: coral #D97757. */
 
@@ -23,42 +23,42 @@
 
 :root {
   --accent: #D97757;
-  --accent-hover: #E08663;
-  --accent-press: #C9663F;
-  --accent-ring: rgba(217, 119, 87, 0.35);
-  --bg: #F5F4F2;
+  --accent-hover: #C9663F;
+  --accent-press: #B85C3C;
+  --accent-ring: rgba(217, 119, 87, 0.3);
+  --card: #FFFFFF;
   --text: #1D1D1F;
-  --muted: #86868B;
-  --glass: rgba(255, 255, 255, 0.34);
-  --rim-bright: rgba(255, 255, 255, 0.9);
-  --rim-soft: rgba(255, 255, 255, 0.35);
-  --group-bg: rgba(255, 255, 255, 0.4);
-  --hairline: rgba(0, 0, 0, 0.08);
-  --seg-bg: rgba(0, 0, 0, 0.05);
-  --thumb: rgba(255, 255, 255, 0.95);
-  --error: #E5472C;
+  --muted: #7A736E;
+  --group-bg: #F5F2EF;
+  --hairline: rgba(0, 0, 0, 0.09);
+  --seg-bg: #EFEAE6;
+  --thumb: #FFFFFF;
+  --error: #D8402A;
   --card-shadow:
-    0 0 0 0.5px rgba(0, 0, 0, 0.04),
-    0 2px 6px rgba(0, 0, 0, 0.04),
-    0 30px 80px -20px rgba(0, 0, 0, 0.25);
+    0 2px 8px rgba(60, 25, 10, 0.12),
+    0 32px 80px -16px rgba(60, 25, 10, 0.45);
+  /* full-bleed coral background */
+  --bg-a: #F0B592;
+  --bg-b: #DE7F5C;
+  --bg-c: #B85C3C;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #000000;
+    --card: #211E1C;
     --text: #F5F5F7;
-    --muted: #86868B;
-    --glass: rgba(28, 28, 30, 0.34);
-    --rim-bright: rgba(255, 255, 255, 0.35);
-    --rim-soft: rgba(255, 255, 255, 0.08);
-    --group-bg: rgba(118, 118, 128, 0.18);
+    --muted: #9C948E;
+    --group-bg: #2E2A27;
     --hairline: rgba(255, 255, 255, 0.1);
-    --seg-bg: rgba(118, 118, 128, 0.2);
-    --thumb: rgba(99, 99, 102, 0.9);
+    --seg-bg: #302B28;
+    --thumb: #4A423D;
     --error: #FF6B52;
     --card-shadow:
-      0 0 0 0.5px rgba(255, 255, 255, 0.06),
-      0 30px 80px -20px rgba(0, 0, 0, 0.8);
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      0 32px 80px -16px rgba(0, 0, 0, 0.6);
+    --bg-a: #7A3A22;
+    --bg-b: #592815;
+    --bg-c: #351408;
   }
 }
 
@@ -67,11 +67,13 @@
 body {
   font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;
-  background: var(--bg);
+  font-weight: 500;
   color: var(--text);
+  background: var(--bg-b);
   -webkit-font-smoothing: antialiased;
 }
 
+/* --- fully filled, slowly shifting coral background --- */
 .scene {
   position: relative;
   min-height: 100dvh;
@@ -79,117 +81,57 @@ body {
   place-items: center;
   padding: 28px 16px;
   overflow: hidden;
+  background: linear-gradient(155deg, var(--bg-a), var(--bg-b) 48%, var(--bg-c));
+  background-size: 220% 220%;
+  animation: bg-shift 16s ease-in-out infinite alternate;
+}
+@keyframes bg-shift {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 100%; }
 }
 
-/* --- ambient orbs: drift + shimmering pulse --- */
+/* soft glows breathing on top of the solid color */
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(70px);
   pointer-events: none;
-  animation:
-    float 22s ease-in-out infinite alternate,
-    shimmer 9s ease-in-out infinite;
+  animation: shimmer 9s ease-in-out infinite;
 }
 .orb-1 {
-  width: 55vmax; height: 55vmax;
-  top: -22vmax; left: -14vmax;
-  background: radial-gradient(circle at 35% 35%, rgba(217, 119, 87, 0.6), transparent 65%);
+  width: 80vmax; height: 80vmax;
+  top: -30vmax; left: -25vmax;
+  background: radial-gradient(circle, rgba(255, 214, 186, 0.55), transparent 62%);
 }
 .orb-2 {
-  width: 48vmax; height: 48vmax;
-  bottom: -20vmax; right: -12vmax;
-  background: radial-gradient(circle at 60% 40%, rgba(233, 168, 130, 0.55), transparent 65%);
-  animation-delay: -8s, -3s;
-  animation-duration: 22s, 7s;
+  width: 75vmax; height: 75vmax;
+  bottom: -28vmax; right: -22vmax;
+  background: radial-gradient(circle, rgba(120, 40, 15, 0.5), transparent 62%);
+  animation-delay: -3s;
+  animation-duration: 7s;
 }
 .orb-3 {
-  width: 34vmax; height: 34vmax;
-  top: 46%; left: 58%;
-  background: radial-gradient(circle, rgba(196, 99, 63, 0.4), transparent 65%);
-  animation-delay: -15s, -6s;
-  animation-duration: 22s, 11s;
+  width: 60vmax; height: 60vmax;
+  top: 30%; left: 30%;
+  background: radial-gradient(circle, rgba(255, 170, 130, 0.4), transparent 62%);
+  animation-delay: -6s;
+  animation-duration: 11s;
 }
-@keyframes float {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(4vmax, 3vmax, 0) scale(1.08); }
-}
-/* breathing glow: brightness swells and hue drifts warm→pink→warm */
 @keyframes shimmer {
-  0%, 100% { opacity: 0.55; filter: blur(80px) hue-rotate(0deg) saturate(1); }
-  35%      { opacity: 1;    filter: blur(90px) hue-rotate(-14deg) saturate(1.35); }
-  70%      { opacity: 0.7;  filter: blur(75px) hue-rotate(10deg) saturate(1.1); }
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.07); }
 }
 
-@media (prefers-color-scheme: dark) {
-  .orb { opacity: 0.7; }
-}
-
-/* --- liquid glass card --- */
+/* --- solid card --- */
 .card {
   position: relative;
-  isolation: isolate;
   width: 100%;
   max-width: 420px;
-  background: var(--glass);
-  backdrop-filter: blur(26px) saturate(1.9);
-  -webkit-backdrop-filter: blur(26px) saturate(1.9);
-  border-radius: 32px;
+  background: var(--card);
+  border-radius: 28px;
   box-shadow: var(--card-shadow);
   padding: 36px 32px 30px;
   animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-}
-/* refraction layer: bends the blurred backdrop like a liquid lens.
-   Lives behind the card content; browsers without SVG backdrop
-   filters simply skip it and keep the plain blur. */
-.lens {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: -1;
-}
-@supports (backdrop-filter: url(#liquid-lens)) {
-  .lens {
-    backdrop-filter: url(#liquid-lens);
-    -webkit-backdrop-filter: url(#liquid-lens);
-  }
-}
-/* glass rim: bright top-left edge, soft bottom, inner glow */
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow:
-    inset 0 1.5px 1px -0.5px var(--rim-bright),
-    inset 1px 0 1px -0.5px var(--rim-soft),
-    inset -1px 0 1px -0.5px var(--rim-soft),
-    inset 0 -1px 1px -0.5px var(--rim-soft),
-    inset 0 0 24px rgba(255, 255, 255, 0.06);
-}
-/* travelling specular sheen */
-.card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(
-    115deg,
-    transparent 42%,
-    rgba(255, 255, 255, 0.28) 50%,
-    transparent 58%
-  );
-  background-size: 320% 100%;
-  animation: sheen 9s ease-in-out infinite;
-}
-@keyframes sheen {
-  0%       { background-position: 130% 0; opacity: 0; }
-  12%      { opacity: 1; }
-  38%      { background-position: -60% 0; opacity: 0; }
-  100%     { background-position: -60% 0; opacity: 0; }
 }
 @keyframes rise {
   from { opacity: 0; transform: translateY(16px) scale(0.98); }
@@ -213,8 +155,7 @@ body {
   background: var(--thumb);
   border-radius: 10px;
   box-shadow:
-    inset 0 1px 0.5px rgba(255, 255, 255, 0.5),
-    0 0.5px 1.5px rgba(0, 0, 0, 0.12),
+    0 1px 2px rgba(0, 0, 0, 0.12),
     0 3px 8px rgba(0, 0, 0, 0.08);
   transition: transform 0.32s cubic-bezier(0.3, 1.25, 0.4, 1);
 }
@@ -224,10 +165,10 @@ body {
   z-index: 1;
   border: 0;
   background: none;
-  padding: 8px 0;
+  padding: 9px 0;
   font: inherit;
-  font-size: 13.5px;
-  font-weight: 590;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--muted);
   cursor: pointer;
   transition: color 0.25s;
@@ -245,32 +186,30 @@ body {
 .title {
   font-size: 30px;
   font-weight: 800;
-  letter-spacing: -0.028em;
+  letter-spacing: -0.025em;
   margin-bottom: 8px;
 }
 .subtitle {
   font-size: 15px;
+  font-weight: 500;
   line-height: 1.4;
   color: var(--muted);
   margin-bottom: 26px;
 }
 
-/* --- grouped fields (iOS inset list style) --- */
+/* --- grouped fields --- */
 .group {
   background: var(--group-bg);
-  border: 0.5px solid var(--hairline);
+  border: 1px solid var(--hairline);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.25);
   transition: box-shadow 0.2s;
 }
 .group:focus-within {
-  box-shadow:
-    inset 0 1px 0.5px rgba(255, 255, 255, 0.25),
-    0 0 0 3.5px var(--accent-ring);
+  box-shadow: 0 0 0 3.5px var(--accent-ring);
 }
 .divider {
-  height: 0.5px;
+  height: 1px;
   background: var(--hairline);
   margin-left: 16px;
 }
@@ -281,6 +220,7 @@ body {
   padding: 24px 16px 8px;
   font: inherit;
   font-size: 16px;
+  font-weight: 600;
   color: var(--text);
   background: transparent;
   border: 0;
@@ -292,6 +232,7 @@ body {
   left: 16px;
   transform: translateY(-50%);
   font-size: 16px;
+  font-weight: 500;
   color: var(--muted);
   pointer-events: none;
   transition: all 0.18s ease;
@@ -300,8 +241,8 @@ body {
 .field input:not(:placeholder-shown) + label {
   top: 13px;
   font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   color: var(--accent);
 }
 .field input:not(:focus):not(:placeholder-shown) + label { color: var(--muted); }
@@ -309,6 +250,7 @@ body {
 .group-error {
   display: none;
   font-size: 13px;
+  font-weight: 600;
   color: var(--error);
   margin: 8px 4px 0;
 }
@@ -321,38 +263,24 @@ body {
   min-height: 65px;
   margin: 18px 0;
 }
-.turnstile-slot:empty {
-  border: 0.5px dashed var(--hairline);
-  border-radius: 14px;
-}
 
 /* --- button --- */
 .submit {
-  position: relative;
   width: 100%;
-  padding: 14px;
+  padding: 15px;
   border: 0;
   border-radius: 16px;
   font: inherit;
   font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 700;
   color: #fff;
-  /* coral glass: translucent tint over the blurred backdrop */
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.02) 55%),
-    rgba(217, 119, 87, 0.78);
-  backdrop-filter: blur(12px) saturate(1.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  box-shadow:
-    inset 0 1.5px 1px -0.5px rgba(255, 255, 255, 0.6),
-    inset 0 -1px 1px -0.5px rgba(255, 255, 255, 0.15),
-    0 12px 28px -10px var(--accent-ring);
+  background: var(--accent);
+  box-shadow: 0 10px 24px -10px var(--accent-press);
   cursor: pointer;
-  transition: filter 0.15s, transform 0.12s, opacity 0.2s, box-shadow 0.2s;
+  transition: background 0.15s, transform 0.12s, opacity 0.2s;
 }
-.submit:hover:not(:disabled) { filter: brightness(1.05); }
-.submit:active:not(:disabled) { transform: scale(0.98); filter: brightness(0.96); }
+.submit:hover:not(:disabled) { background: var(--accent-hover); }
+.submit:active:not(:disabled) { transform: scale(0.98); background: var(--accent-press); }
 .submit:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--accent-ring); }
 .submit:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 .submit.loading { opacity: 0.7; pointer-events: none; }
@@ -360,13 +288,14 @@ body {
 .note {
   margin-top: 20px;
   font-size: 13.5px;
+  font-weight: 600;
   text-align: center;
 }
 .note.muted { color: var(--muted); }
 
 .link {
   color: var(--accent);
-  font-weight: 500;
+  font-weight: 700;
   text-decoration: none;
 }
 .link:hover { text-decoration: underline; }
@@ -384,12 +313,8 @@ body {
   display: grid;
   place-items: center;
   color: #fff;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 45%),
-    linear-gradient(160deg, var(--accent-hover), var(--accent-press));
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.4),
-    0 12px 28px -8px var(--accent-ring);
+  background: var(--accent);
+  box-shadow: 0 12px 28px -10px var(--accent-press);
   animation: pop 0.45s cubic-bezier(0.3, 1.4, 0.4, 1);
 }
 @keyframes pop {
