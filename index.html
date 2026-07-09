@@ -9,79 +9,96 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
 </head>
 <body>
-  <main class="auth">
-    <div class="card">
+  <div class="scene">
+    <!-- Ambient background -->
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+    <div class="orb orb-3" aria-hidden="true"></div>
+
+    <main class="card">
+
+      <!-- Emblem -->
+      <div class="emblem" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
 
       <!-- Sign in / Sign up switch -->
       <nav class="tabs" role="tablist" aria-label="Sign in or sign up">
-        <button class="tab active" id="tab-login" role="tab" aria-selected="true" aria-controls="form-login">Sign in</button>
-        <button class="tab" id="tab-register" role="tab" aria-selected="false" aria-controls="form-register">Sign up</button>
+        <span class="tab-thumb" aria-hidden="true"></span>
+        <button class="tab active" id="tab-login" role="tab" aria-selected="true" aria-controls="form-login">Sign In</button>
+        <button class="tab" id="tab-register" role="tab" aria-selected="false" aria-controls="form-register">Sign Up</button>
       </nav>
 
       <!-- Sign in -->
       <form class="form active" id="form-login" role="tabpanel" aria-labelledby="tab-login" novalidate>
-        <h1 class="title">Welcome back</h1>
-        <p class="subtitle">Enter your details to sign in</p>
+        <h1 class="title">Welcome back.</h1>
+        <p class="subtitle">Sign in to continue where you left&nbsp;off.</p>
 
-        <div class="field">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email" required>
-          <span class="field-error"></span>
+        <div class="group">
+          <div class="field">
+            <input type="email" id="login-email" name="email" placeholder=" " autocomplete="email" required>
+            <label for="login-email">Email</label>
+          </div>
+          <div class="divider"></div>
+          <div class="field">
+            <input type="password" id="login-password" name="password" placeholder=" " autocomplete="current-password" minlength="8" required>
+            <label for="login-password">Password</label>
+          </div>
         </div>
-
-        <div class="field">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" minlength="8" required>
-          <span class="field-error"></span>
-        </div>
+        <p class="group-error" data-error></p>
 
         <div class="turnstile-slot" data-turnstile></div>
 
-        <button type="submit" class="submit" disabled>Sign in</button>
+        <button type="submit" class="submit" disabled>Sign In</button>
 
         <p class="note"><a class="link" href="#">Forgot password?</a></p>
       </form>
 
       <!-- Sign up -->
       <form class="form" id="form-register" role="tabpanel" aria-labelledby="tab-register" novalidate hidden>
-        <h1 class="title">Create account</h1>
-        <p class="subtitle">It takes less than a minute</p>
+        <h1 class="title">Create yours.</h1>
+        <p class="subtitle">One account. Less than a&nbsp;minute.</p>
 
-        <div class="field">
-          <label for="reg-name">Name</label>
-          <input type="text" id="reg-name" name="name" placeholder="Your name" autocomplete="name" required>
-          <span class="field-error"></span>
+        <div class="group">
+          <div class="field">
+            <input type="text" id="reg-name" name="name" placeholder=" " autocomplete="name" required>
+            <label for="reg-name">Name</label>
+          </div>
+          <div class="divider"></div>
+          <div class="field">
+            <input type="email" id="reg-email" name="email" placeholder=" " autocomplete="email" required>
+            <label for="reg-email">Email</label>
+          </div>
+          <div class="divider"></div>
+          <div class="field">
+            <input type="password" id="reg-password" name="password" placeholder=" " autocomplete="new-password" minlength="8" required>
+            <label for="reg-password">Password</label>
+          </div>
         </div>
-
-        <div class="field">
-          <label for="reg-email">Email</label>
-          <input type="email" id="reg-email" name="email" placeholder="you@example.com" autocomplete="email" required>
-          <span class="field-error"></span>
-        </div>
-
-        <div class="field">
-          <label for="reg-password">Password</label>
-          <input type="password" id="reg-password" name="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required>
-          <span class="field-error"></span>
-        </div>
+        <p class="group-error" data-error></p>
 
         <div class="turnstile-slot" data-turnstile></div>
 
-        <button type="submit" class="submit" disabled>Sign up</button>
+        <button type="submit" class="submit" disabled>Create Account</button>
+
+        <p class="note muted">By continuing you agree to the <a class="link" href="#">Terms&nbsp;of&nbsp;Service</a>.</p>
       </form>
 
       <!-- Success -->
       <div class="success" id="success-panel" hidden>
         <div class="success-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l5 5L20 7"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l5 5L20 7"/></svg>
         </div>
-        <h1 class="title">Done</h1>
+        <h1 class="title">All set.</h1>
         <p class="subtitle" id="success-text">You are signed in.</p>
-        <button type="button" class="submit" id="success-back">Back</button>
+        <button type="button" class="submit" id="success-back">Continue</button>
       </div>
 
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script src="auth.js"></script>
 </body>

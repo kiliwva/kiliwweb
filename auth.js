@@ -1,4 +1,4 @@
-/* Synestix — auth page logic: Cloudflare Turnstile + form validation. */
+/* Auth page logic: Cloudflare Turnstile + form validation. */
 
 /**
  * Cloudflare Turnstile site key.
@@ -11,6 +11,7 @@ const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
 /** Server-side token verification endpoint (see functions/api/verify.js). */
 const VERIFY_ENDPOINT = '/api/verify';
 
+const tabsBar = document.querySelector('.tabs');
 const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
 const formLogin = document.getElementById('form-login');
@@ -54,6 +55,7 @@ function resetTurnstile(form) {
 
 function switchTo(name) {
   const isLogin = name === 'login';
+  tabsBar.classList.toggle('register', !isLogin);
   tabLogin.classList.toggle('active', isLogin);
   tabRegister.classList.toggle('active', !isLogin);
   tabLogin.setAttribute('aria-selected', String(isLogin));
@@ -72,38 +74,50 @@ tabRegister.addEventListener('click', () => switchTo('register'));
 /* ---------- Validation ---------- */
 
 const MESSAGES = {
-  valueMissing: 'This field is required',
-  typeMismatch: 'Enter a valid email address',
-  tooShort: 'At least 8 characters',
+  name: 'Enter your name.',
+  emailMissing: 'Enter your email address.',
+  emailInvalid: 'Enter a valid email address.',
+  passwordMissing: 'Enter your password.',
+  passwordShort: 'Password must be at least 8 characters.',
 };
 
-function validateField(input) {
-  const field = input.closest('.field');
-  const errorEl = field.querySelector('.field-error');
-  let message = '';
-  if (input.validity.valueMissing) message = MESSAGES.valueMissing;
-  else if (input.validity.typeMismatch) message = MESSAGES.typeMismatch;
-  else if (input.validity.tooShort) message = MESSAGES.tooShort;
+function fieldMessage(input) {
+  const isEmail = input.type === 'email';
+  const isPassword = input.type === 'password';
+  if (input.validity.valueMissing) {
+    if (isEmail) return MESSAGES.emailMissing;
+    if (isPassword) return MESSAGES.passwordMissing;
+    return MESSAGES.name;
+  }
+  if (input.validity.typeMismatch) return MESSAGES.emailInvalid;
+  if (input.validity.tooShort) return MESSAGES.passwordShort;
+  return '';
+}
 
-  field.classList.toggle('invalid', Boolean(message));
-  errorEl.textContent = message;
-  return !message;
+function validateForm(form) {
+  const errorEl = form.querySelector('[data-error]');
+  let firstMessage = '';
+  form.querySelectorAll('.field input').forEach((input) => {
+    const message = fieldMessage(input);
+    if (message && !firstMessage) firstMessage = message;
+  });
+  errorEl.textContent = firstMessage;
+  errorEl.classList.toggle('visible', Boolean(firstMessage));
+  return !firstMessage;
 }
 
 document.querySelectorAll('.form input').forEach((input) => {
   input.addEventListener('input', () => {
-    if (input.closest('.field').classList.contains('invalid')) validateField(input);
+    const form = input.closest('form');
+    const errorEl = form.querySelector('[data-error]');
+    if (errorEl.classList.contains('visible')) validateForm(form);
   });
 });
 
 /* ---------- Submit ---------- */
 
 async function handleSubmit(form, kind) {
-  let valid = true;
-  form.querySelectorAll('.field input').forEach((input) => {
-    if (!validateField(input)) valid = false;
-  });
-  if (!valid) return;
+  if (!validateForm(form)) return;
 
   const token = window.turnstile ? turnstile.getResponse(widgets.get(form)) : '';
   if (!token) {
@@ -136,7 +150,9 @@ async function handleSubmit(form, kind) {
       showSuccess(kind);
       form.reset();
     } else {
-      alert('Captcha verification failed. Please try again.');
+      const errorEl = form.querySelector('[data-error]');
+      errorEl.textContent = 'Captcha verification failed. Please try again.';
+      errorEl.classList.add('visible');
     }
   } finally {
     submitBtn.classList.remove('loading');
@@ -162,7 +178,7 @@ function showSuccess(kind) {
   formRegister.hidden = true;
   successText.textContent = kind === 'login'
     ? 'You are signed in.'
-    : 'Account created. Welcome!';
+    : 'Your account is ready. Welcome!';
   successPanel.hidden = false;
 }
 
