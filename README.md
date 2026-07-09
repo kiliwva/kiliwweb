@@ -1,52 +1,43 @@
-# Kiliw — страница авторизации
+# Synestix — auth page
 
-Страница входа и регистрации в фирменной палитре Claude (коралловый `#D97757`,
-слоновая кость `#F0EEE6`) с защитой Cloudflare Turnstile.
+Minimal sign-in / sign-up page with a single coral accent color (`#D97757`)
+and Cloudflare Turnstile captcha.
 
-## Что внутри
+## Files
 
-| Файл | Назначение |
+| File | Purpose |
 |---|---|
-| `index.html` | Страница входа / регистрации |
-| `styles.css` | Стили (светлая и тёмная тема, анимации) |
-| `auth.js` | Логика: вкладки, валидация, Turnstile, отправка |
-| `functions/api/verify.js` | Cloudflare Pages Function — серверная проверка токена |
+| `index.html` | Sign in / sign up page |
+| `styles.css` | Minimal styles, light & dark theme |
+| `auth.js` | Tabs, validation, Turnstile, submit logic |
+| `functions/api/verify.js` | Cloudflare Pages Function — server-side token verification |
 
-## Возможности
+## Run locally
 
-- Вход и регистрация на одной странице с анимированным переключателем
-- Cloudflare Turnstile на обеих формах (кнопка активируется после прохождения капчи)
-- Валидация полей с сообщениями на русском
-- Индикатор надёжности пароля, показ/скрытие пароля
-- Тёмная тема (по системной настройке), адаптив под мобильные
-- Экран успеха с анимированной галочкой
-
-## Запуск локально
-
-Достаточно открыть `index.html` в браузере или поднять любой статический сервер:
+Open `index.html` in a browser, or serve statically:
 
 ```bash
 npx serve .
 ```
 
-Сейчас используется **тестовый ключ Turnstile** (`1x00000000000000000000AA`) —
-он работает на любом домене и всегда проходит проверку.
+The page currently uses Cloudflare's **test Turnstile key**
+(`1x00000000000000000000AA`) — it renders on any domain and always passes.
 
-## Подключение настоящей капчи
+## Enable real captcha
 
-1. В панели Cloudflare откройте **Turnstile → Add site**, укажите свой домен.
-2. Скопируйте **Site Key** в константу `TURNSTILE_SITE_KEY` в `auth.js`.
-3. Скопируйте **Secret Key** в переменную окружения `TURNSTILE_SECRET_KEY`
-   (для Cloudflare Pages: *Settings → Environment variables*).
+1. In the Cloudflare dashboard open **Turnstile → Add site** and add your domain.
+2. Put the **Site Key** into `TURNSTILE_SITE_KEY` in `auth.js`.
+3. Put the **Secret Key** into the `TURNSTILE_SECRET_KEY` environment variable
+   (Cloudflare Pages: *Settings → Environment variables*).
 
-## Деплой на Cloudflare Pages
+## Deploy to Cloudflare Pages
 
 ```bash
 npx wrangler pages deploy .
 ```
 
-Каталог `functions/` подхватится автоматически — эндпоинт `/api/verify`
-будет проверять токен Turnstile на сервере через `siteverify`.
-Если сайт хостится не на Cloudflare Pages, перенесите логику из
-`functions/api/verify.js` на свой бэкенд (это обычный POST-запрос к
+The `functions/` directory is picked up automatically — `/api/verify`
+verifies the Turnstile token server-side via `siteverify`. If the site is
+hosted elsewhere, port the logic from `functions/api/verify.js` to your
+backend (it is a plain POST request to
 `https://challenges.cloudflare.com/turnstile/v0/siteverify`).

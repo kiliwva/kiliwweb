@@ -1,11 +1,11 @@
 /**
  * Cloudflare Pages Function: POST /api/verify
- * Серверная проверка токена Turnstile через siteverify.
+ * Server-side Turnstile token verification via siteverify.
  *
- * Секретный ключ задаётся в переменной окружения TURNSTILE_SECRET_KEY
+ * Set the secret key in the TURNSTILE_SECRET_KEY environment variable
  * (Pages → Settings → Environment variables).
- * По умолчанию используется тестовый секрет Cloudflare,
- * который всегда возвращает success — только для разработки!
+ * By default Cloudflare's test secret is used, which always returns
+ * success — for development only!
  */
 
 const TEST_SECRET_KEY = '1x0000000000000000000000000000000AA';
@@ -41,7 +41,7 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: outcome['error-codes'] }, 403);
   }
 
-  // Токен подтверждён — здесь можно выполнять вход/регистрацию.
+  // Token verified — perform sign-in / sign-up here.
   return json({ success: true });
 }
 

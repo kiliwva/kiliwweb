@@ -1,22 +1,16 @@
-/* ============================================================
-   Kiliw — логика страницы авторизации
-   Cloudflare Turnstile + валидация форм
-   ============================================================ */
+/* Synestix — auth page logic: Cloudflare Turnstile + form validation. */
 
 /**
- * Ключ сайта Cloudflare Turnstile.
- * Сейчас стоит тестовый ключ Cloudflare («всегда проходит»),
- * он работает на любом домене и на localhost.
- * Для продакшена создайте виджет в панели Cloudflare
- * (Turnstile → Add site) и подставьте свой sitekey.
+ * Cloudflare Turnstile site key.
+ * This is Cloudflare's test key ("always passes") — it works on any
+ * domain including localhost. For production, create a widget in the
+ * Cloudflare dashboard (Turnstile → Add site) and put your site key here.
  */
 const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
 
-/** Адрес серверной проверки токена (см. functions/api/verify.js). */
+/** Server-side token verification endpoint (see functions/api/verify.js). */
 const VERIFY_ENDPOINT = '/api/verify';
 
-const card = document.querySelector('.card');
-const tabs = document.querySelector('.tabs');
 const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
 const formLogin = document.getElementById('form-login');
@@ -24,7 +18,7 @@ const formRegister = document.getElementById('form-register');
 const successPanel = document.getElementById('success-panel');
 const successText = document.getElementById('success-text');
 
-/* id виджетов Turnstile для каждой формы */
+/* Turnstile widget id per form */
 const widgets = new Map();
 
 /* ---------- Turnstile ---------- */
@@ -36,7 +30,6 @@ window.onTurnstileLoad = function () {
     const widgetId = turnstile.render(slot, {
       sitekey: TURNSTILE_SITE_KEY,
       theme,
-      language: 'ru',
       callback: () => setSubmitEnabled(form, true),
       'expired-callback': () => setSubmitEnabled(form, false),
       'error-callback': () => setSubmitEnabled(form, false),
@@ -57,11 +50,10 @@ function resetTurnstile(form) {
   }
 }
 
-/* ---------- Переключение вкладок ---------- */
+/* ---------- Tabs ---------- */
 
 function switchTo(name) {
   const isLogin = name === 'login';
-  tabs.classList.toggle('register', !isLogin);
   tabLogin.classList.toggle('active', isLogin);
   tabRegister.classList.toggle('active', !isLogin);
   tabLogin.setAttribute('aria-selected', String(isLogin));
@@ -76,52 +68,17 @@ function switchTo(name) {
 
 tabLogin.addEventListener('click', () => switchTo('login'));
 tabRegister.addEventListener('click', () => switchTo('register'));
-document.querySelectorAll('[data-switch]').forEach((link) => {
-  link.addEventListener('click', (e) => {
-    e.preventDefault();
-    switchTo(link.dataset.switch);
-  });
-});
 
-/* ---------- Показ / скрытие пароля ---------- */
-
-document.querySelectorAll('.toggle-password').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    const input = btn.parentElement.querySelector('input');
-    const show = input.type === 'password';
-    input.type = show ? 'text' : 'password';
-    btn.querySelector('.eye-open').style.display = show ? 'none' : '';
-    btn.querySelector('.eye-closed').style.display = show ? '' : 'none';
-    btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
-    input.focus();
-  });
-});
-
-/* ---------- Индикатор надёжности пароля ---------- */
-
-const regPassword = document.getElementById('reg-password');
-const strengthMeter = document.querySelector('.strength');
-
-regPassword.addEventListener('input', () => {
-  const v = regPassword.value;
-  let level = 0;
-  if (v.length >= 8) level = 1;
-  if (v.length >= 10 && /\d/.test(v) && /[a-zа-яё]/i.test(v)) level = 2;
-  if (v.length >= 12 && /\d/.test(v) && /[a-zа-яё]/i.test(v) && /[^a-zа-яё0-9]/i.test(v)) level = 3;
-  strengthMeter.dataset.level = String(level);
-});
-
-/* ---------- Валидация ---------- */
+/* ---------- Validation ---------- */
 
 const MESSAGES = {
-  valueMissing: 'Заполните это поле',
-  typeMismatch: 'Введите корректный адрес почты',
-  tooShort: 'Минимум 8 символов',
+  valueMissing: 'This field is required',
+  typeMismatch: 'Enter a valid email address',
+  tooShort: 'At least 8 characters',
 };
 
 function validateField(input) {
   const field = input.closest('.field');
-  if (!field) return input.checkValidity();
   const errorEl = field.querySelector('.field-error');
   let message = '';
   if (input.validity.valueMissing) message = MESSAGES.valueMissing;
@@ -135,26 +92,17 @@ function validateField(input) {
 
 document.querySelectorAll('.form input').forEach((input) => {
   input.addEventListener('input', () => {
-    const field = input.closest('.field');
-    if (field && field.classList.contains('invalid')) validateField(input);
+    if (input.closest('.field').classList.contains('invalid')) validateField(input);
   });
 });
 
-/* ---------- Отправка ---------- */
+/* ---------- Submit ---------- */
 
 async function handleSubmit(form, kind) {
   let valid = true;
   form.querySelectorAll('.field input').forEach((input) => {
     if (!validateField(input)) valid = false;
   });
-  const terms = form.querySelector('input[name="terms"]');
-  if (terms && !terms.checked) {
-    terms.closest('.checkbox').style.outline = '2px solid var(--error)';
-    terms.closest('.checkbox').style.outlineOffset = '4px';
-    valid = false;
-  } else if (terms) {
-    terms.closest('.checkbox').style.outline = '';
-  }
   if (!valid) return;
 
   const token = window.turnstile ? turnstile.getResponse(widgets.get(form)) : '';
@@ -165,12 +113,10 @@ async function handleSubmit(form, kind) {
 
   const submitBtn = form.querySelector('.submit');
   submitBtn.classList.add('loading');
-  submitBtn.disabled = true;
 
   try {
-    /* Серверная проверка токена Turnstile.
-       Если бэкенда ещё нет (открыли файл локально) — показываем успех,
-       т.к. виджет уже пройден на клиенте. */
+    /* Server-side Turnstile verification. If the backend is not
+       deployed yet (page opened locally), fall back to demo mode. */
     let ok = true;
     try {
       const res = await fetch(VERIFY_ENDPOINT, {
@@ -183,15 +129,14 @@ async function handleSubmit(form, kind) {
         ok = data.success === true;
       }
     } catch {
-      /* эндпоинт недоступен — демо-режим */
+      /* endpoint unavailable — demo mode */
     }
 
     if (ok) {
       showSuccess(kind);
       form.reset();
-      strengthMeter.dataset.level = '0';
     } else {
-      alert('Проверка капчи не пройдена. Попробуйте ещё раз.');
+      alert('Captcha verification failed. Please try again.');
     }
   } finally {
     submitBtn.classList.remove('loading');
@@ -208,7 +153,7 @@ formRegister.addEventListener('submit', (e) => {
   handleSubmit(formRegister, 'register');
 });
 
-/* ---------- Экран успеха ---------- */
+/* ---------- Success ---------- */
 
 function showSuccess(kind) {
   formLogin.classList.remove('active');
@@ -216,13 +161,9 @@ function showSuccess(kind) {
   formLogin.hidden = true;
   formRegister.hidden = true;
   successText.textContent = kind === 'login'
-    ? 'Вы успешно вошли в систему.'
-    : 'Аккаунт создан. Добро пожаловать!';
+    ? 'You are signed in.'
+    : 'Account created. Welcome!';
   successPanel.hidden = false;
-
-  /* перезапуск анимации галочки */
-  const icon = successPanel.querySelector('.success-icon');
-  icon.replaceWith(icon.cloneNode(true));
 }
 
 document.getElementById('success-back').addEventListener('click', () => {
