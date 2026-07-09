@@ -25,12 +25,11 @@ const widgets = new Map();
 /* ---------- Turnstile ---------- */
 
 window.onTurnstileLoad = function () {
-  const theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   document.querySelectorAll('[data-turnstile]').forEach((slot) => {
     const form = slot.closest('form');
     const widgetId = turnstile.render(slot, {
       sitekey: TURNSTILE_SITE_KEY,
-      theme,
+      theme: 'light',
       callback: () => setSubmitEnabled(form, true),
       'expired-callback': () => setSubmitEnabled(form, false),
       'error-callback': () => setSubmitEnabled(form, false),

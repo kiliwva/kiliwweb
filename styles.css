@@ -1,4 +1,5 @@
-/* Auth page — solid card over a fully coral-filled animated background.
+/* Auth page — frosted matte panels over a fully coral-filled animated
+   background. Light theme only.
    Typeface: Manrope (self-hosted variable font).
    Accent color: coral #D97757. */
 
@@ -22,44 +23,25 @@
 }
 
 :root {
+  color-scheme: light;
   --accent: #D97757;
   --accent-hover: #C9663F;
   --accent-press: #B85C3C;
-  --accent-ring: rgba(217, 119, 87, 0.3);
-  --card: #FFFFFF;
-  --text: #1D1D1F;
-  --muted: #7A736E;
-  --group-bg: #F5F2EF;
-  --hairline: rgba(0, 0, 0, 0.09);
-  --seg-bg: #EFEAE6;
-  --thumb: #FFFFFF;
-  --error: #D8402A;
+  --accent-ring: rgba(184, 92, 60, 0.35);
+  --text: #33221A;
+  --muted: #8A6A5A;
+  --frost: rgba(255, 255, 255, 0.55);
+  --frost-strong: rgba(255, 255, 255, 0.72);
+  --frost-soft: rgba(255, 255, 255, 0.38);
+  --hairline: rgba(90, 45, 25, 0.12);
+  --error: #C23217;
   --card-shadow:
-    0 2px 8px rgba(60, 25, 10, 0.12),
-    0 32px 80px -16px rgba(60, 25, 10, 0.45);
+    0 2px 8px rgba(90, 40, 18, 0.1),
+    0 32px 80px -16px rgba(90, 40, 18, 0.4);
   /* full-bleed coral background */
   --bg-a: #F0B592;
   --bg-b: #DE7F5C;
   --bg-c: #B85C3C;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --card: #211E1C;
-    --text: #F5F5F7;
-    --muted: #9C948E;
-    --group-bg: #2E2A27;
-    --hairline: rgba(255, 255, 255, 0.1);
-    --seg-bg: #302B28;
-    --thumb: #4A423D;
-    --error: #FF6B52;
-    --card-shadow:
-      0 2px 8px rgba(0, 0, 0, 0.3),
-      0 32px 80px -16px rgba(0, 0, 0, 0.6);
-    --bg-a: #7A3A22;
-    --bg-b: #592815;
-    --bg-c: #351408;
-  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -101,19 +83,19 @@ body {
 .orb-1 {
   width: 80vmax; height: 80vmax;
   top: -30vmax; left: -25vmax;
-  background: radial-gradient(circle, rgba(255, 214, 186, 0.55), transparent 62%);
+  background: radial-gradient(circle, rgba(255, 218, 192, 0.6), transparent 62%);
 }
 .orb-2 {
   width: 75vmax; height: 75vmax;
   bottom: -28vmax; right: -22vmax;
-  background: radial-gradient(circle, rgba(120, 40, 15, 0.5), transparent 62%);
+  background: radial-gradient(circle, rgba(140, 52, 22, 0.45), transparent 62%);
   animation-delay: -3s;
   animation-duration: 7s;
 }
 .orb-3 {
   width: 60vmax; height: 60vmax;
   top: 30%; left: 30%;
-  background: radial-gradient(circle, rgba(255, 170, 130, 0.4), transparent 62%);
+  background: radial-gradient(circle, rgba(255, 176, 138, 0.45), transparent 62%);
   animation-delay: -6s;
   animation-duration: 11s;
 }
@@ -122,12 +104,15 @@ body {
   50%      { opacity: 1;   transform: scale(1.07); }
 }
 
-/* --- solid card --- */
+/* --- frosted matte card --- */
 .card {
   position: relative;
   width: 100%;
   max-width: 420px;
-  background: var(--card);
+  background: var(--frost);
+  backdrop-filter: blur(30px) saturate(1.4);
+  -webkit-backdrop-filter: blur(30px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 28px;
   box-shadow: var(--card-shadow);
   padding: 36px 32px 30px;
@@ -143,7 +128,7 @@ body {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  background: var(--seg-bg);
+  background: var(--frost-soft);
   border-radius: 12px;
   padding: 3px;
   margin-bottom: 28px;
@@ -152,11 +137,11 @@ body {
   position: absolute;
   top: 3px; bottom: 3px; left: 3px;
   width: calc(50% - 3px);
-  background: var(--thumb);
+  background: var(--frost-strong);
   border-radius: 10px;
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.12),
-    0 3px 8px rgba(0, 0, 0, 0.08);
+    0 1px 2px rgba(90, 40, 18, 0.12),
+    0 3px 8px rgba(90, 40, 18, 0.08);
   transition: transform 0.32s cubic-bezier(0.3, 1.25, 0.4, 1);
 }
 .tabs.register .tab-thumb { transform: translateX(100%); }
@@ -199,13 +184,14 @@ body {
 
 /* --- grouped fields --- */
 .group {
-  background: var(--group-bg);
+  background: var(--frost-soft);
   border: 1px solid var(--hairline);
   border-radius: 16px;
   overflow: hidden;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, background 0.2s;
 }
 .group:focus-within {
+  background: var(--frost);
   box-shadow: 0 0 0 3.5px var(--accent-ring);
 }
 .divider {
@@ -243,7 +229,7 @@ body {
   font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: var(--accent);
+  color: var(--accent-press);
 }
 .field input:not(:focus):not(:placeholder-shown) + label { color: var(--muted); }
 
@@ -264,7 +250,7 @@ body {
   margin: 18px 0;
 }
 
-/* --- button --- */
+/* --- button: matte coral glass --- */
 .submit {
   width: 100%;
   padding: 15px;
@@ -274,13 +260,17 @@ body {
   font-size: 16px;
   font-weight: 700;
   color: #fff;
-  background: var(--accent);
-  box-shadow: 0 10px 24px -10px var(--accent-press);
+  background: rgba(200, 96, 62, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 10px 24px -10px rgba(140, 55, 25, 0.7);
   cursor: pointer;
   transition: background 0.15s, transform 0.12s, opacity 0.2s;
 }
-.submit:hover:not(:disabled) { background: var(--accent-hover); }
-.submit:active:not(:disabled) { transform: scale(0.98); background: var(--accent-press); }
+.submit:hover:not(:disabled) { background: rgba(185, 84, 50, 0.9); }
+.submit:active:not(:disabled) { transform: scale(0.98); background: rgba(170, 76, 44, 0.95); }
 .submit:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--accent-ring); }
 .submit:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 .submit.loading { opacity: 0.7; pointer-events: none; }
@@ -294,7 +284,7 @@ body {
 .note.muted { color: var(--muted); }
 
 .link {
-  color: var(--accent);
+  color: var(--accent-press);
   font-weight: 700;
   text-decoration: none;
 }
@@ -313,8 +303,8 @@ body {
   display: grid;
   place-items: center;
   color: #fff;
-  background: var(--accent);
-  box-shadow: 0 12px 28px -10px var(--accent-press);
+  background: rgba(200, 96, 62, 0.85);
+  box-shadow: 0 12px 28px -10px rgba(140, 55, 25, 0.7);
   animation: pop 0.45s cubic-bezier(0.3, 1.4, 0.4, 1);
 }
 @keyframes pop {
