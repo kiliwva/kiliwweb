@@ -140,10 +140,17 @@ async function handleSubmit(form, kind) {
         token,
       }),
     });
-    const data = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => null);
 
-    if (res.ok && data.success) {
+    if (res.ok && data && data.success) {
       window.location.href = data.redirect || '/';
+      return;
+    }
+    if (!data) {
+      /* HTML instead of JSON: the Pages Functions are not deployed */
+      showFormError(form,
+        'Server API is unavailable: Pages Functions are not deployed. '
+        + 'Deploy with git integration or "wrangler pages deploy" (see README).');
       return;
     }
     showFormError(form, API_ERRORS[data.error] || 'Something went wrong. Please try again.');
