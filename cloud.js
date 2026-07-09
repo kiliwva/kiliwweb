@@ -1,0 +1,190 @@
+/* Kiliw Cloud — file storage frontend. */
+
+const fileInput = document.getElementById('file-input');
+const drop = document.getElementById('drop');
+const browseBtn = document.getElementById('browse');
+const statusEl = document.getElementById('upload-status');
+const listEl = document.getElementById('file-list');
+const emptyEl = document.getElementById('files-empty');
+const errorEl = document.getElementById('files-error');
+const countEl = document.getElementById('file-count');
+const emailEl = document.getElementById('user-email');
+
+const MAX_SIZE = 100 * 1024 * 1024;
+
+/* ---------- session ---------- */
+
+async function loadMe() {
+  const res = await fetch('/api/me');
+  if (!res.ok) {
+    window.location.href = '/';
+    return false;
+  }
+  const data = await res.json();
+  emailEl.textContent = data.email;
+  return true;
+}
+
+document.getElementById('logout').addEventListener('click', async () => {
+  const res = await fetch('/api/logout', { method: 'POST' });
+  const data = await res.json().catch(() => ({}));
+  window.location.href = data.redirect || '/';
+});
+
+/* ---------- helpers ---------- */
+
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function showError(message) {
+  errorEl.textContent = message;
+  errorEl.hidden = !message;
+}
+
+/* ---------- file list ---------- */
+
+async function loadFiles() {
+  const res = await fetch('/api/files');
+  if (res.status === 401) {
+    window.location.href = '/';
+    return;
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    showError(data.error === 'not-configured'
+      ? 'Storage is not configured yet (KV / R2 bindings missing).'
+      : 'Could not load files. Try refreshing the page.');
+    return;
+  }
+  showError('');
+  renderFiles(data.files);
+}
+
+function renderFiles(files) {
+  listEl.innerHTML = '';
+  emptyEl.hidden = files.length > 0;
+  countEl.textContent = files.length
+    ? `${files.length} file${files.length === 1 ? '' : 's'}`
+    : '';
+
+  for (const file of files) {
+    const li = document.createElement('li');
+    li.className = 'file-row';
+
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.classList.add('file-icon');
+    icon.innerHTML = '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>';
+
+    const info = document.createElement('div');
+    info.className = 'file-info';
+    const name = document.createElement('span');
+    name.className = 'file-name';
+    name.textContent = file.name;
+    const meta = document.createElement('span');
+    meta.className = 'file-meta';
+    meta.textContent = `${formatSize(file.size)} · ${formatDate(file.uploaded)}`;
+    info.append(name, meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+
+    const download = document.createElement('a');
+    download.className = 'icon-btn';
+    download.href = `/api/files/${encodeURIComponent(file.name)}`;
+    download.title = 'Download';
+    download.setAttribute('aria-label', `Download ${file.name}`);
+    download.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'icon-btn danger';
+    del.title = 'Delete';
+    del.setAttribute('aria-label', `Delete ${file.name}`);
+    del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+    del.addEventListener('click', async () => {
+      if (!confirm(`Delete "${file.name}"?`)) return;
+      const res = await fetch(`/api/files/${encodeURIComponent(file.name)}`, { method: 'DELETE' });
+      if (res.ok) loadFiles();
+    });
+
+    actions.append(download, del);
+    li.append(icon, info, actions);
+    listEl.appendChild(li);
+  }
+}
+
+/* ---------- upload ---------- */
+
+async function uploadFiles(files) {
+  const queue = [...files];
+  if (!queue.length) return;
+
+  let done = 0;
+  const failed = [];
+  statusEl.hidden = false;
+
+  for (const file of queue) {
+    statusEl.textContent = `Uploading ${file.name}… (${done + 1}/${queue.length})`;
+    if (file.size > MAX_SIZE) {
+      failed.push(`${file.name} (too large)`);
+      done++;
+      continue;
+    }
+    try {
+      const res = await fetch(`/api/files?name=${encodeURIComponent(file.name)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      });
+      if (!res.ok) failed.push(file.name);
+    } catch {
+      failed.push(file.name);
+    }
+    done++;
+  }
+
+  statusEl.textContent = failed.length
+    ? `Failed to upload: ${failed.join(', ')}`
+    : `Uploaded ${done} file${done === 1 ? '' : 's'}.`;
+  setTimeout(() => { statusEl.hidden = true; }, 4000);
+  loadFiles();
+}
+
+browseBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  uploadFiles(fileInput.files);
+  fileInput.value = '';
+});
+
+['dragenter', 'dragover'].forEach((type) => {
+  drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.add('dragging');
+  });
+});
+['dragleave', 'drop'].forEach((type) => {
+  drop.addEventListener(type, (e) => {
+    e.preventDefault();
+    drop.classList.remove('dragging');
+  });
+});
+drop.addEventListener('drop', (e) => {
+  if (e.dataTransfer?.files?.length) uploadFiles(e.dataTransfer.files);
+});
+
+/* ---------- init ---------- */
+
+loadMe().then((ok) => {
+  if (ok) loadFiles();
+});

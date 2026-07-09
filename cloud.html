@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Kiliw Cloud</title>
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="scene scene-wide">
+    <!-- Ambient background -->
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+    <div class="orb orb-3" aria-hidden="true"></div>
+
+    <main class="cloud">
+
+      <header class="cloud-head">
+        <div class="cloud-brand">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17.5 19a4.5 4.5 0 0 0 .42-8.98 6 6 0 0 0-11.7 1.62A3.75 3.75 0 0 0 6.75 19h10.75Z"/>
+          </svg>
+          <span>Kiliw Cloud</span>
+        </div>
+        <div class="cloud-user">
+          <span id="user-email"></span>
+          <button type="button" class="ghost-btn" id="logout">Log out</button>
+        </div>
+      </header>
+
+      <!-- Upload zone -->
+      <section class="panel drop" id="drop">
+        <input type="file" id="file-input" multiple hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 16V4m0 0 4 4m-4-4-4 4"/>
+          <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+        </svg>
+        <p><strong>Drop files here</strong> or <button type="button" class="link" id="browse">browse</button></p>
+        <p class="drop-hint">Up to 100 MB per file</p>
+        <p class="drop-status" id="upload-status" hidden></p>
+      </section>
+
+      <!-- File list -->
+      <section class="panel files">
+        <div class="files-head">
+          <h2>Your files</h2>
+          <span id="file-count"></span>
+        </div>
+        <ul class="file-list" id="file-list"></ul>
+        <p class="files-empty" id="files-empty" hidden>Nothing here yet. Upload your first file.</p>
+        <p class="files-error" id="files-error" hidden></p>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="cloud.js"></script>
+</body>
+</html>

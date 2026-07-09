@@ -1,4 +1,4 @@
-/* Auth page logic: Cloudflare Turnstile + form validation. */
+/* Auth page logic: Cloudflare Turnstile + real sign-in / sign-up. */
 
 /**
  * Cloudflare Turnstile site key.
@@ -8,16 +8,11 @@
  */
 const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
 
-/** Server-side token verification endpoint (see functions/api/verify.js). */
-const VERIFY_ENDPOINT = '/api/verify';
-
 const tabsBar = document.querySelector('.tabs');
 const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
 const formLogin = document.getElementById('form-login');
 const formRegister = document.getElementById('form-register');
-const successPanel = document.getElementById('success-panel');
-const successText = document.getElementById('success-text');
 
 /* Turnstile widget id per form */
 const widgets = new Map();
@@ -64,7 +59,6 @@ function switchTo(name) {
   formRegister.classList.toggle('active', !isLogin);
   formLogin.hidden = !isLogin;
   formRegister.hidden = isLogin;
-  successPanel.hidden = true;
 }
 
 tabLogin.addEventListener('click', () => switchTo('login'));
@@ -73,43 +67,52 @@ tabRegister.addEventListener('click', () => switchTo('register'));
 /* ---------- Validation ---------- */
 
 const MESSAGES = {
-  name: 'Enter your name.',
   emailMissing: 'Enter your email address.',
   emailInvalid: 'Enter a valid email address.',
   passwordMissing: 'Enter your password.',
   passwordShort: 'Password must be at least 8 characters.',
 };
 
+const API_ERRORS = {
+  'invalid-credentials': 'Incorrect email or password.',
+  'user-exists': 'An account with this email already exists. Try signing in.',
+  'invalid-email': 'Enter a valid email address.',
+  'invalid-password': 'Password must be at least 8 characters.',
+  captcha: 'Captcha verification failed. Please try again.',
+  'not-configured': 'Server storage is not configured yet. Contact the site owner.',
+};
+
 function fieldMessage(input) {
-  const isEmail = input.type === 'email';
-  const isPassword = input.type === 'password';
   if (input.validity.valueMissing) {
-    if (isEmail) return MESSAGES.emailMissing;
-    if (isPassword) return MESSAGES.passwordMissing;
-    return MESSAGES.name;
+    return input.type === 'email' ? MESSAGES.emailMissing : MESSAGES.passwordMissing;
   }
   if (input.validity.typeMismatch) return MESSAGES.emailInvalid;
   if (input.validity.tooShort) return MESSAGES.passwordShort;
   return '';
 }
 
-function validateForm(form) {
+function showFormError(form, message) {
   const errorEl = form.querySelector('[data-error]');
+  errorEl.textContent = message;
+  errorEl.classList.toggle('visible', Boolean(message));
+}
+
+function validateForm(form) {
   let firstMessage = '';
   form.querySelectorAll('.field input').forEach((input) => {
     const message = fieldMessage(input);
     if (message && !firstMessage) firstMessage = message;
   });
-  errorEl.textContent = firstMessage;
-  errorEl.classList.toggle('visible', Boolean(firstMessage));
+  showFormError(form, firstMessage);
   return !firstMessage;
 }
 
 document.querySelectorAll('.form input').forEach((input) => {
   input.addEventListener('input', () => {
     const form = input.closest('form');
-    const errorEl = form.querySelector('[data-error]');
-    if (errorEl.classList.contains('visible')) validateForm(form);
+    if (form.querySelector('[data-error]').classList.contains('visible')) {
+      validateForm(form);
+    }
   });
 });
 
@@ -128,31 +131,24 @@ async function handleSubmit(form, kind) {
   submitBtn.classList.add('loading');
 
   try {
-    /* Server-side Turnstile verification. If the backend is not
-       deployed yet (page opened locally), fall back to demo mode. */
-    let ok = true;
-    try {
-      const res = await fetch(VERIFY_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, kind }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        ok = data.success === true;
-      }
-    } catch {
-      /* endpoint unavailable — demo mode */
-    }
+    const res = await fetch(kind === 'login' ? '/api/login' : '/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.querySelector('input[type="email"]').value.trim(),
+        password: form.querySelector('input[type="password"]').value,
+        token,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
 
-    if (ok) {
-      showSuccess(kind);
-      form.reset();
-    } else {
-      const errorEl = form.querySelector('[data-error]');
-      errorEl.textContent = 'Captcha verification failed. Please try again.';
-      errorEl.classList.add('visible');
+    if (res.ok && data.success) {
+      window.location.href = data.redirect || '/';
+      return;
     }
+    showFormError(form, API_ERRORS[data.error] || 'Something went wrong. Please try again.');
+  } catch {
+    showFormError(form, 'Network error. Check your connection and try again.');
   } finally {
     submitBtn.classList.remove('loading');
     resetTurnstile(form);
@@ -166,22 +162,4 @@ formLogin.addEventListener('submit', (e) => {
 formRegister.addEventListener('submit', (e) => {
   e.preventDefault();
   handleSubmit(formRegister, 'register');
-});
-
-/* ---------- Success ---------- */
-
-function showSuccess(kind) {
-  formLogin.classList.remove('active');
-  formRegister.classList.remove('active');
-  formLogin.hidden = true;
-  formRegister.hidden = true;
-  successText.textContent = kind === 'login'
-    ? 'You are signed in.'
-    : 'Your account is ready. Welcome!';
-  successPanel.hidden = false;
-}
-
-document.getElementById('success-back').addEventListener('click', () => {
-  successPanel.hidden = true;
-  switchTo('login');
 });
