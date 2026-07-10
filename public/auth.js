@@ -19,7 +19,8 @@ window.onTurnstileLoad = function () {
     const form = slot.closest('form');
     const widgetId = turnstile.render(slot, {
       sitekey: TURNSTILE_SITE_KEY,
-      theme: 'light',
+      theme: KiliwUI.theme,
+      language: KiliwUI.lang,
       callback: () => setSubmitEnabled(form, true),
       'expired-callback': () => setSubmitEnabled(form, false),
       'error-callback': () => setSubmitEnabled(form, false),
@@ -27,6 +28,19 @@ window.onTurnstileLoad = function () {
     widgets.set(form, widgetId);
   });
 };
+
+/* re-render the widgets when theme or language changes */
+function rerenderTurnstile() {
+  if (!window.turnstile) return;
+  widgets.forEach((id, form) => {
+    turnstile.remove(id);
+    setSubmitEnabled(form, false);
+  });
+  widgets.clear();
+  window.onTurnstileLoad();
+}
+KiliwUI.onTheme(rerenderTurnstile);
+KiliwUI.onLang(rerenderTurnstile);
 
 function setSubmitEnabled(form, enabled) {
   form.querySelector('.submit').disabled = !enabled;
@@ -61,29 +75,17 @@ tabRegister.addEventListener('click', () => switchTo('register'));
 
 /* ---------- Validation ---------- */
 
-const MESSAGES = {
-  emailMissing: 'Enter your email address.',
-  emailInvalid: 'Enter a valid email address.',
-  passwordMissing: 'Enter your password.',
-  passwordShort: 'Password must be at least 8 characters.',
-};
-
-const API_ERRORS = {
-  'invalid-credentials': 'Incorrect email or password.',
-  'user-exists': 'An account with this email already exists. Try signing in.',
-  'invalid-email': 'Enter a valid email address.',
-  'invalid-password': 'Password must be at least 8 characters.',
-  'totp-invalid': 'Wrong 2FA code. Check your authenticator app and try again.',
-  captcha: 'Captcha verification failed. Please try again.',
-  'not-configured': 'Server storage is not configured yet. Contact the site owner.',
-};
+const API_ERROR_KEYS = [
+  'invalid-credentials', 'user-exists', 'invalid-email', 'invalid-password',
+  'totp-invalid', 'captcha', 'not-configured',
+];
 
 function fieldMessage(input) {
   if (input.validity.valueMissing) {
-    return input.type === 'email' ? MESSAGES.emailMissing : MESSAGES.passwordMissing;
+    return KiliwUI.t(input.type === 'email' ? 'err.emailMissing' : 'err.passwordMissing');
   }
-  if (input.validity.typeMismatch) return MESSAGES.emailInvalid;
-  if (input.validity.tooShort) return MESSAGES.passwordShort;
+  if (input.validity.typeMismatch) return KiliwUI.t('err.emailInvalid');
+  if (input.validity.tooShort) return KiliwUI.t('err.passwordShort');
   return '';
 }
 
@@ -148,24 +150,25 @@ async function handleSubmit(form, kind) {
     }
     if (!data) {
       /* HTML instead of JSON: the server code is not deployed */
-      showFormError(form,
-        'Server API is unavailable: the Worker is not deployed correctly (see README).');
+      showFormError(form, KiliwUI.t('auth.serverDown'));
       return;
     }
     if (data.error === 'totp-required') {
       /* account has 2FA: reveal the code field and ask for it */
       document.getElementById('login-totp-group').hidden = false;
-      showFormError(form, 'Enter the 6-digit code from your authenticator app.');
+      showFormError(form, KiliwUI.t('auth.totpPrompt'));
       if (totpInput) totpInput.focus();
       return;
     }
-    let message = API_ERRORS[data.error] || 'Something went wrong. Please try again.';
+    let message = API_ERROR_KEYS.includes(data.error)
+      ? KiliwUI.t(`api.${data.error}`)
+      : KiliwUI.t('auth.generic');
     if (data.error === 'captcha' && Array.isArray(data.detail) && data.detail.length) {
       message += ` [${data.detail.join(', ')}]`;
     }
     showFormError(form, message);
   } catch {
-    showFormError(form, 'Network error. Check your connection and try again.');
+    showFormError(form, KiliwUI.t('auth.network'));
   } finally {
     submitBtn.classList.remove('loading');
     resetTurnstile(form);

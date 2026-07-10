@@ -47,14 +47,21 @@ function formatSize(bytes) {
 
 function formatDate(iso) {
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const locale = KiliwUI.lang === 'ru' ? 'ru-RU' : 'en-GB';
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+    + ', ' + d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 }
 
 function showError(message) {
   errorEl.textContent = message;
   errorEl.hidden = !message;
 }
+
+/* re-render dynamic texts when the language changes */
+KiliwUI.onLang(() => {
+  renderTotpState();
+  loadFiles();
+});
 
 /* ---------- file list ---------- */
 
@@ -66,9 +73,7 @@ async function loadFiles() {
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
-    showError(data.error === 'not-configured'
-      ? 'Storage is not configured yet (KV / R2 bindings missing).'
-      : 'Could not load files. Try refreshing the page.');
+    showError(KiliwUI.t(data.error === 'not-configured' ? 'files.notConfigured' : 'files.loadError'));
     return;
   }
   showError('');
@@ -78,9 +83,7 @@ async function loadFiles() {
 function renderFiles(files) {
   listEl.innerHTML = '';
   emptyEl.hidden = files.length > 0;
-  countEl.textContent = files.length
-    ? `${files.length} file${files.length === 1 ? '' : 's'}`
-    : '';
+  countEl.textContent = files.length ? KiliwUI.filesCount(files.length) : '';
 
   for (const file of files) {
     const li = document.createElement('li');
@@ -107,18 +110,18 @@ function renderFiles(files) {
     const download = document.createElement('a');
     download.className = 'icon-btn';
     download.href = `/api/files/${encodeURIComponent(file.name)}`;
-    download.title = 'Download';
-    download.setAttribute('aria-label', `Download ${file.name}`);
+    download.title = KiliwUI.t('file.download');
+    download.setAttribute('aria-label', `${KiliwUI.t('file.download')} ${file.name}`);
     download.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
 
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'icon-btn danger';
-    del.title = 'Delete';
-    del.setAttribute('aria-label', `Delete ${file.name}`);
+    del.title = KiliwUI.t('file.delete');
+    del.setAttribute('aria-label', `${KiliwUI.t('file.delete')} ${file.name}`);
     del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
     del.addEventListener('click', async () => {
-      if (!confirm(`Delete "${file.name}"?`)) return;
+      if (!confirm(KiliwUI.t('file.deleteConfirm', { name: file.name }))) return;
       const res = await fetch(`/api/files/${encodeURIComponent(file.name)}`, { method: 'DELETE' });
       if (res.ok) loadFiles();
     });
@@ -140,9 +143,9 @@ async function uploadFiles(files) {
   statusEl.hidden = false;
 
   for (const file of queue) {
-    statusEl.textContent = `Uploading ${file.name}… (${done + 1}/${queue.length})`;
+    statusEl.textContent = KiliwUI.t('drop.uploading', { name: file.name, i: done + 1, n: queue.length });
     if (file.size > MAX_SIZE) {
-      failed.push(`${file.name} (too large)`);
+      failed.push(`${file.name} (${KiliwUI.t('drop.tooLarge')})`);
       done++;
       continue;
     }
@@ -160,8 +163,8 @@ async function uploadFiles(files) {
   }
 
   statusEl.textContent = failed.length
-    ? `Failed to upload: ${failed.join(', ')}`
-    : `Uploaded ${done} file${done === 1 ? '' : 's'}.`;
+    ? KiliwUI.t('drop.failed', { list: failed.join(', ') })
+    : KiliwUI.t('drop.uploaded', { files: KiliwUI.filesCount(done) });
   setTimeout(() => { statusEl.hidden = true; }, 4000);
   loadFiles();
 }
@@ -197,7 +200,7 @@ const totpOn = document.getElementById('totp-on');
 const totpSetupBox = document.getElementById('totp-setup-box');
 
 function renderTotpState() {
-  totpBadge.textContent = totpEnabled ? 'On' : 'Off';
+  totpBadge.textContent = KiliwUI.t(totpEnabled ? 'badge.on' : 'badge.off');
   totpBadge.classList.toggle('on', totpEnabled);
   totpOn.hidden = !totpEnabled;
   totpOff.hidden = totpEnabled;
@@ -239,7 +242,7 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
   const current = document.getElementById('pw-current').value;
   const next = document.getElementById('pw-next').value;
   if (next.length < 8) {
-    showStatus('password-status', 'New password must be at least 8 characters.');
+    showStatus('password-status', KiliwUI.t('profile.pw.short'));
     return;
   }
   const res = await fetch('/api/password', {
@@ -249,12 +252,10 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
-    showStatus('password-status', 'Password updated. Other devices were signed out.', true);
+    showStatus('password-status', KiliwUI.t('profile.pw.ok'), true);
     e.target.reset();
   } else {
-    showStatus('password-status', data.error === 'wrong-password'
-      ? 'Current password is incorrect.'
-      : 'Could not update the password. Try again.');
+    showStatus('password-status', KiliwUI.t(data.error === 'wrong-password' ? 'profile.pw.wrong' : 'profile.pw.fail'));
   }
 });
 
@@ -304,9 +305,7 @@ document.getElementById('totp-enable-form').addEventListener('submit', async (e)
     renderTotpState();
     e.target.reset();
   } else {
-    showStatus('totp-enable-status', data.error === 'totp-invalid'
-      ? 'Wrong code. Check your authenticator app and try again.'
-      : 'Could not enable 2FA. Try again.');
+    showStatus('totp-enable-status', KiliwUI.t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.enableFail'));
   }
 });
 
@@ -324,9 +323,7 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
     renderTotpState();
     e.target.reset();
   } else {
-    showStatus('totp-disable-status', data.error === 'totp-invalid'
-      ? 'Wrong code. Check your authenticator app and try again.'
-      : 'Could not disable 2FA. Try again.');
+    showStatus('totp-disable-status', KiliwUI.t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.disableFail'));
   }
 });
 

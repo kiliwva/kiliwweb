@@ -35,6 +35,9 @@
   --frost-soft: rgba(255, 255, 255, 0.38);
   --hairline: rgba(90, 45, 25, 0.12);
   --error: #C23217;
+  --panel-border: rgba(255, 255, 255, 0.55);
+  --overlay-bg: rgba(80, 35, 15, 0.35);
+  --ok-text: #3E6B3A;
   --card-shadow:
     0 2px 8px rgba(90, 40, 18, 0.1),
     0 32px 80px -16px rgba(90, 40, 18, 0.4);
@@ -42,6 +45,35 @@
   --bg-a: #F0B592;
   --bg-b: #DE7F5C;
   --bg-c: #B85C3C;
+}
+
+:root[data-theme="dark"] {
+  --text: #F3EAE3;
+  --muted: #B39C8F;
+  --frost: rgba(40, 25, 18, 0.55);
+  --frost-strong: rgba(58, 37, 27, 0.78);
+  --frost-soft: rgba(255, 255, 255, 0.08);
+  --hairline: rgba(255, 255, 255, 0.12);
+  --error: #FF7A5C;
+  --panel-border: rgba(255, 255, 255, 0.14);
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --ok-text: #8FCB8A;
+  --card-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.35),
+    0 32px 80px -16px rgba(0, 0, 0, 0.6);
+  --bg-a: #57281A;
+  --bg-b: #38180D;
+  --bg-c: #1C0B05;
+}
+
+:root[data-theme="dark"] .orb-1 {
+  background: radial-gradient(circle, rgba(255, 150, 105, 0.28), transparent 62%);
+}
+:root[data-theme="dark"] .orb-2 {
+  background: radial-gradient(circle, rgba(120, 40, 15, 0.5), transparent 62%);
+}
+:root[data-theme="dark"] .orb-3 {
+  background: radial-gradient(circle, rgba(255, 140, 95, 0.2), transparent 62%);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -112,7 +144,7 @@ body {
   background: var(--frost);
   backdrop-filter: blur(30px) saturate(1.4);
   -webkit-backdrop-filter: blur(30px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--panel-border);
   border-radius: 28px;
   box-shadow: var(--card-shadow);
   padding: 36px 32px 30px;
@@ -307,7 +339,7 @@ body {
   background: var(--frost);
   backdrop-filter: blur(30px) saturate(1.4);
   -webkit-backdrop-filter: blur(30px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--panel-border);
   border-radius: 24px;
   box-shadow: var(--card-shadow);
 }
@@ -367,7 +399,7 @@ body {
   text-align: center;
   border-style: dashed;
   border-width: 2px;
-  border-color: rgba(255, 255, 255, 0.7);
+  border-color: var(--panel-border);
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
 }
 .drop.dragging {
@@ -501,7 +533,7 @@ body {
   display: grid;
   place-items: center;
   padding: 20px 14px;
-  background: rgba(80, 35, 15, 0.35);
+  background: var(--overlay-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   overflow-y: auto;
@@ -516,7 +548,7 @@ body {
   background: var(--frost-strong);
   backdrop-filter: blur(30px) saturate(1.4);
   -webkit-backdrop-filter: blur(30px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--panel-border);
   border-radius: 24px;
   box-shadow: var(--card-shadow);
   padding: 24px 24px 28px;
@@ -574,7 +606,7 @@ body {
 .badge.on {
   background: rgba(94, 155, 90, 0.18);
   border-color: rgba(94, 155, 90, 0.4);
-  color: #3E6B3A;
+  color: var(--ok-text);
 }
 
 .modal-hint {
@@ -591,7 +623,7 @@ body {
   color: var(--error);
   margin: 8px 2px 0;
 }
-.modal-status.ok { color: #3E6B3A; }
+.modal-status.ok { color: var(--ok-text); }
 
 .submit.small {
   width: auto;
@@ -636,3 +668,52 @@ body {
 }
 
 .totp-group { margin-top: 12px; }
+
+
+/* ============================================================
+   Corner controls (theme + language)
+   ============================================================ */
+
+.corner-controls {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 60;
+  display: flex;
+  gap: 8px;
+}
+
+.corner-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: var(--frost);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(60, 25, 10, 0.15);
+  transition: transform 0.15s, background 0.15s;
+}
+.corner-btn:hover {
+  transform: translateY(-1px);
+  background: var(--frost-strong);
+}
+.corner-btn:active { transform: scale(0.94); }
+.corner-btn svg { width: 19px; height: 19px; }
+
+/* show the icon of the theme you would switch to */
+.corner-btn .icon-sun { display: none; }
+.corner-btn .icon-moon { display: block; }
+:root[data-theme="dark"] .corner-btn .icon-sun { display: block; }
+:root[data-theme="dark"] .corner-btn .icon-moon { display: none; }
+
+/* keep the cloud header clear of the fixed corner buttons */
+.scene-wide { padding-top: 72px; }
