@@ -28,52 +28,52 @@
   --accent-hover: #C9663F;
   --accent-press: #B85C3C;
   --accent-ring: rgba(184, 92, 60, 0.35);
-  --text: #33221A;
-  --muted: #8A6A5A;
+  --text: #1A1A1A;
+  --muted: #7C7C7C;
   --frost: rgba(255, 255, 255, 0.55);
   --frost-strong: rgba(255, 255, 255, 0.72);
   --frost-soft: rgba(255, 255, 255, 0.38);
-  --hairline: rgba(90, 45, 25, 0.12);
+  --hairline: rgba(0, 0, 0, 0.1);
   --error: #C23217;
   --panel-border: rgba(255, 255, 255, 0.55);
-  --overlay-bg: rgba(80, 35, 15, 0.35);
-  --ok-text: #3E6B3A;
+  --overlay-bg: rgba(15, 15, 15, 0.4);
+  --ok-text: #B85C3C;
   --card-shadow:
-    0 2px 8px rgba(90, 40, 18, 0.1),
-    0 32px 80px -16px rgba(90, 40, 18, 0.4);
-  /* full-bleed coral background */
-  --bg-a: #F0B98F;
-  --bg-b: #DD8659;
-  --bg-c: #BC5F3B;
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 32px 80px -16px rgba(0, 0, 0, 0.4);
+  /* full-bleed monochrome background */
+  --bg-a: #F5F5F5;
+  --bg-b: #E3E3E3;
+  --bg-c: #C9C9C9;
 }
 
 :root[data-theme="dark"] {
-  --text: #F3EAE3;
-  --muted: #B39C8F;
-  --frost: rgba(40, 25, 18, 0.55);
-  --frost-strong: rgba(58, 37, 27, 0.78);
+  --text: #F2F2F2;
+  --muted: #9C9C9C;
+  --frost: rgba(24, 24, 24, 0.55);
+  --frost-strong: rgba(52, 52, 52, 0.78);
   --frost-soft: rgba(255, 255, 255, 0.08);
   --hairline: rgba(255, 255, 255, 0.12);
   --error: #FF7A5C;
   --panel-border: rgba(255, 255, 255, 0.14);
   --overlay-bg: rgba(0, 0, 0, 0.5);
-  --ok-text: #8FCB8A;
+  --ok-text: #E08663;
   --card-shadow:
     0 2px 8px rgba(0, 0, 0, 0.35),
     0 32px 80px -16px rgba(0, 0, 0, 0.6);
-  --bg-a: #2E1810;
-  --bg-b: #1D0F0A;
-  --bg-c: #120A07;
+  --bg-a: #262626;
+  --bg-b: #161616;
+  --bg-c: #0C0C0C;
 }
 
 :root[data-theme="dark"] .orb-1 {
-  background: radial-gradient(circle, rgba(255, 152, 100, 0.34), transparent 60%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 60%);
 }
 :root[data-theme="dark"] .orb-2 {
-  background: radial-gradient(circle, rgba(196, 90, 48, 0.28), transparent 60%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 60%);
 }
 :root[data-theme="dark"] .orb-3 {
-  background: radial-gradient(circle, rgba(255, 126, 74, 0.24), transparent 60%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 60%);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -115,19 +115,19 @@ body {
 .orb-1 {
   width: 80vmax; height: 80vmax;
   top: -30vmax; left: -25vmax;
-  background: radial-gradient(circle, rgba(255, 218, 192, 0.6), transparent 62%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.7), transparent 62%);
 }
 .orb-2 {
   width: 75vmax; height: 75vmax;
   bottom: -28vmax; right: -22vmax;
-  background: radial-gradient(circle, rgba(140, 52, 22, 0.45), transparent 62%);
+  background: radial-gradient(circle, rgba(110, 110, 110, 0.35), transparent 62%);
   animation-delay: -3s;
   animation-duration: 7s;
 }
 .orb-3 {
   width: 60vmax; height: 60vmax;
   top: 30%; left: 30%;
-  background: radial-gradient(circle, rgba(255, 176, 138, 0.45), transparent 62%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 62%);
   animation-delay: -6s;
   animation-duration: 11s;
 }
@@ -172,8 +172,8 @@ body {
   background: var(--frost-strong);
   border-radius: 10px;
   box-shadow:
-    0 1px 2px rgba(90, 40, 18, 0.12),
-    0 3px 8px rgba(90, 40, 18, 0.08);
+    0 1px 2px rgba(0, 0, 0, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.08);
   transition: transform 0.32s cubic-bezier(0.3, 1.25, 0.4, 1);
 }
 .tabs.register .tab-thumb { transform: translateX(100%); }
@@ -728,7 +728,7 @@ body {
   border-radius: 12px;
   background: #fff;
   padding: 8px;
-  box-shadow: 0 4px 14px rgba(90, 40, 18, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 .totp-secret {
   text-align: center;
@@ -780,8 +780,8 @@ body {
   letter-spacing: 0.03em;
   cursor: pointer;
   box-shadow:
-    0 1px 2px rgba(90, 40, 18, 0.12),
-    0 3px 8px rgba(90, 40, 18, 0.08);
+    0 1px 2px rgba(0, 0, 0, 0.12),
+    0 3px 8px rgba(0, 0, 0, 0.08);
   transition: transform 0.15s, background 0.15s;
 }
 .corner-btn:hover {
