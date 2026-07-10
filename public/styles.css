@@ -1072,6 +1072,20 @@ body {
 .verify-submit { margin-top: 4px; }
 
 
+.app-foot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.app-copy {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  opacity: 0.75;
+}
 .app-build {
   display: block;
   width: 100%;
@@ -1079,11 +1093,11 @@ body {
   background: none;
   cursor: pointer;
   font: inherit;
-  margin-top: 16px;
+  margin-top: 6px;
   text-align: center;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--muted);
   opacity: 0.6;
 }
