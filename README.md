@@ -29,8 +29,11 @@ _share/f/<email>/<path>       file → share-token index
 ### Public share links
 
 Any file can be shared via `https://kiliw.com/share/<token>` — a branded
-download page that works without an account. Links can optionally require
-a password (asked on the page before the download starts). Shares follow
+full-page viewer that works without an account: images, video, audio, PDF
+and text files show a live preview (`?raw=1` streams inline, `?dl=1`
+downloads). Links can optionally require a password; a correct password
+unlocks the preview page via a short-lived signed URL (1 hour), so the
+file bytes are never reachable without it. Shares follow
 renames and are removed automatically when the file, its folder, or the
 account is deleted. One link per file; creating a new link replaces the
 old one (old URL stops working).
