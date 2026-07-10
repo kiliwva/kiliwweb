@@ -211,24 +211,37 @@
       <section class="modal-section">
         <h3 data-i18n="profile.delete.title">Delete account</h3>
         <p class="modal-hint" data-i18n="profile.delete.hint">Permanently deletes your account and every file. This cannot be undone.</p>
+        <p class="modal-status" id="delete-start-status" hidden></p>
         <button type="button" class="submit small danger" id="delete-start" data-i18n="profile.delete.start">Delete account</button>
-
-        <div id="delete-confirm-box" hidden>
-          <p class="modal-hint" id="delete-method-hint"></p>
-          <div id="delete-otp-wrap">
-            <div class="otp" id="delete-otp" data-otp data-otp-target="delete-code"></div>
-            <input type="hidden" id="delete-code">
-          </div>
-          <div class="group" id="delete-pw-wrap" hidden>
-            <div class="field">
-              <input type="password" id="delete-password" placeholder=" " autocomplete="current-password">
-              <label for="delete-password" data-i18n="profile.pw.current">Current password</label>
-            </div>
-          </div>
-          <p class="modal-status" id="delete-status" hidden></p>
-          <button type="button" class="submit small danger" id="delete-confirm" data-i18n="profile.delete.confirm">Delete forever</button>
-        </div>
       </section>
+    </div>
+  </div>
+
+  <!-- Delete confirmation popup -->
+  <div class="modal-overlay" id="delete-modal" hidden>
+    <div class="modal delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+      <div class="modal-head">
+        <h2 id="delete-title" class="danger-title" data-i18n="profile.delete.title">Delete account</h2>
+        <button type="button" class="icon-btn" id="delete-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+
+      <p class="modal-hint" id="delete-method-hint"></p>
+
+      <div id="delete-otp-wrap">
+        <div class="otp" id="delete-otp" data-otp data-otp-target="delete-code"></div>
+        <input type="hidden" id="delete-code">
+      </div>
+      <div class="group delete-pw" id="delete-pw-wrap" hidden>
+        <div class="field">
+          <input type="password" id="delete-password" placeholder=" " autocomplete="current-password">
+          <label for="delete-password" data-i18n="profile.pw.current">Current password</label>
+        </div>
+      </div>
+
+      <p class="modal-status" id="delete-status" hidden></p>
+      <button type="button" class="submit danger-full" id="delete-confirm" data-i18n="profile.delete.confirm">Delete forever</button>
     </div>
   </div>
 

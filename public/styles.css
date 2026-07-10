@@ -873,8 +873,17 @@ body {
   .tier { flex-direction: row; justify-content: space-between; padding: 12px 14px; }
 }
 
-/* plan & preview modals open above the profile modal */
-#plan-modal, #preview-modal { z-index: 55; }
+/* plan, preview & delete modals open above the profile modal */
+#plan-modal, #preview-modal, #delete-modal { z-index: 55; }
+
+.delete-modal { max-width: 400px; }
+.danger-title { color: var(--error); }
+.delete-modal .modal-hint { margin: 10px 0 16px; }
+.delete-pw { margin-bottom: 18px; }
+.submit.danger-full {
+  background: rgba(180, 55, 30, 0.85);
+}
+.submit.danger-full:hover:not(:disabled) { background: rgba(160, 45, 22, 0.9); }
 
 
 /* payment method buttons */

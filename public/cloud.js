@@ -642,10 +642,8 @@ document.getElementById('profile-open').addEventListener('click', openProfile);
 function closeModal() {
   modal.hidden = true;
   document.body.style.overflow = '';
-  ['password-status', 'totp-enable-status', 'totp-disable-status', 'plan-status', 'delete-status'].forEach((id) => showStatus(id, ''));
+  ['password-status', 'totp-enable-status', 'totp-disable-status', 'plan-status', 'delete-start-status'].forEach((id) => showStatus(id, ''));
   document.getElementById('password-form').reset();
-  document.getElementById('delete-confirm-box').hidden = true;
-  document.getElementById('delete-password').value = '';
   renderTotpState();
 }
 
@@ -656,6 +654,7 @@ modal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!previewModal.hidden) closePreview();
+  else if (!deleteModal.hidden) closeDeleteModal();
   else if (!planModal.hidden) closePlanModal();
   else if (!modal.hidden) closeModal();
 });
@@ -753,12 +752,25 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
 
 /* ---------- delete account ---------- */
 
-const deleteBox = document.getElementById('delete-confirm-box');
+const deleteModal = document.getElementById('delete-modal');
 let deleteMethod = null;
+
+function closeDeleteModal() {
+  deleteModal.hidden = true;
+  showStatus('delete-status', '');
+  document.getElementById('delete-password').value = '';
+  KiliwUI.otpClear('delete-otp');
+  if (modal.hidden) document.body.style.overflow = '';
+}
+
+document.getElementById('delete-close').addEventListener('click', closeDeleteModal);
+deleteModal.addEventListener('click', (e) => {
+  if (e.target === deleteModal) closeDeleteModal();
+});
 
 document.getElementById('delete-start').addEventListener('click', async () => {
   if (!confirm(t('delete.prompt'))) return;
-  showStatus('delete-status', '');
+  showStatus('delete-start-status', '');
   const res = await fetch('/api/delete-account', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -766,14 +778,10 @@ document.getElementById('delete-start').addEventListener('click', async () => {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
-    showStatus('delete-status', t(data.error === 'mail-failed' ? 'api.mail-failed' : 'delete.fail'));
-    deleteBox.hidden = false;
-    document.getElementById('delete-otp-wrap').hidden = true;
-    document.getElementById('delete-pw-wrap').hidden = true;
+    showStatus('delete-start-status', t(data.error === 'mail-failed' ? 'api.mail-failed' : 'delete.fail'));
     return;
   }
   deleteMethod = data.method;
-  deleteBox.hidden = false;
   const isPassword = deleteMethod === 'password';
   document.getElementById('delete-otp-wrap').hidden = isPassword;
   document.getElementById('delete-pw-wrap').hidden = !isPassword;
@@ -782,6 +790,10 @@ document.getElementById('delete-start').addEventListener('click', async () => {
       : deleteMethod === 'email' ? 'delete.methodEmail'
         : 'delete.methodPassword',
   );
+  showStatus('delete-status', '');
+  document.getElementById('delete-password').value = '';
+  deleteModal.hidden = false;
+  document.body.style.overflow = 'hidden';
   if (isPassword) {
     document.getElementById('delete-password').focus();
   } else {
