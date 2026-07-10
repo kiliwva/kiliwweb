@@ -129,6 +129,8 @@ body {
 }
 
 /* --- segmented control --- */
+.tabs[hidden] { display: none; }
+
 .tabs {
   position: relative;
   display: grid;

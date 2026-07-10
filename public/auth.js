@@ -8,6 +8,9 @@ const tabLogin = document.getElementById('tab-login');
 const tabRegister = document.getElementById('tab-register');
 const formLogin = document.getElementById('form-login');
 const formRegister = document.getElementById('form-register');
+const formVerify = document.getElementById('form-verify');
+
+let pendingEmail = '';
 
 /* Turnstile widget id per form */
 const widgets = new Map();
@@ -65,7 +68,8 @@ tabRegister.addEventListener('click', () => switchTo('register'));
 
 const API_ERROR_KEYS = [
   'invalid-credentials', 'user-exists', 'invalid-email', 'invalid-password',
-  'totp-invalid', 'captcha', 'not-configured',
+  'totp-invalid', 'captcha', 'not-configured', 'mail-failed',
+  'code-invalid', 'code-expired', 'too-many', 'too-soon', 'no-pending',
 ];
 
 function fieldMessage(input) {
@@ -133,6 +137,10 @@ async function handleSubmit(form, kind) {
     const data = await res.json().catch(() => null);
 
     if (res.ok && data && data.success) {
+      if (data.verify) {
+        showVerifyStep(payload.email);
+        return;
+      }
       window.location.href = data.redirect || '/';
       return;
     }
@@ -170,4 +178,95 @@ formLogin.addEventListener('submit', (e) => {
 formRegister.addEventListener('submit', (e) => {
   e.preventDefault();
   handleSubmit(formRegister, 'register');
+});
+
+
+/* ---------- email verification step ---------- */
+
+function showVerifyStep(email) {
+  pendingEmail = email;
+  tabsBar.hidden = true;
+  formLogin.hidden = true;
+  formLogin.classList.remove('active');
+  formRegister.hidden = true;
+  formRegister.classList.remove('active');
+  formVerify.hidden = false;
+  formVerify.classList.add('active');
+  document.getElementById('verify-sub').textContent = KiliwUI.t('verify.sub', { email });
+  const input = document.getElementById('verify-code');
+  input.value = '';
+  input.focus();
+}
+
+function hideVerifyStep() {
+  formVerify.hidden = true;
+  formVerify.classList.remove('active');
+  tabsBar.hidden = false;
+  switchTo('register');
+}
+
+formVerify.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('verify-code').value.trim();
+  if (!/^\d{6}$/.test(code)) {
+    showFormError(formVerify, KiliwUI.t('api.code-invalid'));
+    return;
+  }
+  const submitBtn = formVerify.querySelector('.submit');
+  submitBtn.classList.add('loading');
+  try {
+    const res = await fetch('/api/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingEmail, code }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data && data.success) {
+      window.location.href = data.redirect || '/';
+      return;
+    }
+    const key = data && API_ERROR_KEYS.includes(data.error) ? `api.${data.error}` : 'auth.generic';
+    showFormError(formVerify, KiliwUI.t(key));
+    if (data && (data.error === 'no-pending' || data.error === 'too-many' || data.error === 'code-expired')) {
+      setTimeout(hideVerifyStep, 2500);
+    }
+  } catch {
+    showFormError(formVerify, KiliwUI.t('auth.network'));
+  } finally {
+    submitBtn.classList.remove('loading');
+  }
+});
+
+document.getElementById('verify-resend').addEventListener('click', async (e) => {
+  e.preventDefault();
+  const link = e.target;
+  if (link.dataset.cooldown) return;
+  try {
+    const res = await fetch('/api/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: pendingEmail, resend: true }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data && data.success) {
+      showFormError(formVerify, '');
+      document.getElementById('verify-sub').textContent = KiliwUI.t('verify.resent');
+      link.dataset.cooldown = '1';
+      link.style.opacity = '0.4';
+      setTimeout(() => {
+        delete link.dataset.cooldown;
+        link.style.opacity = '';
+      }, 60000);
+    } else {
+      const key = data && API_ERROR_KEYS.includes(data.error) ? `api.${data.error}` : 'auth.generic';
+      showFormError(formVerify, KiliwUI.t(key));
+    }
+  } catch {
+    showFormError(formVerify, KiliwUI.t('auth.network'));
+  }
+});
+
+document.getElementById('verify-back').addEventListener('click', (e) => {
+  e.preventDefault();
+  hideVerifyStep();
 });

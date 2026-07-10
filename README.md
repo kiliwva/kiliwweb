@@ -57,6 +57,19 @@ fully work:
 If the build fails, check *Settings → Build* — the deploy command should
 be `npx wrangler deploy` (default).
 
+## Email verification (Resend)
+
+With mail configured, sign-up parks the account and emails a 6-digit
+code (15-minute expiry, 5 attempts, 60 s resend cooldown); the account
+is created only after the code is entered. Without mail configured,
+sign-up works directly — nothing breaks.
+
+1. Create an account at resend.com and verify the `kiliw.com` domain
+   (add the DNS records it shows — they go into the same Cloudflare
+   account).
+2. Add the API key as a Worker secret **`RESEND_API_KEY`**.
+3. Optional: set `MAIL_FROM` (defaults to `Kiliw <noreply@kiliw.com>`).
+
 ## Plans & billing
 
 Free plan: up to 1 GB per file, 10 GB of storage. Pro tiers (USD, per

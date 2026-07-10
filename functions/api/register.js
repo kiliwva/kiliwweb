@@ -1,6 +1,7 @@
 import {
   json, randomHex, hashPassword, createSession, verifyTurnstile, afterAuthRedirect,
   storageReady, getUser, putUser,
+  mailReady, sendEmail, newPending, putPending, verificationEmail,
 } from '../../lib/api.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,8 +37,21 @@ export async function onRequestPost({ request, env }) {
 
   const salt = randomHex(16);
   const hash = await hashPassword(password, salt);
-  await putUser(env, { email, salt, hash, created: Date.now() });
 
+  /* email verification: park the registration until the code is entered */
+  if (mailReady(env)) {
+    const pending = newPending(email, salt, hash);
+    await putPending(env, pending);
+    const mail = verificationEmail(pending.code);
+    const sent = await sendEmail(env, email, mail.subject, mail.text, mail.html);
+    if (!sent) return json({ success: false, error: 'mail-failed' }, 502);
+    const payload = { success: true, verify: true };
+    if (env.MAIL_DEBUG === '1') payload.debugCode = pending.code;
+    return json(payload);
+  }
+
+  /* mail not configured: register directly */
+  await putUser(env, { email, salt, hash, created: Date.now() });
   const { cookie } = await createSession(env, email, request);
   return json(
     { success: true, redirect: afterAuthRedirect(request) },
