@@ -25,8 +25,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   const ip = request.headers.get('CF-Connecting-IP') || '';
-  if (!(await verifyTurnstile(env, body?.token, ip))) {
-    return json({ success: false, error: 'captcha' }, 403);
+  const captcha = await verifyTurnstile(env, body?.token, ip);
+  if (!captcha.ok) {
+    return json({ success: false, error: 'captcha', detail: captcha.codes }, 403);
   }
 
   if (await getUser(env, email)) {

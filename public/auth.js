@@ -159,7 +159,11 @@ async function handleSubmit(form, kind) {
       if (totpInput) totpInput.focus();
       return;
     }
-    showFormError(form, API_ERRORS[data.error] || 'Something went wrong. Please try again.');
+    let message = API_ERRORS[data.error] || 'Something went wrong. Please try again.';
+    if (data.error === 'captcha' && Array.isArray(data.detail) && data.detail.length) {
+      message += ` [${data.detail.join(', ')}]`;
+    }
+    showFormError(form, message);
   } catch {
     showFormError(form, 'Network error. Check your connection and try again.');
   } finally {

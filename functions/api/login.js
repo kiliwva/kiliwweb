@@ -17,8 +17,9 @@ export async function onRequestPost({ request, env }) {
   const password = String(body?.password || '');
 
   const ip = request.headers.get('CF-Connecting-IP') || '';
-  if (!(await verifyTurnstile(env, body?.token, ip))) {
-    return json({ success: false, error: 'captcha' }, 403);
+  const captcha = await verifyTurnstile(env, body?.token, ip);
+  if (!captcha.ok) {
+    return json({ success: false, error: 'captcha', detail: captcha.codes }, 403);
   }
 
   const user = email ? await getUser(env, email) : null;
