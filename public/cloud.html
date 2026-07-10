@@ -26,8 +26,11 @@
           <span>Kiliw Cloud</span>
         </div>
         <div class="cloud-user">
-          <button type="button" class="ghost-btn" id="profile-open"><span id="user-email"></span></button>
           <button type="button" class="ghost-btn" id="logout" data-i18n="cloud.logout">Log out</button>
+          <button type="button" class="avatar-btn" id="profile-open" aria-label="Profile">
+            <img id="avatar-img" alt="" hidden>
+            <span id="avatar-initial"></span>
+          </button>
         </div>
       </header>
 
@@ -123,7 +126,21 @@
         </button>
       </div>
 
-      <p class="modal-email" id="profile-email"></p>
+      <div class="profile-id">
+        <button type="button" class="avatar-btn big" id="avatar-change" aria-label="Change avatar">
+          <img id="avatar-img-big" alt="" hidden>
+          <span id="avatar-initial-big"></span>
+          <span class="avatar-edit" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </span>
+        </button>
+        <div class="profile-id-text">
+          <p class="modal-email" id="profile-email"></p>
+          <p class="modal-hint avatar-hint" data-i18n="profile.avatarHint">Tap the avatar to change it.</p>
+          <p class="modal-status" id="avatar-status" hidden></p>
+        </div>
+      </div>
+      <input type="file" id="avatar-input" accept="image/*" hidden>
 
       <!-- Plan -->
       <section class="modal-section">

@@ -15,6 +15,7 @@ export async function onRequestGet({ request, env }) {
     success: true,
     email: session.email,
     totp: Boolean(user?.totp),
+    avatar: user?.avatar || null,
     plan: {
       type: limits.type,
       maxFile: limits.maxFile,

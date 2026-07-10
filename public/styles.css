@@ -305,7 +305,13 @@ body {
   width: 100%;
   max-width: 760px;
   margin-top: 24px;
-  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.cloud.ready {
+  opacity: 1;
+  transform: none;
 }
 
 .panel {
@@ -883,3 +889,82 @@ body {
   box-shadow: none;
 }
 .submit.alt:hover:not(:disabled) { background: var(--frost); }
+
+
+/* ============================================================
+   Avatar
+   ============================================================ */
+
+.avatar-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: var(--frost-strong);
+  padding: 0;
+  overflow: visible;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.avatar-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3); }
+.avatar-btn img,
+.avatar-btn > span:first-of-type {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+.avatar-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-btn > span:first-of-type {
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+}
+.avatar-btn.big {
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+}
+.avatar-edit {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--frost-strong);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+}
+.avatar-edit svg { width: 12px; height: 12px; }
+
+.profile-id {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.profile-id-text { min-width: 0; }
+.profile-id .modal-email { margin-bottom: 2px; }
+.avatar-hint { margin-bottom: 0; font-size: 12px; }
+
+/* compact single-row header on phones */
+@media (max-width: 700px) {
+  .cloud-head { flex-wrap: nowrap; gap: 8px; }
+  .cloud-brand { font-size: 17px; min-width: 0; }
+  .cloud-brand svg { width: 24px; height: 24px; }
+  .cloud-user { gap: 8px; }
+}

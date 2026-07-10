@@ -7,7 +7,6 @@ const listEl = document.getElementById('file-list');
 const emptyEl = document.getElementById('files-empty');
 const errorEl = document.getElementById('files-error');
 const countEl = document.getElementById('file-count');
-const emailEl = document.getElementById('user-email');
 const breadcrumbEl = document.getElementById('breadcrumb');
 
 const PART_SIZE = 64 * 1024 * 1024; // multipart chunk (Workers request limit is 100 MB)
@@ -29,13 +28,69 @@ async function refreshMe() {
     return false;
   }
   me = await res.json();
-  emailEl.textContent = me.email;
   document.getElementById('profile-email').textContent = me.email;
+  renderAvatar();
   renderTotpState(Boolean(me.totp));
   renderPlan();
   renderUsage();
   return true;
 }
+
+/* ---------- avatar ---------- */
+
+function renderAvatar() {
+  const initial = (me.email || '?')[0].toUpperCase();
+  for (const suffix of ['', '-big']) {
+    const img = document.getElementById(`avatar-img${suffix}`);
+    const letter = document.getElementById(`avatar-initial${suffix}`);
+    if (me.avatar) {
+      img.src = `/api/avatar?v=${me.avatar}`;
+      img.hidden = false;
+      letter.hidden = true;
+    } else {
+      img.hidden = true;
+      letter.hidden = false;
+      letter.textContent = initial;
+    }
+  }
+}
+
+/** Downscale to a 256px square JPEG so uploads stay tiny. */
+async function shrinkAvatar(file) {
+  const bitmap = await createImageBitmap(file);
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const scale = Math.max(size / bitmap.width, size / bitmap.height);
+  const w = bitmap.width * scale;
+  const h = bitmap.height * scale;
+  canvas.getContext('2d').drawImage(bitmap, (size - w) / 2, (size - h) / 2, w, h);
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+}
+
+const avatarInput = document.getElementById('avatar-input');
+document.getElementById('avatar-change').addEventListener('click', () => avatarInput.click());
+avatarInput.addEventListener('change', async () => {
+  const file = avatarInput.files[0];
+  avatarInput.value = '';
+  if (!file) return;
+  showStatus('avatar-status', '');
+  try {
+    const blob = await shrinkAvatar(file);
+    const res = await fetch('/api/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: blob,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) throw new Error('upload');
+    me.avatar = data.avatar;
+    renderAvatar();
+  } catch {
+    showStatus('avatar-status', t('avatar.fail'));
+  }
+});
 
 document.getElementById('logout').addEventListener('click', async () => {
   const res = await fetch('/api/logout', { method: 'POST' });
@@ -695,9 +750,9 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
 
 /* ---------- init ---------- */
 
-refreshMe().then((ok) => {
-  if (ok) {
-    loadFiles();
-    checkPaymentReturn();
-  }
+refreshMe().then(async (ok) => {
+  if (!ok) return;
+  await loadFiles();
+  document.querySelector('.cloud').classList.add('ready');
+  checkPaymentReturn();
 });

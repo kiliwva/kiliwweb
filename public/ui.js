@@ -58,6 +58,8 @@
     'file.delete': 'Delete',
     'file.deleteConfirm': 'Delete "{name}"?',
     'profile.title': 'Profile',
+    'profile.avatarHint': 'Tap the avatar to change it.',
+    'avatar.fail': 'Could not upload the avatar. Try again.',
     'profile.plan.title': 'Plan',
     'plan.free': 'Free',
     'plan.freeDesc': 'Up to 1 GB per file · 10 GB storage. Upgrade to Pro for files up to 50 GB.',

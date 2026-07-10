@@ -15,6 +15,7 @@ import * as mpu from '../functions/api/mpu.js';
 import * as billing from '../functions/api/billing.js';
 import * as yookassa from '../functions/api/yookassa.js';
 import * as heleket from '../functions/api/heleket.js';
+import * as avatar from '../functions/api/avatar.js';
 import { json } from '../lib/api.js';
 
 const ROUTES = {
@@ -31,6 +32,7 @@ const ROUTES = {
   '/api/billing': billing,
   '/api/yookassa': yookassa,
   '/api/heleket': heleket,
+  '/api/avatar': avatar,
 };
 
 function dispatch(mod, context) {
