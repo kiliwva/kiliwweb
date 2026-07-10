@@ -662,8 +662,8 @@ body {
   color: var(--muted);
 }
 .badge.on {
-  background: rgba(94, 155, 90, 0.18);
-  border-color: rgba(94, 155, 90, 0.4);
+  background: rgba(217, 119, 87, 0.16);
+  border-color: transparent;
   color: var(--ok-text);
 }
 
