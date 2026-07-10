@@ -26,6 +26,13 @@ function previewKind(name, size) {
   return kind || null;
 }
 
+/** Photos/videos with adult markers in the name start censored. */
+const SENSITIVE_RE = /porn|nsfw|xxx/i;
+
+function isSensitive(name, kind) {
+  return (kind === 'image' || kind === 'video') && SENSITIVE_RE.test(name);
+}
+
 function esc(str) {
   return String(str).replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -212,6 +219,53 @@ const CSS = `
     .na svg { width: 56px; height: 56px; color: #B05C40; }
     .na p { margin: 14px 0 20px; font-size: 14px; font-weight: 600; line-height: 1.5; color: #9C9C9C; }
 
+    /* censored sensitive previews */
+    .sensitive {
+      position: relative;
+      display: grid;
+      place-items: center;
+      max-width: 100%;
+      /* keep the warning cover readable even for small images */
+      min-width: min(460px, 92vw);
+      min-height: min(340px, 60dvh);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .sensitive .preview-media { border-radius: 0; }
+    .sensitive:not(.revealed) .preview-media {
+      filter: blur(52px) saturate(0.8);
+      transform: scale(1.1);
+      pointer-events: none;
+    }
+    .sensitive-cover {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(12, 12, 12, 0.45);
+      text-align: center;
+      padding: 20px;
+    }
+    .sensitive.revealed .sensitive-cover { display: none; }
+    .sensitive-cover svg { width: 44px; height: 44px; color: #F2F2F2; }
+    .sensitive-cover h2 { margin: 12px 0 4px; font-size: 17px; font-weight: 800; letter-spacing: -0.2px; }
+    .sensitive-cover p { margin-bottom: 18px; font-size: 13px; font-weight: 600; color: #C9C9C9; max-width: 300px; line-height: 1.5; }
+    .sensitive-note {
+      flex: none;
+      margin: 0 14px;
+      padding: 10px 16px;
+      text-align: center;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #E8A38B;
+      background: rgba(217, 119, 87, 0.10);
+      border: 1px solid rgba(217, 119, 87, 0.25);
+      border-radius: 12px;
+      align-self: center;
+    }
+
     @media (max-width: 560px) {
       .share-head { flex-wrap: wrap; padding: 12px 16px; row-gap: 10px; }
       .share-info { order: 3; flex-basis: 100%; }
@@ -256,7 +310,7 @@ function passwordPage(share, size, { wrongPassword = false } = {}) {
   <main class="card">
     <p class="brand">Kiliw <em>Cloud</em></p>
     <h1 class="card-title">${esc(name)}</h1>
-    <p class="card-meta">${formatSize(size)} · shared via Kiliw Cloud</p>
+    <p class="card-meta">${formatSize(size)} · shared by ${esc(share.email)}</p>
     <p class="hint">This file is protected. Enter the password to open it.</p>
     <form method="POST" action="/share/${share.token}">
       <input type="password" name="password" placeholder="Password" autocomplete="off" required autofocus>
@@ -275,12 +329,13 @@ function previewPage(share, size, proofQuery) {
   const rawUrl = `${base}?raw=1${proofQuery}`;
   const dlUrl = `${base}?dl=1${proofQuery}`;
   const kind = previewKind(name, size);
+  const sensitive = isSensitive(name, kind);
 
   let stage;
   if (kind === 'image') {
     stage = `<img class="preview-media" src="${rawUrl}" alt="${esc(name)}">`;
   } else if (kind === 'video') {
-    stage = `<video class="preview-media" src="${rawUrl}" controls playsinline></video>`;
+    stage = `<video class="preview-media" src="${rawUrl}" controls playsinline${sensitive ? ' preload="metadata"' : ''}></video>`;
   } else if (kind === 'audio') {
     stage = `<audio class="preview-media" src="${rawUrl}" controls></audio>`;
   } else if (kind === 'pdf' || kind === 'text') {
@@ -293,16 +348,36 @@ function previewPage(share, size, proofQuery) {
     </div>`;
   }
 
+  /* sensitive photos/videos start blurred behind a warning cover */
+  if (sensitive) {
+    stage = `<div class="sensitive" id="sensitive">
+      ${stage}
+      <div class="sensitive-cover">
+        <div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/><path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3 8 10 8a9.74 9.74 0 0 0 5.39-1.61"/></svg>
+          <h2>Sensitive content</h2>
+          <p>This file may contain adult or sensitive material. View it only if you are sure.</p>
+          <button class="btn" type="button" onclick="document.getElementById('sensitive').classList.add('revealed')">Show anyway</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const note = sensitive
+    ? '<p class="sensitive-note">⚠ Sensitive content — this file may contain adult material.</p>'
+    : '';
+
   return page(name, 'full', `
   <header class="share-head">
     <span class="brand">Kiliw <em>Cloud</em></span>
     <div class="share-info">
       <p class="share-name">${esc(name)}</p>
-      <p class="share-meta">${formatSize(size)} · shared via Kiliw Cloud</p>
+      <p class="share-meta">${formatSize(size)} · shared by ${esc(share.email)}</p>
     </div>
     <a class="btn" href="${dlUrl}" download>${DL_ICON}Download</a>
   </header>
   <main class="share-stage">${stage}</main>
+  ${note}
   <p class="foot"><a href="/">kiliw.com</a> — private cloud storage</p>`);
 }
 
