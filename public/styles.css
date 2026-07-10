@@ -799,6 +799,13 @@ body {
 
 /* keep the cloud header clear of the fixed corner buttons */
 .scene-wide { padding-top: 72px; }
+@media (max-width: 700px) {
+  .scene-wide { padding-top: 16px; }
+  .cloud { margin-top: 0; }
+  /* brand row shares the top line with the theme toggle */
+  .cloud-head { padding-right: 52px; }
+  .drop { padding: 24px 16px; }
+}
 
 
 /* ============================================================
