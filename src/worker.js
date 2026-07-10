@@ -9,8 +9,27 @@ import * as me from '../functions/api/me.js';
 import * as password from '../functions/api/password.js';
 import * as twofa from '../functions/api/2fa.js';
 import * as filesIndex from '../functions/api/files/index.js';
-import * as fileItem from '../functions/api/files/[name].js';
+import * as file from '../functions/api/file.js';
+import * as folders from '../functions/api/folders.js';
+import * as mpu from '../functions/api/mpu.js';
+import * as billing from '../functions/api/billing.js';
+import * as yookassa from '../functions/api/yookassa.js';
 import { json } from '../lib/api.js';
+
+const ROUTES = {
+  '/api/login': login,
+  '/api/register': register,
+  '/api/logout': logout,
+  '/api/me': me,
+  '/api/password': password,
+  '/api/2fa': twofa,
+  '/api/files': filesIndex,
+  '/api/file': file,
+  '/api/folders': folders,
+  '/api/mpu': mpu,
+  '/api/billing': billing,
+  '/api/yookassa': yookassa,
+};
 
 function dispatch(mod, context) {
   const method = context.request.method;
@@ -26,19 +45,8 @@ export default {
     const { pathname } = url;
 
     if (pathname.startsWith('/api/')) {
-      const context = { request, env, params: {} };
-      if (pathname === '/api/login') return dispatch(login, context);
-      if (pathname === '/api/register') return dispatch(register, context);
-      if (pathname === '/api/logout') return dispatch(logout, context);
-      if (pathname === '/api/me') return dispatch(me, context);
-      if (pathname === '/api/password') return dispatch(password, context);
-      if (pathname === '/api/2fa') return dispatch(twofa, context);
-      if (pathname === '/api/files') return dispatch(filesIndex, context);
-      const match = pathname.match(/^\/api\/files\/([^/]+)$/);
-      if (match) {
-        context.params = { name: match[1] };
-        return dispatch(fileItem, context);
-      }
+      const mod = ROUTES[pathname];
+      if (mod) return dispatch(mod, { request, env, params: {} });
       return json({ success: false, error: 'not-found' }, 404);
     }
 

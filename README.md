@@ -57,6 +57,27 @@ fully work:
 If the build fails, check *Settings → Build* — the deploy command should
 be `npx wrangler deploy` (default).
 
+## Plans & billing (YooKassa)
+
+Free plan: up to 1 GB per file, 10 GB of storage. Pro (paid via
+YooKassa): up to 50 GB per file, user-selected storage from 50 GB to
+1 TB, 1.5 ₽/GB per 30 days (min 149 ₽). Large files upload in 64 MiB
+chunks through R2 multipart, so the Workers per-request body limit is
+never exceeded.
+
+To enable payments:
+
+1. Create a shop at yookassa.ru, take **shopId** and the **secret key**.
+2. Add both as Worker secrets: `YOOKASSA_SHOP_ID` and
+   `YOOKASSA_SECRET_KEY` (*Settings → Variables and Secrets → Secret*).
+3. In the YooKassa dashboard set the HTTP notification (webhook) URL to
+   `https://cloud.kiliw.com/api/yookassa` and subscribe to
+   `payment.succeeded`. (Even without the webhook the plan activates
+   when the user returns to the site after paying.)
+
+Note: the free tier of R2 itself is 10 GB total for the whole bucket —
+storage beyond that is billed by Cloudflare to the bucket owner.
+
 ## Local development
 
 ```bash

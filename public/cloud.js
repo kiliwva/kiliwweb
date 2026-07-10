@@ -1,32 +1,39 @@
-/* Kiliw Cloud — file storage + profile frontend. */
+/* Kiliw Cloud — files, folders, previews, plan/billing, profile. */
 
 const fileInput = document.getElementById('file-input');
 const drop = document.getElementById('drop');
-const browseBtn = document.getElementById('browse');
 const statusEl = document.getElementById('upload-status');
 const listEl = document.getElementById('file-list');
 const emptyEl = document.getElementById('files-empty');
 const errorEl = document.getElementById('files-error');
 const countEl = document.getElementById('file-count');
 const emailEl = document.getElementById('user-email');
+const breadcrumbEl = document.getElementById('breadcrumb');
 
-const MAX_SIZE = 100 * 1024 * 1024;
+const PART_SIZE = 64 * 1024 * 1024; // multipart chunk (Workers request limit is 100 MB)
 
-/* ---------- session ---------- */
+let currentPath = [];
+let me = null; // /api/me payload: plan, usage, billing
 
-let totpEnabled = false;
+const t = (key, vars) => KiliwUI.t(key, vars);
+const pathStr = () => currentPath.join('/');
+const fullPath = (name) => (pathStr() ? `${pathStr()}/${name}` : name);
+const fileUrl = (name, inline) => `/api/file?p=${encodeURIComponent(fullPath(name))}${inline ? '&inline=1' : ''}`;
 
-async function loadMe() {
+/* ---------- session / plan ---------- */
+
+async function refreshMe() {
   const res = await fetch('/api/me');
   if (!res.ok) {
     window.location.href = '/';
     return false;
   }
-  const data = await res.json();
-  emailEl.textContent = data.email;
-  document.getElementById('profile-email').textContent = data.email;
-  totpEnabled = Boolean(data.totp);
-  renderTotpState();
+  me = await res.json();
+  emailEl.textContent = me.email;
+  document.getElementById('profile-email').textContent = me.email;
+  renderTotpState(Boolean(me.totp));
+  renderPlan();
+  renderUsage();
   return true;
 }
 
@@ -39,10 +46,16 @@ document.getElementById('logout').addEventListener('click', async () => {
 /* ---------- helpers ---------- */
 
 function formatSize(bytes) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  const units = KiliwUI.lang === 'ru'
+    ? ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ']
+    : ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
 }
 
 function formatDate(iso) {
@@ -57,45 +70,132 @@ function showError(message) {
   errorEl.hidden = !message;
 }
 
-/* re-render dynamic texts when the language changes */
-KiliwUI.onLang(() => {
-  renderTotpState();
-  loadFiles();
-});
+function showStatus(id, message, ok = false) {
+  const el = document.getElementById(id);
+  el.textContent = message;
+  el.hidden = !message;
+  el.classList.toggle('ok', ok);
+}
 
-/* ---------- file list ---------- */
+function iconSvg(kind) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.classList.add('file-icon');
+  if (kind === 'folder') {
+    svg.classList.add('folder');
+    svg.innerHTML = '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>';
+  } else {
+    svg.innerHTML = '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>';
+  }
+  return svg;
+}
+
+function actionButton(kind, title) {
+  const btn = document.createElement(kind === 'download' ? 'a' : 'button');
+  btn.className = `icon-btn${kind === 'delete' ? ' danger' : ''}`;
+  btn.title = title;
+  btn.setAttribute('aria-label', title);
+  btn.innerHTML = kind === 'download'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>'
+    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+  return btn;
+}
+
+/* ---------- browser ---------- */
 
 async function loadFiles() {
-  const res = await fetch('/api/files');
+  const res = await fetch(`/api/files?path=${encodeURIComponent(pathStr())}`);
   if (res.status === 401) {
     window.location.href = '/';
     return;
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
-    showError(KiliwUI.t(data.error === 'not-configured' ? 'files.notConfigured' : 'files.loadError'));
+    showError(t(data.error === 'not-configured' ? 'files.notConfigured' : 'files.loadError'));
     return;
   }
   showError('');
-  renderFiles(data.files);
+  renderBreadcrumb();
+  renderList(data.folders, data.files);
 }
 
-function renderFiles(files) {
+function renderBreadcrumb() {
+  breadcrumbEl.innerHTML = '';
+  const root = document.createElement('button');
+  root.type = 'button';
+  root.className = 'crumb';
+  root.textContent = t('files.title');
+  root.addEventListener('click', () => {
+    currentPath = [];
+    loadFiles();
+  });
+  breadcrumbEl.appendChild(root);
+
+  currentPath.forEach((segment, index) => {
+    const sep = document.createElement('span');
+    sep.className = 'crumb-sep';
+    sep.textContent = '/';
+    breadcrumbEl.appendChild(sep);
+
+    const crumb = document.createElement('button');
+    crumb.type = 'button';
+    crumb.className = 'crumb';
+    if (index === currentPath.length - 1) crumb.classList.add('current');
+    crumb.textContent = segment;
+    crumb.addEventListener('click', () => {
+      currentPath = currentPath.slice(0, index + 1);
+      loadFiles();
+    });
+    breadcrumbEl.appendChild(crumb);
+  });
+}
+
+function renderList(folders, files) {
   listEl.innerHTML = '';
-  emptyEl.hidden = files.length > 0;
+  emptyEl.hidden = folders.length > 0 || files.length > 0;
   countEl.textContent = files.length ? KiliwUI.filesCount(files.length) : '';
+
+  for (const folder of folders) {
+    const li = document.createElement('li');
+    li.className = 'file-row folder-row';
+
+    const info = document.createElement('button');
+    info.type = 'button';
+    info.className = 'file-info folder-open';
+    const name = document.createElement('span');
+    name.className = 'file-name';
+    name.textContent = folder;
+    info.appendChild(name);
+    info.addEventListener('click', () => {
+      currentPath.push(folder);
+      loadFiles();
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+    const del = actionButton('delete', t('file.delete'));
+    del.addEventListener('click', async () => {
+      if (!confirm(t('folder.deleteConfirm', { name: folder }))) return;
+      const res = await fetch(`/api/folders?p=${encodeURIComponent(fullPath(folder))}`, { method: 'DELETE' });
+      if (res.ok) {
+        loadFiles();
+        refreshMe();
+      }
+    });
+    actions.appendChild(del);
+
+    li.append(iconSvg('folder'), info, actions);
+    listEl.appendChild(li);
+  }
 
   for (const file of files) {
     const li = document.createElement('li');
     li.className = 'file-row';
 
-    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    icon.setAttribute('viewBox', '0 0 24 24');
-    icon.classList.add('file-icon');
-    icon.innerHTML = '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2v6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>';
-
-    const info = document.createElement('div');
+    const info = document.createElement('button');
+    info.type = 'button';
     info.className = 'file-info';
+    info.title = t('file.preview');
     const name = document.createElement('span');
     name.className = 'file-name';
     name.textContent = file.name;
@@ -103,36 +203,178 @@ function renderFiles(files) {
     meta.className = 'file-meta';
     meta.textContent = `${formatSize(file.size)} · ${formatDate(file.uploaded)}`;
     info.append(name, meta);
+    info.addEventListener('click', () => openPreview(file));
 
     const actions = document.createElement('div');
     actions.className = 'file-actions';
-
-    const download = document.createElement('a');
-    download.className = 'icon-btn';
-    download.href = `/api/files/${encodeURIComponent(file.name)}`;
-    download.title = KiliwUI.t('file.download');
-    download.setAttribute('aria-label', `${KiliwUI.t('file.download')} ${file.name}`);
-    download.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
-
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.className = 'icon-btn danger';
-    del.title = KiliwUI.t('file.delete');
-    del.setAttribute('aria-label', `${KiliwUI.t('file.delete')} ${file.name}`);
-    del.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+    const download = actionButton('download', t('file.download'));
+    download.href = fileUrl(file.name, false);
+    const del = actionButton('delete', t('file.delete'));
     del.addEventListener('click', async () => {
-      if (!confirm(KiliwUI.t('file.deleteConfirm', { name: file.name }))) return;
-      const res = await fetch(`/api/files/${encodeURIComponent(file.name)}`, { method: 'DELETE' });
-      if (res.ok) loadFiles();
+      if (!confirm(t('file.deleteConfirm', { name: file.name }))) return;
+      const res = await fetch(fileUrl(file.name, false), { method: 'DELETE' });
+      if (res.ok) {
+        loadFiles();
+        refreshMe();
+      }
     });
-
     actions.append(download, del);
-    li.append(icon, info, actions);
+
+    li.append(iconSvg('file'), info, actions);
     listEl.appendChild(li);
   }
 }
 
+document.getElementById('new-folder').addEventListener('click', async () => {
+  const name = prompt(t('folder.prompt'));
+  if (!name || !name.trim()) return;
+  const res = await fetch('/api/folders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: pathStr(), name: name.trim() }),
+  });
+  if (res.ok) loadFiles();
+});
+
+/* ---------- usage / plan ---------- */
+
+function renderUsage() {
+  if (!me) return;
+  const fill = document.getElementById('usage-fill');
+  const pct = Math.min(100, (me.usage / me.plan.quota) * 100);
+  fill.style.width = `${pct}%`;
+  fill.classList.toggle('full', pct > 90);
+  document.getElementById('usage-text').textContent = t('usage.text', {
+    used: formatSize(me.usage),
+    total: formatSize(me.plan.quota),
+  });
+  document.getElementById('drop-hint').textContent = t('drop.hint', {
+    limit: formatSize(me.plan.maxFile),
+  });
+}
+
+function renderPlan() {
+  if (!me) return;
+  const badge = document.getElementById('plan-badge');
+  const isPro = me.plan.type === 'pro';
+  badge.textContent = isPro ? 'Pro' : t('plan.free');
+  badge.classList.toggle('on', isPro);
+
+  const desc = document.getElementById('plan-desc');
+  if (isPro) {
+    const locale = KiliwUI.lang === 'ru' ? 'ru-RU' : 'en-GB';
+    desc.textContent = t('plan.proDesc', {
+      gb: me.plan.gb,
+      date: new Date(me.plan.until).toLocaleDateString(locale),
+    });
+  } else {
+    desc.textContent = t('plan.freeDesc');
+  }
+  renderPlanPrice();
+}
+
+function renderPlanPrice() {
+  const gb = Number(document.getElementById('plan-gb').value);
+  const price = Math.max(149, Math.round(gb * 1.5));
+  document.getElementById('plan-price').textContent = t('plan.price', { gb, price });
+}
+
+document.getElementById('plan-gb').addEventListener('input', renderPlanPrice);
+
+document.getElementById('plan-pay').addEventListener('click', async () => {
+  if (!me?.billing?.available) {
+    showStatus('plan-status', t('plan.notConfigured'));
+    return;
+  }
+  const gb = Number(document.getElementById('plan-gb').value);
+  const res = await fetch('/api/billing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'create', gb }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success && data.url) {
+    window.location.href = data.url;
+  } else {
+    showStatus('plan-status', t(data.error === 'billing-not-configured' ? 'plan.notConfigured' : 'plan.fail'));
+  }
+});
+
+async function checkPaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('payment') !== 'return') return;
+  window.history.replaceState({}, '', window.location.pathname);
+
+  const res = await fetch('/api/billing', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'check' }),
+  });
+  const data = await res.json().catch(() => ({}));
+  openProfile();
+  if (data.success && data.state === 'succeeded') {
+    await refreshMe();
+    showStatus('plan-status', t('plan.success'), true);
+  } else if (data.state === 'pending') {
+    showStatus('plan-status', t('plan.pending'));
+  } else {
+    showStatus('plan-status', t('plan.fail'));
+  }
+}
+
 /* ---------- upload ---------- */
+
+async function uploadOne(file, progress) {
+  const query = `name=${encodeURIComponent(file.name)}&path=${encodeURIComponent(pathStr())}`;
+  const type = file.type || 'application/octet-stream';
+
+  if (file.size <= PART_SIZE) {
+    const res = await fetch(`/api/files?${query}`, {
+      method: 'POST',
+      headers: { 'Content-Type': type },
+      body: file,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) throw new Error(data.error || 'upload');
+    return;
+  }
+
+  /* multipart: 64 MiB chunks through the Worker into R2 */
+  const createRes = await fetch(`/api/mpu?action=create&${query}&size=${file.size}&type=${encodeURIComponent(type)}`, { method: 'POST' });
+  const created = await createRes.json().catch(() => ({}));
+  if (!createRes.ok || !created.success) throw new Error(created.error || 'upload');
+  const id = created.uploadId;
+
+  const parts = [];
+  const total = Math.ceil(file.size / PART_SIZE);
+  try {
+    for (let i = 0; i < total; i++) {
+      const chunk = file.slice(i * PART_SIZE, Math.min((i + 1) * PART_SIZE, file.size));
+      const res = await fetch(`/api/mpu?action=part&${query}&id=${encodeURIComponent(id)}&part=${i + 1}`, {
+        method: 'PUT',
+        body: chunk,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || 'upload');
+      parts.push({ partNumber: data.partNumber, etag: data.etag });
+      progress(Math.round(((i + 1) / total) * 100));
+    }
+    const doneRes = await fetch('/api/mpu?action=complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: file.name, path: pathStr(), id, parts }),
+    });
+    const done = await doneRes.json().catch(() => ({}));
+    if (!doneRes.ok || !done.success) throw new Error(done.error || 'upload');
+  } catch (err) {
+    await fetch('/api/mpu?action=abort', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: file.name, path: pathStr(), id }),
+    }).catch(() => {});
+    throw err;
+  }
+}
 
 async function uploadFiles(files) {
   const queue = [...files];
@@ -143,33 +385,34 @@ async function uploadFiles(files) {
   statusEl.hidden = false;
 
   for (const file of queue) {
-    statusEl.textContent = KiliwUI.t('drop.uploading', { name: file.name, i: done + 1, n: queue.length });
-    if (file.size > MAX_SIZE) {
-      failed.push(`${file.name} (${KiliwUI.t('drop.tooLarge')})`);
+    const label = (pct) => {
+      statusEl.textContent = pct === undefined
+        ? t('drop.uploading', { name: file.name, i: done + 1, n: queue.length })
+        : t('drop.uploadingPct', { name: file.name, pct });
+    };
+    label();
+    if (me && file.size > me.plan.maxFile) {
+      failed.push(`${file.name} (${t('drop.tooLarge')})`);
       done++;
       continue;
     }
     try {
-      const res = await fetch(`/api/files?name=${encodeURIComponent(file.name)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      });
-      if (!res.ok) failed.push(file.name);
-    } catch {
-      failed.push(file.name);
+      await uploadOne(file, (pct) => label(pct));
+    } catch (err) {
+      failed.push(`${file.name}${err.message === 'quota' ? ` (${t('drop.quota')})` : ''}`);
     }
     done++;
   }
 
   statusEl.textContent = failed.length
-    ? KiliwUI.t('drop.failed', { list: failed.join(', ') })
-    : KiliwUI.t('drop.uploaded', { files: KiliwUI.filesCount(done) });
-  setTimeout(() => { statusEl.hidden = true; }, 4000);
+    ? t('drop.failed', { list: failed.join(', ') })
+    : t('drop.uploaded', { files: KiliwUI.filesCount(done) });
+  setTimeout(() => { statusEl.hidden = true; }, 5000);
   loadFiles();
+  refreshMe();
 }
 
-browseBtn.addEventListener('click', () => fileInput.click());
+document.getElementById('browse').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => {
   uploadFiles(fileInput.files);
   fileInput.value = '';
@@ -191,6 +434,76 @@ drop.addEventListener('drop', (e) => {
   if (e.dataTransfer?.files?.length) uploadFiles(e.dataTransfer.files);
 });
 
+/* ---------- preview ---------- */
+
+const previewModal = document.getElementById('preview-modal');
+const previewBody = document.getElementById('preview-body');
+
+const EXT_KIND = {
+  png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', webp: 'image', avif: 'image', svg: 'image', ico: 'image', bmp: 'image',
+  mp4: 'video', webm: 'video', m4v: 'video', mov: 'video',
+  mp3: 'audio', wav: 'audio', ogg: 'audio', m4a: 'audio', flac: 'audio',
+  pdf: 'pdf',
+  txt: 'text', md: 'text', json: 'text', js: 'text', ts: 'text', css: 'text', html: 'text', htm: 'text',
+  csv: 'text', log: 'text', xml: 'text', yml: 'text', yaml: 'text', ini: 'text', conf: 'text', sh: 'text', py: 'text',
+};
+
+function openPreview(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const kind = EXT_KIND[ext];
+  const url = fileUrl(file.name, true);
+
+  document.getElementById('preview-name').textContent = file.name;
+  document.getElementById('preview-download').href = fileUrl(file.name, false);
+  previewBody.innerHTML = '';
+
+  if (kind === 'image') {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = file.name;
+    previewBody.appendChild(img);
+  } else if (kind === 'video') {
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    previewBody.appendChild(video);
+  } else if (kind === 'audio') {
+    const audio = document.createElement('audio');
+    audio.src = url;
+    audio.controls = true;
+    previewBody.appendChild(audio);
+  } else if (kind === 'pdf') {
+    const frame = document.createElement('iframe');
+    frame.src = url;
+    frame.className = 'preview-frame';
+    previewBody.appendChild(frame);
+  } else if (kind === 'text' && file.size <= 2 * 1024 * 1024) {
+    const pre = document.createElement('pre');
+    pre.textContent = '…';
+    previewBody.appendChild(pre);
+    fetch(url).then((r) => r.text()).then((text) => { pre.textContent = text; });
+  } else {
+    const p = document.createElement('p');
+    p.className = 'preview-na';
+    p.textContent = t('preview.na');
+    previewBody.appendChild(p);
+  }
+
+  previewModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closePreview() {
+  previewModal.hidden = true;
+  previewBody.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('preview-close').addEventListener('click', closePreview);
+previewModal.addEventListener('click', (e) => {
+  if (e.target === previewModal) closePreview();
+});
+
 /* ---------- profile popup ---------- */
 
 const modal = document.getElementById('profile-modal');
@@ -199,30 +512,28 @@ const totpOff = document.getElementById('totp-off');
 const totpOn = document.getElementById('totp-on');
 const totpSetupBox = document.getElementById('totp-setup-box');
 
-function renderTotpState() {
-  totpBadge.textContent = KiliwUI.t(totpEnabled ? 'badge.on' : 'badge.off');
+let totpEnabled = false;
+
+function renderTotpState(enabled) {
+  if (enabled !== undefined) totpEnabled = enabled;
+  totpBadge.textContent = t(totpEnabled ? 'badge.on' : 'badge.off');
   totpBadge.classList.toggle('on', totpEnabled);
   totpOn.hidden = !totpEnabled;
   totpOff.hidden = totpEnabled;
   totpSetupBox.hidden = true;
 }
 
-function showStatus(id, message, ok = false) {
-  const el = document.getElementById(id);
-  el.textContent = message;
-  el.hidden = !message;
-  el.classList.toggle('ok', ok);
-}
-
-document.getElementById('profile-open').addEventListener('click', () => {
+function openProfile() {
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
-});
+}
+
+document.getElementById('profile-open').addEventListener('click', openProfile);
 
 function closeModal() {
   modal.hidden = true;
   document.body.style.overflow = '';
-  ['password-status', 'totp-enable-status', 'totp-disable-status'].forEach((id) => showStatus(id, ''));
+  ['password-status', 'totp-enable-status', 'totp-disable-status', 'plan-status'].forEach((id) => showStatus(id, ''));
   document.getElementById('password-form').reset();
   renderTotpState();
 }
@@ -232,7 +543,9 @@ modal.addEventListener('click', (e) => {
   if (e.target === modal) closeModal();
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !modal.hidden) closeModal();
+  if (e.key !== 'Escape') return;
+  if (!previewModal.hidden) closePreview();
+  else if (!modal.hidden) closeModal();
 });
 
 /* --- change password --- */
@@ -242,7 +555,7 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
   const current = document.getElementById('pw-current').value;
   const next = document.getElementById('pw-next').value;
   if (next.length < 8) {
-    showStatus('password-status', KiliwUI.t('profile.pw.short'));
+    showStatus('password-status', t('profile.pw.short'));
     return;
   }
   const res = await fetch('/api/password', {
@@ -252,10 +565,10 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
-    showStatus('password-status', KiliwUI.t('profile.pw.ok'), true);
+    showStatus('password-status', t('profile.pw.ok'), true);
     e.target.reset();
   } else {
-    showStatus('password-status', KiliwUI.t(data.error === 'wrong-password' ? 'profile.pw.wrong' : 'profile.pw.fail'));
+    showStatus('password-status', t(data.error === 'wrong-password' ? 'profile.pw.wrong' : 'profile.pw.fail'));
   }
 });
 
@@ -301,11 +614,10 @@ document.getElementById('totp-enable-form').addEventListener('submit', async (e)
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
-    totpEnabled = true;
-    renderTotpState();
+    renderTotpState(true);
     e.target.reset();
   } else {
-    showStatus('totp-enable-status', KiliwUI.t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.enableFail'));
+    showStatus('totp-enable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.enableFail'));
   }
 });
 
@@ -319,16 +631,27 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
-    totpEnabled = false;
-    renderTotpState();
+    renderTotpState(false);
     e.target.reset();
   } else {
-    showStatus('totp-disable-status', KiliwUI.t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.disableFail'));
+    showStatus('totp-disable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.disableFail'));
   }
+});
+
+/* ---------- language switch re-renders ---------- */
+
+KiliwUI.onLang(() => {
+  renderTotpState();
+  renderPlan();
+  renderUsage();
+  loadFiles();
 });
 
 /* ---------- init ---------- */
 
-loadMe().then((ok) => {
-  if (ok) loadFiles();
+refreshMe().then((ok) => {
+  if (ok) {
+    loadFiles();
+    checkPaymentReturn();
+  }
 });

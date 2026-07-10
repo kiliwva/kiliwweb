@@ -53,22 +53,50 @@
           <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
         </svg>
         <p><strong data-i18n="drop.title">Drop files here</strong> <span data-i18n="drop.or">or</span> <button type="button" class="link" id="browse" data-i18n="drop.browse">browse</button></p>
-        <p class="drop-hint" data-i18n="drop.hint">Up to 100 MB per file</p>
+        <p class="drop-hint" id="drop-hint"></p>
         <p class="drop-status" id="upload-status" hidden></p>
       </section>
 
-      <!-- File list -->
+      <!-- File browser -->
       <section class="panel files">
         <div class="files-head">
-          <h2 data-i18n="files.title">Your files</h2>
-          <span id="file-count"></span>
+          <nav class="breadcrumb" id="breadcrumb" aria-label="Folders"></nav>
+          <div class="files-actions">
+            <span id="file-count"></span>
+            <button type="button" class="ghost-btn" id="new-folder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M12 10v6m-3-3h6"/></svg>
+              <span data-i18n="cloud.newFolder">New folder</span>
+            </button>
+          </div>
         </div>
         <ul class="file-list" id="file-list"></ul>
         <p class="files-empty" id="files-empty" hidden data-i18n="files.empty">Nothing here yet. Upload your first file.</p>
         <p class="files-error" id="files-error" hidden></p>
+        <div class="usage">
+          <div class="usage-bar"><span id="usage-fill"></span></div>
+          <span class="usage-text" id="usage-text"></span>
+        </div>
       </section>
 
     </main>
+  </div>
+
+  <!-- File preview -->
+  <div class="modal-overlay" id="preview-modal" hidden>
+    <div class="modal preview-modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h2 id="preview-name"></h2>
+        <div class="modal-head-actions">
+          <a class="icon-btn" id="preview-download" title="Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>
+          </a>
+          <button type="button" class="icon-btn" id="preview-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="preview-body" id="preview-body"></div>
+    </div>
   </div>
 
   <!-- Profile popup -->
@@ -82,6 +110,21 @@
       </div>
 
       <p class="modal-email" id="profile-email"></p>
+
+      <!-- Plan -->
+      <section class="modal-section">
+        <h3><span data-i18n="profile.plan.title">Plan</span> <span class="badge" id="plan-badge">Free</span></h3>
+        <p class="modal-hint" id="plan-desc"></p>
+        <div id="plan-buy">
+          <label class="plan-gb-label" for="plan-gb" data-i18n="plan.gbLabel">Storage size (GB)</label>
+          <div class="plan-row">
+            <input type="range" id="plan-gb" min="50" max="1024" step="10" value="100">
+            <span class="plan-price" id="plan-price"></span>
+          </div>
+          <p class="modal-status" id="plan-status" hidden></p>
+          <button type="button" class="submit small" id="plan-pay" data-i18n="plan.buy">Pay with YooKassa</button>
+        </div>
+      </section>
 
       <!-- Change password -->
       <section class="modal-section">

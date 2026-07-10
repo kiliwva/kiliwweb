@@ -42,9 +42,9 @@
     0 2px 8px rgba(90, 40, 18, 0.1),
     0 32px 80px -16px rgba(90, 40, 18, 0.4);
   /* full-bleed coral background */
-  --bg-a: #F8CBA6;
-  --bg-b: #EA9770;
-  --bg-c: #D06C47;
+  --bg-a: #F0B98F;
+  --bg-b: #DD8659;
+  --bg-c: #BC5F3B;
 }
 
 :root[data-theme="dark"] {
@@ -437,16 +437,53 @@ body {
 .files { padding: 22px 24px; }
 .files-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
-.files-head h2 {
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+.files-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+.files-actions .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.files-actions .ghost-btn svg { width: 16px; height: 16px; }
 #file-count { font-size: 13px; font-weight: 700; color: var(--muted); }
+
+/* breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+.crumb {
+  border: 0;
+  background: none;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+  cursor: pointer;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.crumb:hover { background: var(--frost-soft); color: var(--text); }
+.crumb.current, .breadcrumb .crumb:last-child { color: var(--text); }
+.crumb-sep { color: var(--muted); font-weight: 700; }
 
 .file-list { list-style: none; }
 .file-row {
@@ -463,13 +500,24 @@ body {
   flex: none;
   color: var(--accent-press);
 }
+.file-icon.folder { color: var(--accent); }
 .file-info {
   min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 2px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
 }
+.file-info:hover .file-name { color: var(--accent-press); }
+.folder-row .file-info { justify-content: center; }
 .file-name {
   font-size: 14.5px;
   font-weight: 700;
@@ -495,6 +543,37 @@ body {
 .icon-btn:hover { background: var(--frost-strong); }
 .icon-btn.danger:hover { color: var(--error); }
 .icon-btn svg { width: 18px; height: 18px; }
+
+.usage {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.usage-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--frost-soft);
+  overflow: hidden;
+}
+#usage-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+#usage-fill.full { background: var(--error); }
+.usage-text {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  flex: none;
+}
 
 .files-empty,
 .files-error {
@@ -720,3 +799,90 @@ body {
 
 /* keep the cloud header clear of the fixed corner buttons */
 .scene-wide { padding-top: 72px; }
+
+
+/* ============================================================
+   Preview modal
+   ============================================================ */
+
+.preview-modal {
+  max-width: 760px;
+}
+.modal-head-actions { display: flex; gap: 6px; }
+.modal-head-actions .icon-btn { color: var(--text); }
+.preview-modal .modal-head h2 {
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.preview-body {
+  margin-top: 14px;
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+}
+.preview-body img,
+.preview-body video {
+  max-width: 100%;
+  max-height: min(62vh, 560px);
+  border-radius: 12px;
+}
+.preview-body audio { width: 100%; }
+.preview-frame {
+  width: 100%;
+  height: min(65vh, 600px);
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+}
+.preview-body pre {
+  width: 100%;
+  max-height: min(60vh, 520px);
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--frost-soft);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.preview-na {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 20px 0;
+}
+
+/* ============================================================
+   Plan / billing
+   ============================================================ */
+
+.plan-gb-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.plan-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.plan-price {
+  flex: none;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--accent-press);
+  min-width: 150px;
+  text-align: right;
+}
+:root[data-theme="dark"] .plan-price { color: var(--accent); }
