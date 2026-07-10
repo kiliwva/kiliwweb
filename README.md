@@ -138,10 +138,13 @@ Shared photos and videos whose names contain adult markers (porn/nsfw/xxx)
 open censored: blurred behind a "Sensitive content" cover. Shared images
 are additionally analyzed by **Workers AI** (LLaVA vision model, `ai`
 binding in `wrangler.jsonc` — no manual setup, included in the Workers
-free tier): the verdict is computed when the link is created and stored
-on the share record, so the check is name-independent. Videos can't be
-frame-analyzed inside a Worker, so they rely on the name check only. If
-the model is unavailable, everything gracefully falls back to names.
+free tier). Photos are checked **at upload time** in the background
+(`waitUntil`), older files are backfilled a few per listing, and every
+verdict is cached in `_mod/<email>/<path>.json` (moved on rename,
+removed on delete). Censoring applies everywhere: in-app previews,
+list thumbnails, share pages and shared-folder previews. Videos can't
+be frame-analyzed inside a Worker, so they rely on the name check only.
+If the model is unavailable, everything gracefully falls back to names.
 
 ## Local development
 

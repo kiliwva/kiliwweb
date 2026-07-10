@@ -287,7 +287,12 @@ window.addEventListener('resize', closeRowMenu);
 /* ---------- browser ---------- */
 
 async function loadFiles() {
-  const res = await fetch(`/api/files?path=${encodeURIComponent(pathStr())}${scopeQ()}`);
+  /* the listing and the shared-with-me list load in parallel */
+  const atOwnRoot = !currentScope && !currentPath.length;
+  const [res, shRes] = await Promise.all([
+    fetch(`/api/files?path=${encodeURIComponent(pathStr())}${scopeQ()}`),
+    atOwnRoot ? fetch('/api/collab?shared=1') : Promise.resolve(null),
+  ]);
   if (res.status === 401) {
     window.location.href = '/';
     return;
@@ -307,10 +312,8 @@ async function loadFiles() {
     return;
   }
 
-  /* folders other people shared with me, shown at the own root */
   let shared = [];
-  if (!currentScope && !currentPath.length) {
-    const shRes = await fetch('/api/collab?shared=1');
+  if (shRes) {
     const shData = await shRes.json().catch(() => ({}));
     if (shRes.ok && shData.success) shared = shData.folders || [];
   }
@@ -1080,6 +1083,7 @@ function openPreview(file) {
   document.getElementById('preview-name').textContent = file.name;
   document.getElementById('preview-download').href = fileUrl(file.name, false);
   previewBody.innerHTML = '';
+  previewBody.classList.remove('censored');
 
   if (kind === 'image') {
     const img = document.createElement('img');
@@ -1111,6 +1115,27 @@ function openPreview(file) {
     p.className = 'preview-na';
     p.textContent = t('preview.na');
     previewBody.appendChild(p);
+  }
+
+  /* 18+ photos and videos start blurred behind a cover */
+  if ((kind === 'image' || kind === 'video') && (file.sensitive || SENSITIVE_RE.test(file.name))) {
+    previewBody.classList.add('censored');
+    const cover = document.createElement('div');
+    cover.className = 'preview-cover';
+    const inner = document.createElement('div');
+    const label = document.createElement('p');
+    label.textContent = t('preview.sensitive');
+    const show = document.createElement('button');
+    show.type = 'button';
+    show.className = 'submit small';
+    show.textContent = t('preview.show');
+    show.addEventListener('click', () => {
+      previewBody.classList.remove('censored');
+      cover.remove();
+    });
+    inner.append(label, show);
+    cover.appendChild(inner);
+    previewBody.appendChild(cover);
   }
 
   previewModal.hidden = false;
@@ -1475,11 +1500,10 @@ document.getElementById('app-build').addEventListener('click', async () => {
 
 /* ---------- init ---------- */
 
-refreshMe().then(async (ok) => {
+/* profile, files and notifications load in parallel */
+Promise.all([refreshMe(), loadFiles(), refreshNotifs()]).then(([ok]) => {
   if (!ok) return;
-  await loadFiles();
   document.querySelector('.cloud').classList.add('ready');
   checkPaymentReturn();
-  refreshNotifs();
   setInterval(refreshNotifs, 60000);
 });

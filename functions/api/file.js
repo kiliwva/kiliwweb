@@ -1,6 +1,7 @@
 import {
   json, getSession, storageReady, parsePath, cleanSegment,
   deleteShareForFile, moveShare, resolveScope, scopedPath,
+  moveModVerdict, deleteModVerdict,
 } from '../../lib/api.js';
 
 /* content types that are safe to render inline without a sandbox */
@@ -96,7 +97,10 @@ export async function onRequestPut({ request, env }) {
     httpMetadata: object.httpMetadata,
   });
   await env.KILIW_FILES.delete(oldKey);
-  await moveShare(env, scope.email, fullOld, fullNew);
+  await Promise.all([
+    moveShare(env, scope.email, fullOld, fullNew),
+    moveModVerdict(env, scope.email, fullOld, fullNew),
+  ]);
   return json({ success: true, name: newName });
 }
 
@@ -110,6 +114,9 @@ export async function onRequestDelete({ request, env }) {
 
   const full = scopedPath(scope, p);
   await env.KILIW_FILES.delete(`u/${scope.email}/${full}`);
-  await deleteShareForFile(env, scope.email, full);
+  await Promise.all([
+    deleteShareForFile(env, scope.email, full),
+    deleteModVerdict(env, scope.email, full),
+  ]);
   return json({ success: true });
 }

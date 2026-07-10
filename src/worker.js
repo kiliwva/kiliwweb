@@ -57,9 +57,10 @@ function dispatch(mod, context) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const { pathname } = url;
+    const waitUntil = (promise) => ctx.waitUntil(promise);
 
     /* public share links: no session required, any host */
     const shared = pathname.match(/^\/share\/([0-9a-f]{32})$/);
@@ -67,7 +68,7 @@ export default {
 
     if (pathname.startsWith('/api/')) {
       const mod = ROUTES[pathname];
-      if (mod) return dispatch(mod, { request, env, params: {} });
+      if (mod) return dispatch(mod, { request, env, params: {}, waitUntil });
       return json({ success: false, error: 'not-found' }, 404);
     }
 

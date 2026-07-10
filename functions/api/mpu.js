@@ -1,8 +1,10 @@
 import {
   json, getSession, storageReady, getUser,
   cleanSegment, parsePath, planLimits, storageUsage,
-  resolveScope, scopedPath,
+  resolveScope, scopedPath, moderateStoredImage,
 } from '../../lib/api.js';
+
+const IMG_EXT = /\.(jpe?g|png|webp|gif)$/i;
 
 /* Multipart upload for files above the per-request limit.
    The client splits the file into 64 MiB parts:
@@ -27,7 +29,7 @@ function keyFor(scope, path, name) {
   return `u/${scope.email}/${scopedPath(scope, path, name)}`;
 }
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
@@ -40,11 +42,13 @@ export async function onRequestPost({ request, env }) {
     const size = Number(url.searchParams.get('size') || 0);
     if (!name || path === null) return json({ success: false, error: 'bad-name' }, 400);
 
-    /* limits and usage belong to the storage owner */
-    const user = await getUser(env, scope.email);
+    /* limits and usage belong to the storage owner (fetched in parallel) */
+    const [user, usage] = await Promise.all([
+      getUser(env, scope.email),
+      storageUsage(env, scope.email),
+    ]);
     const limits = planLimits(user, env);
     if (size > limits.maxFile) return json({ success: false, error: 'too-large' }, 413);
-    const usage = await storageUsage(env, scope.email);
     if (usage + size > limits.quota) return json({ success: false, error: 'quota' }, 413);
 
     const mpu = await env.KILIW_FILES.createMultipartUpload(keyFor(scope, path, name), {
@@ -76,12 +80,18 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'mpu-failed' }, 400);
     }
     /* re-check limits against the real size; declared size is client-supplied */
-    const user = await getUser(env, scope.email);
+    const [user, usage] = await Promise.all([
+      getUser(env, scope.email),
+      storageUsage(env, scope.email),
+    ]);
     const limits = planLimits(user, env);
-    const usage = await storageUsage(env, scope.email);
     if (object.size > limits.maxFile || usage > limits.quota) {
       await env.KILIW_FILES.delete(object.key);
       return json({ success: false, error: object.size > limits.maxFile ? 'too-large' : 'quota' }, 413);
+    }
+    /* photos are checked for 18+ content in the background */
+    if (waitUntil && IMG_EXT.test(name)) {
+      waitUntil(moderateStoredImage(env, scope.email, scopedPath(scope, path, name)));
     }
     return json({ success: true, name });
   }

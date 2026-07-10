@@ -63,6 +63,8 @@
     'folder.deleteConfirm': 'Delete folder "{name}" with everything inside?',
     'file.preview': 'Preview',
     'preview.na': 'Preview is not available for this file type.',
+    'preview.sensitive': 'Sensitive content — this file may contain adult material.',
+    'preview.show': 'Show anyway',
     'usage.text': '{used} of {total} used',
     'files.title': 'Your files',
     'files.empty': 'Nothing here yet. Upload your first file.',

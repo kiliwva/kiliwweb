@@ -1,6 +1,6 @@
 import {
   getShare, hashPassword, timingSafeEqualHex, moderateShare, moderateStoredImage,
-  parsePath, getSession, getUser, requestShareAccess,
+  modVerdictsAt, parsePath, getSession, getUser, requestShareAccess,
 } from '../lib/api.js';
 
 /* Public share pages: GET/POST /share/<token>
@@ -825,24 +825,10 @@ async function handleFolderShare(request, env, share, url, viewer) {
   files.sort((a, b) => a.name.localeCompare(b.name));
 
   /* cached 18+ verdicts → blurred thumbnails */
-  const modPrefix = `_mod/${share.email}/${share.path}/${rp ? `${rp}/` : ''}`;
-  const flagged = new Set();
-  let modCursor;
-  do {
-    const page = await env.KILIW_FILES.list({ prefix: modPrefix, delimiter: '/', cursor: modCursor, limit: 1000 });
-    for (const obj of page.objects) {
-      const rec = await env.KILIW_FILES.get(obj.key);
-      if (!rec) continue;
-      try {
-        if (JSON.parse(await rec.text()).sensitive === true) {
-          flagged.add(obj.key.slice(modPrefix.length).replace(/\.json$/, ''));
-        }
-      } catch { /* skip unreadable */ }
-    }
-    modCursor = page.truncated ? page.cursor : undefined;
-  } while (modCursor);
+  const level = `${share.path}${rp ? `/${rp}` : ''}`;
+  const verdicts = await modVerdictsAt(env, share.email, level);
   for (const file of files) {
-    if (flagged.has(file.name)) file.sensitive = true;
+    if (verdicts.flagged.has(file.name)) file.sensitive = true;
   }
 
   return folderPage(share, rp, [...folders].sort(), files, proofQuery, viewer);

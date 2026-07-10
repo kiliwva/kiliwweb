@@ -55,9 +55,20 @@ export async function onRequestDelete({ request, env }) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 
-  /* clean up share links and edit grants that pointed inside */
-  await deleteSharesUnder(env, scope.email, full);
-  await deleteShareForFile(env, scope.email, full);
-  await removeCollabsUnder(env, scope.email, full);
+  /* clean up share links, edit grants and cached verdicts inside */
+  await Promise.all([
+    deleteSharesUnder(env, scope.email, full),
+    deleteShareForFile(env, scope.email, full),
+    removeCollabsUnder(env, scope.email, full),
+    (async () => {
+      let modCursor;
+      do {
+        const page = await env.KILIW_FILES.list({ prefix: `_mod/${scope.email}/${full}/`, cursor: modCursor, limit: 1000 });
+        const keys = page.objects.map((o) => o.key);
+        if (keys.length) await env.KILIW_FILES.delete(keys);
+        modCursor = page.truncated ? page.cursor : undefined;
+      } while (modCursor);
+    })(),
+  ]);
   return json({ success: true });
 }
