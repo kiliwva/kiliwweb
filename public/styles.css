@@ -507,13 +507,24 @@ body {
 .file-info:hover .file-name { color: var(--accent-press); }
 .folder-row .file-info { justify-content: center; }
 .file-name {
+  /* align-items: flex-start sizes children to content — cap them so
+     long names ellipsize instead of painting over the action buttons */
+  max-width: 100%;
   font-size: 14.5px;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.file-meta { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.file-meta {
+  max-width: 100%;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .file-actions { display: flex; gap: 6px; flex: none; }
 
 .icon-btn {
@@ -631,6 +642,10 @@ body {
   margin-bottom: 4px;
 }
 .modal-head h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 21px;
   font-weight: 800;
   letter-spacing: -0.02em;
