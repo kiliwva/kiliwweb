@@ -49,6 +49,28 @@ export async function onRequestGet({ request, env }) {
   } while (cursor);
 
   files.sort((a, b) => new Date(b.uploaded) - new Date(a.uploaded));
+
+  /* attach cached 18+ verdicts (written by share moderation) for thumbnails */
+  const modPrefix = `_mod/${scope.email}/${full ? `${full}/` : ''}`;
+  let modCursor;
+  const flagged = new Set();
+  do {
+    const page = await env.KILIW_FILES.list({ prefix: modPrefix, delimiter: '/', cursor: modCursor, limit: 1000 });
+    for (const obj of page.objects) {
+      const rec = await env.KILIW_FILES.get(obj.key);
+      if (!rec) continue;
+      try {
+        if (JSON.parse(await rec.text()).sensitive === true) {
+          flagged.add(obj.key.slice(modPrefix.length).replace(/\.json$/, ''));
+        }
+      } catch { /* skip unreadable */ }
+    }
+    modCursor = page.truncated ? page.cursor : undefined;
+  } while (modCursor);
+  for (const file of files) {
+    if (flagged.has(file.name)) file.sensitive = true;
+  }
+
   return json({ success: true, path, folders: [...folders].sort(), files });
 }
 

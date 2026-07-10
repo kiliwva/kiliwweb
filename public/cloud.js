@@ -172,6 +172,35 @@ function showStatus(id, message, ok = false) {
   el.classList.toggle('ok', ok);
 }
 
+const IMG_EXT = /\.(png|jpe?g|gif|webp|avif|bmp|ico|svg)$/i;
+const SENSITIVE_RE = /porn|nsfw|xxx/i;
+const THUMB_MAX = 8 * 1024 * 1024; // don't pull huge originals for a 40px thumb
+
+const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+/** Small image preview for the row; falls back to the generic icon. */
+function fileVisual(file) {
+  if (!IMG_EXT.test(file.name) || file.size > THUMB_MAX) return iconSvg('file');
+
+  const wrap = document.createElement('span');
+  wrap.className = 'thumb';
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.alt = '';
+  img.src = fileUrl(file.name, true);
+  img.onerror = () => wrap.replaceWith(iconSvg('file'));
+  wrap.appendChild(img);
+
+  if (file.sensitive || SENSITIVE_RE.test(file.name)) {
+    wrap.classList.add('censored');
+    const badge = document.createElement('span');
+    badge.className = 'thumb-lock';
+    badge.innerHTML = LOCK_SVG;
+    wrap.appendChild(badge);
+  }
+  return wrap;
+}
+
 function iconSvg(kind) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
@@ -470,7 +499,7 @@ function renderList(folders, files, shared = []) {
     });
     actions.append(download, menu);
 
-    li.append(iconSvg('file'), info, actions);
+    li.append(fileVisual(file), info, actions);
     listEl.appendChild(li);
   }
 

@@ -427,6 +427,28 @@ const CSS = `
     .f-dl:hover { background: rgba(255, 255, 255, 0.13); }
     .f-dl svg { width: 16px; height: 16px; }
     .f-empty { padding: 34px 20px; text-align: center; font-size: 13.5px; font-weight: 600; color: #9C9C9C; }
+    .thumb {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      flex: none;
+      display: block;
+      border-radius: 11px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .thumb.censored img { filter: blur(7px) saturate(0.7); transform: scale(1.25); }
+    .thumb-lock {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.3);
+      color: #FFF;
+    }
+    .thumb-lock svg { width: 14px; height: 14px; }
 
     .foot {
       flex: none;
@@ -541,10 +563,22 @@ function folderPage(share, rp, folders, files, proofQuery, viewer) {
     rows.push(`<a class="f-row" href="${base}?p=${encPath(rel)}${proofQuery}">
       ${FOLDER_ICON}<span class="f-name">${esc(folder)}</span></a>`);
   }
+  const IMG_EXT = /\.(png|jpe?g|gif|webp|avif|bmp|ico|svg)$/i;
+  const THUMB_MAX = 8 * 1024 * 1024;
+  const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
   for (const file of files) {
     const rel = rp ? `${rp}/${file.name}` : file.name;
+    const sensitive = file.sensitive || SENSITIVE_RE.test(file.name);
+    let visual = FILE_ICON;
+    if (IMG_EXT.test(file.name) && file.size <= THUMB_MAX) {
+      visual = `<span class="thumb${sensitive ? ' censored' : ''}">
+        <img loading="lazy" alt="" src="${base}?raw=${encPath(rel)}${proofQuery}">
+        ${sensitive ? `<span class="thumb-lock">${LOCK_SVG}</span>` : ''}
+      </span>`;
+    }
     rows.push(`<div class="f-row f-file">
-      ${FILE_ICON}<a class="f-name" href="${base}?view=${encPath(rel)}${proofQuery}">${esc(file.name)}</a>
+      ${visual}<a class="f-name" href="${base}?view=${encPath(rel)}${proofQuery}">${esc(file.name)}</a>
       <span class="f-size">${formatSize(file.size)}</span>
       <a class="f-dl" href="${base}?dl=${encPath(rel)}${proofQuery}" download aria-label="Download ${esc(file.name)}">${DL_ICON}</a>
     </div>`);
@@ -789,6 +823,27 @@ async function handleFolderShare(request, env, share, url, viewer) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
   files.sort((a, b) => a.name.localeCompare(b.name));
+
+  /* cached 18+ verdicts → blurred thumbnails */
+  const modPrefix = `_mod/${share.email}/${share.path}/${rp ? `${rp}/` : ''}`;
+  const flagged = new Set();
+  let modCursor;
+  do {
+    const page = await env.KILIW_FILES.list({ prefix: modPrefix, delimiter: '/', cursor: modCursor, limit: 1000 });
+    for (const obj of page.objects) {
+      const rec = await env.KILIW_FILES.get(obj.key);
+      if (!rec) continue;
+      try {
+        if (JSON.parse(await rec.text()).sensitive === true) {
+          flagged.add(obj.key.slice(modPrefix.length).replace(/\.json$/, ''));
+        }
+      } catch { /* skip unreadable */ }
+    }
+    modCursor = page.truncated ? page.cursor : undefined;
+  } while (modCursor);
+  for (const file of files) {
+    if (flagged.has(file.name)) file.sensitive = true;
+  }
 
   return folderPage(share, rp, [...folders].sort(), files, proofQuery, viewer);
 }
