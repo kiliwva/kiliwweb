@@ -59,10 +59,20 @@ export default {
     }
 
     /* Pages-middleware-compatible context: next() serves static assets. */
-    return pageRouter({
+    const response = await pageRouter({
       request,
       env,
       next: () => env.ASSETS.fetch(request),
     });
+
+    /* HTML must never be cached: stale pages reference old scripts and
+       break after deploys. Versioned assets (?v=) may cache freely. */
+    const type = response.headers.get('Content-Type') || '';
+    if (type.includes('text/html')) {
+      const fresh = new Response(response.body, response);
+      fresh.headers.set('Cache-Control', 'no-store');
+      return fresh;
+    }
+    return response;
   },
 };
