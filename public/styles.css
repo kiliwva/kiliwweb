@@ -56,6 +56,9 @@ html, body {
   overflow-x: hidden;
 }
 
+/* paint the overscroll / safe areas dark too (iOS shows white otherwise) */
+html { background: var(--bg-c); }
+
 body {
   font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, sans-serif;

@@ -79,6 +79,8 @@ const CSS = `
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { max-width: 100%; overflow-x: hidden; }
+    /* paint the overscroll / safe areas dark too (iOS shows white otherwise) */
+    html { background: #090909; }
     body {
       min-height: 100dvh;
       display: flex;
@@ -389,6 +391,7 @@ function page(title, inner, { status = 200, backdropUrl = null } = {}) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090909">
   <title>${esc(title)} — Kiliw Cloud</title>
   <style>${CSS}</style>
 </head>
