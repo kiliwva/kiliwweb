@@ -394,7 +394,7 @@ function page(title, inner, { status = 200, backdropUrl = null } = {}) {
 </head>
 <body>
 ${backdrop}${inner}
-  <p class="foot">© ${new Date().getFullYear()} KiliwCloud · a product of Synestix, LLC, registered in the United States</p>
+  <p class="foot">© ${new Date().getFullYear()} KiliwCloud · a product of Synestix, LLC · 2200 Porter Rd, Bear, DE 19701-2022, USA</p>
 </body>
 </html>`;
   return new Response(html, {
