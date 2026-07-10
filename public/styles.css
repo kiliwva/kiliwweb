@@ -1041,3 +1041,8 @@ body {
   color: var(--muted);
   opacity: 0.6;
 }
+
+
+/* the hidden attribute must always win, whatever display the class sets
+   (this bit us three times: modals, tabs, and the avatar letter) */
+[hidden] { display: none !important; }

@@ -10,7 +10,7 @@ export async function onRequestGet({ request, env }) {
   const head = await env.KILIW_FILES.head(`_auth/avatars/${session.email}`);
 
   return json({
-    build: 7,
+    build: 8,
     email: session.email,
     userRecordFound: Boolean(user),
     avatarField: user?.avatar ?? null,
