@@ -270,33 +270,89 @@ function renderPlan() {
   } else {
     desc.textContent = t('plan.freeDesc');
   }
-  renderPlanPrice();
 }
 
-function renderPlanPrice() {
-  const gb = Number(document.getElementById('plan-gb').value);
-  const price = Math.max(149, Math.round(gb * 1.5));
-  document.getElementById('plan-price').textContent = t('plan.price', { gb, price });
+/* --- Pro plan picker --- */
+
+const planModal = document.getElementById('plan-modal');
+const DEFAULT_TIERS = [
+  { gb: 250, price: 399 },
+  { gb: 500, price: 749 },
+  { gb: 1024, price: 1490 },
+];
+let selectedTier = null;
+
+function tierLabel(gb) {
+  if (gb >= 1024) return KiliwUI.lang === 'ru' ? `${gb / 1024} ТБ` : `${gb / 1024} TB`;
+  return KiliwUI.lang === 'ru' ? `${gb} ГБ` : `${gb} GB`;
 }
 
-document.getElementById('plan-gb').addEventListener('input', renderPlanPrice);
+function renderTiers() {
+  const tiers = me?.billing?.tiers?.length ? me.billing.tiers : DEFAULT_TIERS;
+  if (!selectedTier || !tiers.some((tier) => tier.gb === selectedTier)) {
+    selectedTier = tiers[0].gb;
+  }
+  const grid = document.getElementById('tier-grid');
+  grid.innerHTML = '';
+  for (const tier of tiers) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'tier';
+    card.classList.toggle('selected', tier.gb === selectedTier);
+    if (me?.plan?.type === 'pro' && me.plan.gb === tier.gb) card.classList.add('current');
+
+    const gbEl = document.createElement('span');
+    gbEl.className = 'tier-gb';
+    gbEl.textContent = tierLabel(tier.gb);
+    const priceEl = document.createElement('span');
+    priceEl.className = 'tier-price';
+    priceEl.textContent = `${tier.price} ₽`;
+    const periodEl = document.createElement('span');
+    periodEl.className = 'tier-period';
+    periodEl.textContent = t('plan.perMonth');
+
+    card.append(gbEl, priceEl, periodEl);
+    card.addEventListener('click', () => {
+      selectedTier = tier.gb;
+      renderTiers();
+    });
+    grid.appendChild(card);
+  }
+}
+
+function openPlanModal() {
+  renderTiers();
+  showStatus('plan-modal-status', '');
+  planModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closePlanModal() {
+  planModal.hidden = true;
+  if (modal.hidden) document.body.style.overflow = '';
+}
+
+document.getElementById('plan-open').addEventListener('click', openPlanModal);
+document.getElementById('plan-close').addEventListener('click', closePlanModal);
+planModal.addEventListener('click', (e) => {
+  if (e.target === planModal) closePlanModal();
+});
 
 document.getElementById('plan-pay').addEventListener('click', async () => {
   if (!me?.billing?.available) {
-    showStatus('plan-status', t('plan.notConfigured'));
+    showStatus('plan-modal-status', t('plan.notConfigured'));
     return;
   }
-  const gb = Number(document.getElementById('plan-gb').value);
   const res = await fetch('/api/billing', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'create', gb }),
+    body: JSON.stringify({ action: 'create', gb: selectedTier }),
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success && data.url) {
     window.location.href = data.url;
   } else {
-    showStatus('plan-status', t(data.error === 'billing-not-configured' ? 'plan.notConfigured' : 'plan.fail'));
+    showStatus('plan-modal-status', t(data.error === 'billing-not-configured' ? 'plan.notConfigured' : 'plan.fail'));
   }
 });
 
@@ -545,6 +601,7 @@ modal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!previewModal.hidden) closePreview();
+  else if (!planModal.hidden) closePlanModal();
   else if (!modal.hidden) closeModal();
 });
 
@@ -645,6 +702,7 @@ KiliwUI.onLang(() => {
   renderPlan();
   renderUsage();
   loadFiles();
+  if (!planModal.hidden) renderTiers();
 });
 
 /* ---------- init ---------- */

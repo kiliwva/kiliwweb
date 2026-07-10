@@ -1,6 +1,6 @@
 import {
   json, getSession, getUser, planLimits, storageUsage, storageReady, yookassaReady,
-  PRO_GB_MIN, PRO_GB_MAX, proPrice,
+  PRO_TIERS,
 } from '../../lib/api.js';
 
 export async function onRequestGet({ request, env }) {
@@ -25,9 +25,7 @@ export async function onRequestGet({ request, env }) {
     usage,
     billing: {
       available: yookassaReady(env),
-      gbMin: PRO_GB_MIN,
-      gbMax: PRO_GB_MAX,
-      priceMin: proPrice(PRO_GB_MIN),
+      tiers: Object.entries(PRO_TIERS).map(([gb, price]) => ({ gb: Number(gb), price })),
     },
   });
 }

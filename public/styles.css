@@ -862,27 +862,81 @@ body {
    Plan / billing
    ============================================================ */
 
-.plan-gb-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-.plan-row {
+.plan-modal { max-width: 480px; }
+.pro-mark { color: var(--accent-press); }
+:root[data-theme="dark"] .pro-mark { color: var(--accent); }
+
+.plan-benefits {
+  list-style: none;
+  margin: 14px 0 10px;
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  gap: 8px;
 }
-.plan-row input[type="range"] {
-  flex: 1;
-  accent-color: var(--accent);
+.plan-benefits li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
 }
-.plan-price {
-  flex: none;
-  font-size: 13.5px;
+.plan-benefits li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
   font-weight: 800;
-  color: var(--accent-press);
-  min-width: 150px;
-  text-align: right;
+  color: #fff;
+  background: var(--accent);
 }
-:root[data-theme="dark"] .plan-price { color: var(--accent); }
+.plan-compare { margin-bottom: 16px; }
+
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.tier {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 14px 8px;
+  border-radius: 14px;
+  border: 1.5px solid var(--hairline);
+  background: var(--frost-soft);
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+.tier:hover { background: var(--frost); transform: translateY(-1px); }
+.tier.selected {
+  border-color: var(--accent);
+  background: var(--frost-strong);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.tier-gb { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.tier-price { font-size: 14px; font-weight: 800; color: var(--accent-press); }
+:root[data-theme="dark"] .tier-price { color: var(--accent); }
+.tier-period { font-size: 11px; font-weight: 700; color: var(--muted); }
+.tier.current::after {
+  content: "•";
+  color: var(--accent);
+}
+.plan-period { margin-top: 12px; }
+
+@media (max-width: 430px) {
+  .tier-grid { grid-template-columns: 1fr; }
+  .tier { flex-direction: row; justify-content: space-between; padding: 12px 14px; }
+}
+
+/* plan & preview modals open above the profile modal */
+#plan-modal, #preview-modal { z-index: 55; }

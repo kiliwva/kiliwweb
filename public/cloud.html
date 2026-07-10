@@ -99,6 +99,31 @@
     </div>
   </div>
 
+  <!-- Pro plan picker -->
+  <div class="modal-overlay" id="plan-modal" hidden>
+    <div class="modal plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-title">
+      <div class="modal-head">
+        <h2 id="plan-title">Kiliw Cloud <span class="pro-mark">Pro</span></h2>
+        <button type="button" class="icon-btn" id="plan-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+
+      <ul class="plan-benefits">
+        <li data-i18n="plan.benefit1">Files up to 50 GB instead of 1 GB</li>
+        <li data-i18n="plan.benefit2">250 GB to 1 TB of storage instead of 10 GB</li>
+        <li data-i18n="plan.benefit3">Same folders, previews and 2FA — just more room</li>
+      </ul>
+      <p class="modal-hint plan-compare" data-i18n="plan.compareFree">Free plan: 1 GB per file, 10 GB of storage.</p>
+
+      <div class="tier-grid" id="tier-grid"></div>
+
+      <p class="modal-status" id="plan-modal-status" hidden></p>
+      <button type="button" class="submit" id="plan-pay" data-i18n="plan.buy">Pay with YooKassa</button>
+      <p class="note muted plan-period" data-i18n="plan.period">One-time payment, active for 30 days.</p>
+    </div>
+  </div>
+
   <!-- Profile popup -->
   <div class="modal-overlay" id="profile-modal" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
@@ -115,15 +140,8 @@
       <section class="modal-section">
         <h3><span data-i18n="profile.plan.title">Plan</span> <span class="badge" id="plan-badge">Free</span></h3>
         <p class="modal-hint" id="plan-desc"></p>
-        <div id="plan-buy">
-          <label class="plan-gb-label" for="plan-gb" data-i18n="plan.gbLabel">Storage size (GB)</label>
-          <div class="plan-row">
-            <input type="range" id="plan-gb" min="50" max="1024" step="10" value="100">
-            <span class="plan-price" id="plan-price"></span>
-          </div>
-          <p class="modal-status" id="plan-status" hidden></p>
-          <button type="button" class="submit small" id="plan-pay" data-i18n="plan.buy">Pay with YooKassa</button>
-        </div>
+        <p class="modal-status" id="plan-status" hidden></p>
+        <button type="button" class="submit small" id="plan-open" data-i18n="plan.upgrade">Choose a Pro plan</button>
       </section>
 
       <!-- Change password -->

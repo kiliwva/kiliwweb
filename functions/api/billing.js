@@ -1,7 +1,7 @@
 import {
   json, getSession, storageReady, getUser, putUser, randomHex,
   yookassaReady, yookassaRequest, applyPayment, proPrice, planLimits,
-  PRO_GB_MIN, PRO_GB_MAX, PRO_DAYS,
+  PRO_DAYS,
 } from '../../lib/api.js';
 
 /* POST /api/billing
@@ -29,10 +29,8 @@ export async function onRequestPost({ request, env }) {
 
   if (action === 'create') {
     const gb = Math.round(Number(body?.gb));
-    if (!Number.isFinite(gb) || gb < PRO_GB_MIN || gb > PRO_GB_MAX) {
-      return json({ success: false, error: 'bad-request' }, 400);
-    }
     const price = proPrice(gb);
+    if (!price) return json({ success: false, error: 'bad-request' }, 400);
     const origin = new URL(request.url).origin;
 
     const { ok, data } = await yookassaRequest(env, 'POST', '/payments', {
