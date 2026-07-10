@@ -43,14 +43,20 @@ function renderAvatar() {
   for (const suffix of ['', '-big']) {
     const img = document.getElementById(`avatar-img${suffix}`);
     const letter = document.getElementById(`avatar-initial${suffix}`);
+    letter.textContent = initial;
     if (me.avatar) {
+      img.onerror = () => {
+        /* the image request failed: fall back to the letter and say so */
+        img.hidden = true;
+        letter.hidden = false;
+        showStatus('avatar-status', t('avatar.loadFail'));
+      };
       img.src = `/api/avatar?v=${me.avatar}`;
       img.hidden = false;
       letter.hidden = true;
     } else {
       img.hidden = true;
       letter.hidden = false;
-      letter.textContent = initial;
     }
   }
 }
@@ -118,9 +124,9 @@ avatarInput.addEventListener('change', async () => {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.success) throw new Error('upload');
-    me.avatar = data.avatar;
-    renderAvatar();
     showStatus('avatar-status', '');
+    /* re-read the profile from the server: the authoritative state */
+    await refreshMe();
   } catch {
     showStatus('avatar-status', t('avatar.fail'));
   }

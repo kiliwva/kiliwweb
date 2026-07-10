@@ -76,6 +76,7 @@
     'avatar.fail': 'Could not upload the avatar. Try again.',
     'avatar.badImage': 'Could not read this image. Try a JPG or PNG.',
     'avatar.uploading': 'Uploading…',
+    'avatar.loadFail': 'Avatar image failed to load. Pull to refresh and try again.',
     'profile.plan.title': 'Plan',
     'plan.free': 'Free',
     'plan.freeDesc': 'Up to 1 GB per file · 10 GB storage. Upgrade to Pro for files up to 50 GB.',
