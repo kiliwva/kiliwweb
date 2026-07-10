@@ -1,4 +1,4 @@
-import { getShare, hashPassword, timingSafeEqualHex, moderateShare } from '../lib/api.js';
+import { getShare, hashPassword, timingSafeEqualHex, moderateShare, parsePath } from '../lib/api.js';
 
 /* Public share pages: GET/POST /share/<token>
    - open link      → full-page branded view with a file preview (no account)
@@ -342,6 +342,56 @@ const CSS = `
       align-self: center;
     }
 
+    /* shared folder listing */
+    .folder-panel {
+      width: min(720px, 100%);
+      max-height: calc(100dvh - 250px);
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 20px;
+      padding: 10px;
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    }
+    .f-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s;
+    }
+    .f-row:hover { background: rgba(255, 255, 255, 0.05); }
+    .f-row > svg { width: 20px; height: 20px; flex: none; color: #D97757; }
+    .f-row.f-file > svg { color: #B05C40; }
+    .f-name {
+      flex: 1;
+      min-width: 0;
+      font-size: 14px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .f-size { flex: none; font-size: 12px; font-weight: 600; color: #9C9C9C; }
+    .f-dl {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      color: #F2F2F2;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+    }
+    .f-dl:hover { background: rgba(255, 255, 255, 0.13); }
+    .f-dl svg { width: 16px; height: 16px; }
+    .f-empty { padding: 34px 20px; text-align: center; font-size: 13.5px; font-weight: 600; color: #9C9C9C; }
+
     .foot {
       flex: none;
       padding: 16px;
@@ -422,6 +472,52 @@ function notFoundPage() {
   </main>`, { status: 404 });
 }
 
+/* ---------- shared folder listing ---------- */
+
+const FOLDER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>';
+const FILE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/></svg>';
+
+function encPath(path) {
+  return encodeURIComponent(path).replace(/%2F/gi, '/');
+}
+
+function folderPage(share, rp, folders, files, proofQuery) {
+  const rootName = share.path.split('/').pop();
+  const title = rp ? `${rootName}/${rp}` : rootName;
+  const base = `/share/${share.token}`;
+  const rows = [];
+
+  if (rp) {
+    const parent = rp.includes('/') ? rp.slice(0, rp.lastIndexOf('/')) : '';
+    rows.push(`<a class="f-row" href="${base}?${parent ? `p=${encPath(parent)}` : 'p='}${proofQuery}">
+      ${FOLDER_ICON}<span class="f-name">..</span></a>`);
+  }
+  for (const folder of folders) {
+    const rel = rp ? `${rp}/${folder}` : folder;
+    rows.push(`<a class="f-row" href="${base}?p=${encPath(rel)}${proofQuery}">
+      ${FOLDER_ICON}<span class="f-name">${esc(folder)}</span></a>`);
+  }
+  for (const file of files) {
+    const rel = rp ? `${rp}/${file.name}` : file.name;
+    rows.push(`<div class="f-row f-file">
+      ${FILE_ICON}<span class="f-name">${esc(file.name)}</span>
+      <span class="f-size">${formatSize(file.size)}</span>
+      <a class="f-dl" href="${base}?dl=${encPath(rel)}${proofQuery}" download aria-label="Download ${esc(file.name)}">${DL_ICON}</a>
+    </div>`);
+  }
+  const list = rows.length
+    ? rows.join('\n')
+    : '<p class="f-empty">This folder is empty.</p>';
+
+  const count = folders.length + files.length;
+  return page(title, `${topBar(null)}
+  <section class="file-head">
+    <h1 class="share-name">${esc(title)}</h1>
+    <p class="share-meta">${count} item${count === 1 ? '' : 's'} · folder shared by <em>${esc(share.email)}</em></p>
+  </section>
+  <main class="share-stage"><div class="folder-panel">${list}</div></main>`);
+}
+
 function passwordPage(share, size, { wrongPassword = false } = {}) {
   const name = share.path.split('/').pop();
   return page(name, `${topBar(null)}
@@ -431,8 +527,8 @@ function passwordPage(share, size, { wrongPassword = false } = {}) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
       </div>
       <h1 class="card-title">${esc(name)}</h1>
-      <p class="card-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
-      <p class="hint">This file is protected. Enter the password to open it.</p>
+      <p class="card-meta">${share.folder ? 'Folder' : formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
+      <p class="hint">This ${share.folder ? 'folder' : 'file'} is protected. Enter the password to open it.</p>
       <form method="POST" action="/share/${share.token}">
         <input type="password" name="password" placeholder="Password" autocomplete="off" required autofocus>
         ${wrongPassword ? '<p class="error">Wrong password. Try again.</p>' : ''}
@@ -517,6 +613,75 @@ function streamFile(object, name, inline) {
   return new Response(object.body, { headers });
 }
 
+/* ---------- shared folder handler ---------- */
+
+async function handleFolderShare(request, env, share, url) {
+  const rootPrefix = `u/${share.email}/${share.path}/`;
+
+  /* the folder must still exist */
+  const probe = await env.KILIW_FILES.list({ prefix: rootPrefix, limit: 1 });
+  if (!probe.objects.length) return notFoundPage();
+
+  if (request.method === 'POST') {
+    if (!share.hash) return Response.redirect(`${url.origin}/share/${share.token}`, 303);
+    let password = '';
+    try {
+      password = String((await request.formData()).get('password') || '');
+    } catch { /* no form body */ }
+    const ok = password
+      && timingSafeEqualHex(await hashPassword(password, share.salt), share.hash);
+    if (!ok) return passwordPage(share, 0, { wrongPassword: true });
+    const proof = await makeProof(share);
+    return Response.redirect(`${url.origin}/share/${share.token}?k=${proof.k}&e=${proof.e}`, 303);
+  }
+
+  const unlocked = !share.hash
+    || await proofValid(share, url.searchParams.get('k'), url.searchParams.get('e'));
+  if (!unlocked) {
+    if (url.searchParams.get('dl')) {
+      return Response.redirect(`${url.origin}/share/${share.token}`, 302);
+    }
+    return passwordPage(share, 0);
+  }
+  const proofQuery = share.hash
+    ? `&k=${encodeURIComponent(url.searchParams.get('k'))}&e=${encodeURIComponent(url.searchParams.get('e'))}`
+    : '';
+
+  /* ?dl=<relative path> — download one file from the folder */
+  const dl = url.searchParams.get('dl');
+  if (dl) {
+    const rel = parsePath(dl);
+    if (!rel) return notFoundPage();
+    const object = await env.KILIW_FILES.get(`${rootPrefix}${rel}`);
+    if (!object) return notFoundPage();
+    return streamFile(object, rel.split('/').pop(), false);
+  }
+
+  /* ?p=<relative path> — browse a subfolder */
+  const rpParsed = parsePath(url.searchParams.get('p') || '');
+  const rp = rpParsed === null ? '' : rpParsed;
+
+  const prefix = `${rootPrefix}${rp ? `${rp}/` : ''}`;
+  const folders = new Set();
+  const files = [];
+  let cursor;
+  do {
+    const page = await env.KILIW_FILES.list({ prefix, delimiter: '/', cursor, limit: 1000 });
+    for (const dp of page.delimitedPrefixes) {
+      folders.add(dp.slice(prefix.length).replace(/\/$/, ''));
+    }
+    for (const obj of page.objects) {
+      const fname = obj.key.slice(prefix.length);
+      if (fname === '.keep' || !fname) continue;
+      files.push({ name: fname, size: obj.size });
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  files.sort((a, b) => a.name.localeCompare(b.name));
+
+  return folderPage(share, rp, [...folders].sort(), files, proofQuery);
+}
+
 /* ---------- handler ---------- */
 
 export async function handleShare(request, env, token) {
@@ -527,6 +692,8 @@ export async function handleShare(request, env, token) {
   const key = `u/${share.email}/${share.path}`;
   const name = share.path.split('/').pop();
   const url = new URL(request.url);
+
+  if (share.folder) return handleFolderShare(request, env, share, url);
 
   /* POST = password check; success redirects to the preview page */
   if (request.method === 'POST') {

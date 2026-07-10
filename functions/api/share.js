@@ -51,16 +51,23 @@ export async function onRequestPost({ request, env }) {
   const action = String(body?.action || '');
 
   if (action === 'create') {
-    const object = await env.KILIW_FILES.head(`u/${session.email}/${p}`);
-    if (!object) return json({ success: false, error: 'not-found' }, 404);
+    const folder = body?.folder === true;
+    if (folder) {
+      /* the folder must actually exist */
+      const page = await env.KILIW_FILES.list({ prefix: `u/${session.email}/${p}/`, limit: 1 });
+      if (!page.objects.length) return json({ success: false, error: 'not-found' }, 404);
+    } else {
+      const object = await env.KILIW_FILES.head(`u/${session.email}/${p}`);
+      if (!object) return json({ success: false, error: 'not-found' }, 404);
+    }
 
     const password = typeof body?.password === 'string' ? body.password : '';
     if (password && password.length < 4) {
       return json({ success: false, error: 'password-short' }, 400);
     }
-    const share = await createShare(env, session.email, p, password || null);
+    const share = await createShare(env, session.email, p, password || null, folder);
     /* content-based 18+ check for images, remembered on the record */
-    await moderateShare(env, share);
+    if (!folder) await moderateShare(env, share);
     return json({
       success: true,
       url: shareUrl(request, share.token),

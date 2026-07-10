@@ -1,34 +1,36 @@
 import {
   json, getSession, storageReady, parsePath, cleanSegment,
-  deleteShareForFile, moveShare,
+  deleteShareForFile, moveShare, resolveScope, scopedPath,
 } from '../../lib/api.js';
 
 /* content types that are safe to render inline without a sandbox */
 const SAFE_INLINE = /^(image\/(?!svg)|video\/|audio\/|application\/pdf)/;
 
-async function requireSession(request, env) {
+async function requireAccess(request, env) {
   if (!storageReady(env)) {
     return { error: json({ success: false, error: 'not-configured' }, 503) };
   }
   const session = await getSession(request, env);
   if (!session) return { error: json({ success: false, error: 'unauthorized' }, 401) };
-  return { session };
+  const scope = await resolveScope(env, session, request);
+  if (!scope) return { error: json({ success: false, error: 'no-access' }, 403) };
+  return { session, scope };
 }
 
-function fullPath(request) {
+function relPath(request) {
   const p = parsePath(new URL(request.url).searchParams.get('p'));
   return p || null; // must contain at least the file name
 }
 
-/* GET /api/file?p=folder/name.ext[&inline=1] — download or preview */
+/* GET /api/file?p=folder/name.ext[&inline=1][&scope=..] — download or preview */
 export async function onRequestGet({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
-  const p = fullPath(request);
+  const p = relPath(request);
   if (!p) return json({ success: false, error: 'bad-name' }, 400);
 
-  const object = await env.KILIW_FILES.get(`u/${session.email}/${p}`);
+  const object = await env.KILIW_FILES.get(`u/${scope.email}/${scopedPath(scope, p)}`);
   if (!object) return json({ success: false, error: 'not-found' }, 404);
 
   const name = p.split('/').pop();
@@ -49,9 +51,9 @@ export async function onRequestGet({ request, env }) {
   return new Response(object.body, { headers });
 }
 
-/* PUT /api/file { p, newName } — rename a file (same folder) */
+/* PUT /api/file { p, newName } [?scope=..] — rename a file (same folder) */
 export async function onRequestPut({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
   let body;
@@ -78,8 +80,10 @@ export async function onRequestPut({ request, env }) {
   const newPath = `${dir}${newName}`;
   if (newPath === p) return json({ success: true, name: newName });
 
-  const oldKey = `u/${session.email}/${p}`;
-  const newKey = `u/${session.email}/${newPath}`;
+  const fullOld = scopedPath(scope, p);
+  const fullNew = scopedPath(scope, newPath);
+  const oldKey = `u/${scope.email}/${fullOld}`;
+  const newKey = `u/${scope.email}/${fullNew}`;
   if (await env.KILIW_FILES.head(newKey)) {
     return json({ success: false, error: 'exists' }, 409);
   }
@@ -92,19 +96,20 @@ export async function onRequestPut({ request, env }) {
     httpMetadata: object.httpMetadata,
   });
   await env.KILIW_FILES.delete(oldKey);
-  await moveShare(env, session.email, p, newPath);
+  await moveShare(env, scope.email, fullOld, fullNew);
   return json({ success: true, name: newName });
 }
 
-/* DELETE /api/file?p=folder/name.ext */
+/* DELETE /api/file?p=folder/name.ext[&scope=..] */
 export async function onRequestDelete({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
-  const p = fullPath(request);
+  const p = relPath(request);
   if (!p) return json({ success: false, error: 'bad-name' }, 400);
 
-  await env.KILIW_FILES.delete(`u/${session.email}/${p}`);
-  await deleteShareForFile(env, session.email, p);
+  const full = scopedPath(scope, p);
+  await env.KILIW_FILES.delete(`u/${scope.email}/${full}`);
+  await deleteShareForFile(env, scope.email, full);
   return json({ success: true });
 }

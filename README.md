@@ -28,15 +28,25 @@ _share/f/<email>/<path>       file → share-token index
 
 ### Public share links
 
-Any file can be shared via `https://kiliw.com/share/<token>` — a branded
-full-page viewer that works without an account: images, video, audio, PDF
-and text files show a live preview (`?raw=1` streams inline, `?dl=1`
-downloads). Links can optionally require a password; a correct password
-unlocks the preview page via a short-lived signed URL (1 hour), so the
-file bytes are never reachable without it. Shares follow
-renames and are removed automatically when the file, its folder, or the
-account is deleted. One link per file; creating a new link replaces the
-old one (old URL stops working).
+Any file or folder can be shared via `https://kiliw.com/share/<token>` —
+a branded full-page viewer that works without an account: images, video,
+audio, PDF and text files show a live preview (`?raw=1` streams inline,
+`?dl=1` downloads); folder links show a browsable listing with per-file
+downloads. Links can optionally require a password; a correct password
+unlocks the page via a short-lived signed URL (1 hour), so the file bytes
+are never reachable without it. Shares follow renames and are removed
+automatically when the file, its folder, or the account is deleted. One
+link per file/folder; creating a new link replaces the old one.
+
+### Folder editors (edit access by email)
+
+The owner of a folder can grant edit access to other registered users by
+email (share modal → Editors), and revoke it the same way. Granted folders
+appear in the member's cloud under "Your files" with a "Shared by …" note;
+inside, the member can upload, download, rename and delete files (all
+storage counts against the owner's quota). Grants live in R2 under
+`_collab/` (a member record plus an owner-side index) and are cleaned up
+when the folder or either account is deleted.
 
 ## Files
 

@@ -1,19 +1,23 @@
 import {
-  json, getSession, storageReady, cleanSegment, parsePath, deleteSharesUnder,
+  json, getSession, storageReady, cleanSegment, parsePath,
+  deleteSharesUnder, deleteShareForFile, removeCollabsUnder,
+  resolveScope, scopedPath,
 } from '../../lib/api.js';
 
-async function requireSession(request, env) {
+async function requireAccess(request, env) {
   if (!storageReady(env)) {
     return { error: json({ success: false, error: 'not-configured' }, 503) };
   }
   const session = await getSession(request, env);
   if (!session) return { error: json({ success: false, error: 'unauthorized' }, 401) };
-  return { session };
+  const scope = await resolveScope(env, session, request);
+  if (!scope) return { error: json({ success: false, error: 'no-access' }, 403) };
+  return { session, scope };
 }
 
-/* POST /api/folders { path, name } — create a folder */
+/* POST /api/folders { path, name } [?scope=..] — create a folder */
 export async function onRequestPost({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
   let body;
@@ -28,20 +32,21 @@ export async function onRequestPost({ request, env }) {
   if (!name || path === null) return json({ success: false, error: 'bad-name' }, 400);
 
   /* zero-byte marker keeps the empty folder visible in listings */
-  const key = `u/${session.email}/${path ? `${path}/` : ''}${name}/.keep`;
+  const key = `u/${scope.email}/${scopedPath(scope, path, name)}/.keep`;
   await env.KILIW_FILES.put(key, new Uint8Array(0));
   return json({ success: true, name });
 }
 
-/* DELETE /api/folders?p=a/b — delete a folder with everything inside */
+/* DELETE /api/folders?p=a/b[&scope=..] — delete a folder with everything inside */
 export async function onRequestDelete({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
   const p = parsePath(new URL(request.url).searchParams.get('p'));
   if (!p) return json({ success: false, error: 'bad-name' }, 400);
 
-  const prefix = `u/${session.email}/${p}/`;
+  const full = scopedPath(scope, p);
+  const prefix = `u/${scope.email}/${full}/`;
   let cursor;
   do {
     const page = await env.KILIW_FILES.list({ prefix, cursor, limit: 1000 });
@@ -50,6 +55,9 @@ export async function onRequestDelete({ request, env }) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 
-  await deleteSharesUnder(env, session.email, p);
+  /* clean up share links and edit grants that pointed inside */
+  await deleteSharesUnder(env, scope.email, full);
+  await deleteShareForFile(env, scope.email, full);
+  await removeCollabsUnder(env, scope.email, full);
   return json({ success: true });
 }

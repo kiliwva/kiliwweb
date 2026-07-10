@@ -1,6 +1,7 @@
 import {
   json, getSession, storageReady, getUser,
   cleanSegment, parsePath, planLimits, storageUsage,
+  resolveScope, scopedPath,
 } from '../../lib/api.js';
 
 /* Multipart upload for files above the per-request limit.
@@ -8,23 +9,26 @@ import {
      POST /api/mpu?action=create&name=..&path=..&size=..   → { uploadId }
      PUT  /api/mpu?action=part&name=..&path=..&id=..&part=N (body = chunk) → { etag }
      POST /api/mpu?action=complete { name, path, id, parts: [{partNumber, etag}] }
-     POST /api/mpu?action=abort    { name, path, id } */
+     POST /api/mpu?action=abort    { name, path, id }
+   All calls accept ?scope=<grant id> for folders shared for editing. */
 
-async function requireSession(request, env) {
+async function requireAccess(request, env) {
   if (!storageReady(env)) {
     return { error: json({ success: false, error: 'not-configured' }, 503) };
   }
   const session = await getSession(request, env);
   if (!session) return { error: json({ success: false, error: 'unauthorized' }, 401) };
-  return { session };
+  const scope = await resolveScope(env, session, request);
+  if (!scope) return { error: json({ success: false, error: 'no-access' }, 403) };
+  return { session, scope };
 }
 
-function keyFor(email, path, name) {
-  return `u/${email}/${path ? `${path}/` : ''}${name}`;
+function keyFor(scope, path, name) {
+  return `u/${scope.email}/${scopedPath(scope, path, name)}`;
 }
 
 export async function onRequestPost({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
   const url = new URL(request.url);
@@ -36,13 +40,14 @@ export async function onRequestPost({ request, env }) {
     const size = Number(url.searchParams.get('size') || 0);
     if (!name || path === null) return json({ success: false, error: 'bad-name' }, 400);
 
-    const user = await getUser(env, session.email);
+    /* limits and usage belong to the storage owner */
+    const user = await getUser(env, scope.email);
     const limits = planLimits(user, env);
     if (size > limits.maxFile) return json({ success: false, error: 'too-large' }, 413);
-    const usage = await storageUsage(env, session.email);
+    const usage = await storageUsage(env, scope.email);
     if (usage + size > limits.quota) return json({ success: false, error: 'quota' }, 413);
 
-    const mpu = await env.KILIW_FILES.createMultipartUpload(keyFor(session.email, path, name), {
+    const mpu = await env.KILIW_FILES.createMultipartUpload(keyFor(scope, path, name), {
       httpMetadata: {
         contentType: url.searchParams.get('type') || 'application/octet-stream',
       },
@@ -60,7 +65,7 @@ export async function onRequestPost({ request, env }) {
   const path = parsePath(body?.path);
   const id = String(body?.id || '');
   if (!name || path === null || !id) return json({ success: false, error: 'bad-request' }, 400);
-  const mpu = env.KILIW_FILES.resumeMultipartUpload(keyFor(session.email, path, name), id);
+  const mpu = env.KILIW_FILES.resumeMultipartUpload(keyFor(scope, path, name), id);
 
   if (action === 'complete') {
     const parts = Array.isArray(body?.parts) ? body.parts : [];
@@ -71,9 +76,9 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'mpu-failed' }, 400);
     }
     /* re-check limits against the real size; declared size is client-supplied */
-    const user = await getUser(env, session.email);
+    const user = await getUser(env, scope.email);
     const limits = planLimits(user, env);
-    const usage = await storageUsage(env, session.email);
+    const usage = await storageUsage(env, scope.email);
     if (object.size > limits.maxFile || usage > limits.quota) {
       await env.KILIW_FILES.delete(object.key);
       return json({ success: false, error: object.size > limits.maxFile ? 'too-large' : 'quota' }, 413);
@@ -92,7 +97,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  const { session, error } = await requireSession(request, env);
+  const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
   const url = new URL(request.url);
@@ -107,7 +112,7 @@ export async function onRequestPut({ request, env }) {
     return json({ success: false, error: 'bad-request' }, 400);
   }
 
-  const mpu = env.KILIW_FILES.resumeMultipartUpload(keyFor(session.email, path, name), id);
+  const mpu = env.KILIW_FILES.resumeMultipartUpload(keyFor(scope, path, name), id);
   try {
     const part = await mpu.uploadPart(partNumber, request.body);
     return json({ success: true, partNumber: part.partNumber, etag: part.etag });

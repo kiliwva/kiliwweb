@@ -13,11 +13,14 @@ const PART_SIZE = 64 * 1024 * 1024; // multipart chunk (Workers request limit is
 
 let currentPath = [];
 let me = null; // /api/me payload: plan, usage, billing
+let currentScope = null; // grant id while browsing a folder shared with me
+let scopeInfo = null; // {id, owner, path} of that grant
 
 const t = (key, vars) => KiliwUI.t(key, vars);
 const pathStr = () => currentPath.join('/');
 const fullPath = (name) => (pathStr() ? `${pathStr()}/${name}` : name);
-const fileUrl = (name, inline) => `/api/file?p=${encodeURIComponent(fullPath(name))}${inline ? '&inline=1' : ''}`;
+const scopeQ = () => (currentScope ? `&scope=${currentScope}` : '');
+const fileUrl = (name, inline) => `/api/file?p=${encodeURIComponent(fullPath(name))}${inline ? '&inline=1' : ''}${scopeQ()}`;
 
 /* ---------- session / plan ---------- */
 
@@ -202,9 +205,18 @@ function actionButton(kind, title) {
 /* ---------- browser ---------- */
 
 async function loadFiles() {
-  const res = await fetch(`/api/files?path=${encodeURIComponent(pathStr())}`);
+  const res = await fetch(`/api/files?path=${encodeURIComponent(pathStr())}${scopeQ()}`);
   if (res.status === 401) {
     window.location.href = '/';
+    return;
+  }
+  if (res.status === 403 && currentScope) {
+    /* access was revoked: fall back to the own root */
+    currentScope = null;
+    scopeInfo = null;
+    currentPath = [];
+    showError(t('shared.gone'));
+    loadFiles();
     return;
   }
   const data = await res.json().catch(() => ({}));
@@ -212,9 +224,18 @@ async function loadFiles() {
     showError(t(data.error === 'not-configured' ? 'files.notConfigured' : 'files.loadError'));
     return;
   }
+
+  /* folders other people shared with me, shown at the own root */
+  let shared = [];
+  if (!currentScope && !currentPath.length) {
+    const shRes = await fetch('/api/collab?shared=1');
+    const shData = await shRes.json().catch(() => ({}));
+    if (shRes.ok && shData.success) shared = shData.folders || [];
+  }
+
   showError('');
   renderBreadcrumb();
-  renderList(data.folders, data.files);
+  renderList(data.folders, data.files, shared);
 }
 
 function renderBreadcrumb() {
@@ -224,10 +245,30 @@ function renderBreadcrumb() {
   root.className = 'crumb';
   root.textContent = t('files.title');
   root.addEventListener('click', () => {
+    currentScope = null;
+    scopeInfo = null;
     currentPath = [];
     loadFiles();
   });
   breadcrumbEl.appendChild(root);
+
+  if (scopeInfo) {
+    const sep = document.createElement('span');
+    sep.className = 'crumb-sep';
+    sep.textContent = '/';
+    breadcrumbEl.appendChild(sep);
+
+    const crumb = document.createElement('button');
+    crumb.type = 'button';
+    crumb.className = 'crumb';
+    if (!currentPath.length) crumb.classList.add('current');
+    crumb.textContent = scopeInfo.path.split('/').pop();
+    crumb.addEventListener('click', () => {
+      currentPath = [];
+      loadFiles();
+    });
+    breadcrumbEl.appendChild(crumb);
+  }
 
   currentPath.forEach((segment, index) => {
     const sep = document.createElement('span');
@@ -248,10 +289,35 @@ function renderBreadcrumb() {
   });
 }
 
-function renderList(folders, files) {
+function renderList(folders, files, shared = []) {
   listEl.innerHTML = '';
-  emptyEl.hidden = folders.length > 0 || files.length > 0;
+  emptyEl.hidden = folders.length > 0 || files.length > 0 || shared.length > 0;
   countEl.textContent = files.length ? KiliwUI.filesCount(files.length) : '';
+
+  for (const grant of shared) {
+    const li = document.createElement('li');
+    li.className = 'file-row folder-row';
+
+    const info = document.createElement('button');
+    info.type = 'button';
+    info.className = 'file-info folder-open';
+    const name = document.createElement('span');
+    name.className = 'file-name';
+    name.textContent = grant.path.split('/').pop();
+    const meta = document.createElement('span');
+    meta.className = 'file-meta';
+    meta.textContent = t('shared.byOwner', { email: grant.owner });
+    info.append(name, meta);
+    info.addEventListener('click', () => {
+      currentScope = grant.id;
+      scopeInfo = grant;
+      currentPath = [];
+      loadFiles();
+    });
+
+    li.append(iconSvg('folder'), info, document.createElement('div'));
+    listEl.appendChild(li);
+  }
 
   for (const folder of folders) {
     const li = document.createElement('li');
@@ -271,10 +337,15 @@ function renderList(folders, files) {
 
     const actions = document.createElement('div');
     actions.className = 'file-actions';
+    if (!currentScope) {
+      const share = actionButton('share', t('file.share'));
+      share.addEventListener('click', () => openFolderShare(folder));
+      actions.appendChild(share);
+    }
     const del = actionButton('delete', t('file.delete'));
     del.addEventListener('click', async () => {
       if (!confirm(t('folder.deleteConfirm', { name: folder }))) return;
-      const res = await fetch(`/api/folders?p=${encodeURIComponent(fullPath(folder))}`, { method: 'DELETE' });
+      const res = await fetch(`/api/folders?p=${encodeURIComponent(fullPath(folder))}${scopeQ()}`, { method: 'DELETE' });
       if (res.ok) {
         loadFiles();
         refreshMe();
@@ -305,8 +376,12 @@ function renderList(folders, files) {
 
     const actions = document.createElement('div');
     actions.className = 'file-actions';
-    const share = actionButton('share', t('file.share'));
-    share.addEventListener('click', () => openShare(file));
+    if (!currentScope) {
+      /* public links can only be managed by the folder's owner */
+      const share = actionButton('share', t('file.share'));
+      share.addEventListener('click', () => openShare(file));
+      actions.appendChild(share);
+    }
     const rename = actionButton('rename', t('file.rename'));
     rename.addEventListener('click', () => renameFile(file));
     const download = actionButton('download', t('file.download'));
@@ -320,7 +395,7 @@ function renderList(folders, files) {
         refreshMe();
       }
     });
-    actions.append(share, rename, download, del);
+    actions.append(rename, download, del);
 
     li.append(iconSvg('file'), info, actions);
     listEl.appendChild(li);
@@ -330,7 +405,7 @@ function renderList(folders, files) {
 document.getElementById('new-folder').addEventListener('click', async () => {
   const name = prompt(t('folder.prompt'));
   if (!name || !name.trim()) return;
-  const res = await fetch('/api/folders', {
+  const res = await fetch(`/api/folders?x=1${scopeQ()}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ path: pathStr(), name: name.trim() }),
@@ -503,7 +578,7 @@ function xhrUpload(method, url, body, contentType, onBytes) {
 }
 
 async function uploadOne(file, onBytes) {
-  const query = `name=${encodeURIComponent(file.name)}&path=${encodeURIComponent(pathStr())}`;
+  const query = `name=${encodeURIComponent(file.name)}&path=${encodeURIComponent(pathStr())}${scopeQ()}`;
   const type = file.type || 'application/octet-stream';
 
   if (file.size <= PART_SIZE) {
@@ -535,7 +610,7 @@ async function uploadOne(file, onBytes) {
       parts.push({ partNumber: data.partNumber, etag: data.etag });
       onBytes(offset + chunk.size);
     }
-    const doneRes = await fetch('/api/mpu?action=complete', {
+    const doneRes = await fetch(`/api/mpu?action=complete${scopeQ()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: file.name, path: pathStr(), id, parts }),
@@ -543,7 +618,7 @@ async function uploadOne(file, onBytes) {
     const done = await doneRes.json().catch(() => ({}));
     if (!doneRes.ok || !done.success) throw new Error(done.error || 'upload');
   } catch (err) {
-    await fetch('/api/mpu?action=abort', {
+    await fetch(`/api/mpu?action=abort${scopeQ()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: file.name, path: pathStr(), id }),
@@ -630,7 +705,7 @@ async function renameFile(file) {
   let name = input.trim();
   if (ext && !name.toLowerCase().endsWith(ext.toLowerCase())) name += ext;
   if (name === file.name) return;
-  const res = await fetch('/api/file', {
+  const res = await fetch(`/api/file?x=1${scopeQ()}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ p: fullPath(file.name), newName: name }),
@@ -648,7 +723,9 @@ async function renameFile(file) {
 const shareModal = document.getElementById('share-modal');
 const shareOff = document.getElementById('share-off');
 const shareOn = document.getElementById('share-on');
+const shareCollab = document.getElementById('share-collab');
 let sharePath = null;
+let shareIsFolder = false;
 
 function renderShareState(data) {
   shareOff.hidden = Boolean(data.shared);
@@ -661,13 +738,20 @@ function renderShareState(data) {
   }
 }
 
-async function openShare(file) {
-  sharePath = fullPath(file.name);
-  document.getElementById('share-file-name').textContent = file.name;
+async function openShareModal(name, isFolder) {
+  sharePath = fullPath(name);
+  shareIsFolder = isFolder;
+  document.getElementById('share-title').textContent = t(isFolder ? 'share.folderTitle' : 'share.title');
+  document.getElementById('share-hint').textContent = t(isFolder ? 'share.folderHint' : 'share.hint');
+  document.getElementById('share-file-name').textContent = name;
   document.getElementById('share-password').value = '';
+  document.getElementById('collab-email').value = '';
   showStatus('share-status', '');
+  showStatus('collab-status', '');
   shareOff.hidden = true;
   shareOn.hidden = true;
+  shareCollab.hidden = !isFolder;
+  if (isFolder) renderCollab(null);
   shareModal.hidden = false;
   document.body.style.overflow = 'hidden';
 
@@ -675,10 +759,76 @@ async function openShare(file) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
     showStatus('share-status', t('share.fail'));
+  } else {
+    renderShareState(data);
+  }
+
+  if (isFolder) {
+    const cRes = await fetch(`/api/collab?p=${encodeURIComponent(sharePath)}`);
+    const cData = await cRes.json().catch(() => ({}));
+    renderCollab(cRes.ok && cData.success ? cData.members || [] : []);
+  }
+}
+
+const openShare = (file) => openShareModal(file.name, false);
+const openFolderShare = (folder) => openShareModal(folder, true);
+
+/* --- folder editors (edit access by email) --- */
+
+function renderCollab(members) {
+  const ul = document.getElementById('collab-list');
+  ul.innerHTML = '';
+  if (members === null) return; // still loading
+  if (!members.length) {
+    const li = document.createElement('li');
+    li.className = 'collab-empty';
+    li.textContent = t('collab.none');
+    ul.appendChild(li);
     return;
   }
-  renderShareState(data);
+  for (const email of members) {
+    const li = document.createElement('li');
+    li.className = 'collab-row';
+    const span = document.createElement('span');
+    span.textContent = email;
+    const rm = actionButton('delete', t('collab.remove'));
+    rm.addEventListener('click', () => collabAction('remove', email));
+    li.append(span, rm);
+    ul.appendChild(li);
+  }
 }
+
+async function collabAction(action, email) {
+  showStatus('collab-status', '');
+  const res = await fetch('/api/collab', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, p: sharePath, email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    renderCollab(data.members || []);
+    if (action === 'add') document.getElementById('collab-email').value = '';
+  } else {
+    const KEYS = { 'no-user': 'collab.noUser', self: 'collab.self', 'too-many': 'collab.fail' };
+    showStatus('collab-status', t(KEYS[data.error] || 'collab.fail'));
+  }
+}
+
+document.getElementById('collab-add').addEventListener('click', () => {
+  const email = document.getElementById('collab-email').value.trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    showStatus('collab-status', t('collab.badEmail'));
+    return;
+  }
+  collabAction('add', email);
+});
+document.getElementById('collab-email').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('collab-add').click();
+  }
+});
 
 function closeShareModal() {
   shareModal.hidden = true;
@@ -700,7 +850,7 @@ document.getElementById('share-create').addEventListener('click', async () => {
   const res = await fetch('/api/share', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'create', p: sharePath, password }),
+    body: JSON.stringify({ action: 'create', p: sharePath, password, folder: shareIsFolder }),
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {

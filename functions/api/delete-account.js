@@ -1,7 +1,7 @@
 import {
   json, getSession, storageReady, getUser, putUser, destroySession,
   authRedirect, verifyTotp, hashPassword, timingSafeEqualHex,
-  mailReady, sendEmail, sixDigitCode, buildCodeEmail,
+  mailReady, sendEmail, sixDigitCode, buildCodeEmail, wipeCollabForAccount,
 } from '../../lib/api.js';
 
 const CODE_TTL = 15 * 60 * 1000;
@@ -44,6 +44,9 @@ async function wipeAccount(env, email) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
   await wipePrefix(env, `_share/f/${email}/`);
+
+  /* folder edit grants, in both directions */
+  await wipeCollabForAccount(env, email);
 
   /* every session of this account */
   cursor = undefined;

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0C0C0C">
   <title>Kiliw Cloud</title>
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body data-title-key="title.cloud">
 
@@ -103,7 +103,7 @@
 
       <!-- Not shared yet -->
       <div id="share-off" hidden>
-        <p class="modal-hint" data-i18n="share.hint">Anyone with the link can download this file — no account needed. Add a password to keep it private.</p>
+        <p class="modal-hint" id="share-hint" data-i18n="share.hint">Anyone with the link can download this file — no account needed. Add a password to keep it private.</p>
         <div class="group">
           <div class="field">
             <input type="text" id="share-password" placeholder=" " autocomplete="off">
@@ -124,6 +124,18 @@
       </div>
 
       <p class="modal-status" id="share-status" hidden></p>
+
+      <!-- Edit access by email (folders only) -->
+      <div class="modal-section" id="share-collab" hidden>
+        <h3 data-i18n="collab.title">Editors</h3>
+        <p class="modal-hint" data-i18n="collab.hint">People you add can open this folder from their own Kiliw account and upload, rename or delete files in it.</p>
+        <ul class="collab-list" id="collab-list"></ul>
+        <div class="share-link collab-add-row">
+          <input type="email" id="collab-email" placeholder="email@example.com" autocomplete="off">
+          <button type="button" class="submit small" id="collab-add" data-i18n="collab.add">Add</button>
+        </div>
+        <p class="modal-status" id="collab-status" hidden></p>
+      </div>
     </div>
   </div>
 
@@ -257,7 +269,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-0D</button>
+        <button type="button" class="app-build" id="app-build">KW-0E</button>
       </div>
     </div>
   </div>
@@ -290,8 +302,8 @@
     </div>
   </div>
 
-  <script src="vendor/qrcode.min.js?v=13"></script>
-  <script src="ui.js?v=13"></script>
-  <script src="cloud.js?v=13"></script>
+  <script src="vendor/qrcode.min.js?v=14"></script>
+  <script src="ui.js?v=14"></script>
+  <script src="cloud.js?v=14"></script>
 </body>
 </html>
