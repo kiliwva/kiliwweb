@@ -1,8 +1,10 @@
 import {
-  json, getSession, storageReady, parsePath,
+  json, getSession, storageReady, parsePath, getUser,
   createShare, deleteShareForFile, shareTokenForFile, getShare, shareUrl,
-  moderateShare,
+  moderateShare, saveShare,
 } from '../../lib/api.js';
+
+const MAX_ALLOWED = 50;
 
 async function requireSession(request, env) {
   if (!storageReady(env)) {
@@ -29,6 +31,8 @@ export async function onRequestGet({ request, env }) {
     shared: true,
     url: shareUrl(request, share.token),
     protected: Boolean(share.hash),
+    access: share.access === 'restricted' ? 'restricted' : 'public',
+    allowed: share.allowed || [],
   });
 }
 
@@ -61,17 +65,20 @@ export async function onRequestPost({ request, env }) {
       if (!object) return json({ success: false, error: 'not-found' }, 404);
     }
 
-    const password = typeof body?.password === 'string' ? body.password : '';
+    const access = body?.access === 'restricted' ? 'restricted' : 'public';
+    const password = access === 'public' && typeof body?.password === 'string' ? body.password : '';
     if (password && password.length < 4) {
       return json({ success: false, error: 'password-short' }, 400);
     }
-    const share = await createShare(env, session.email, p, password || null, folder);
+    const share = await createShare(env, session.email, p, password || null, folder, access);
     /* content-based 18+ check for images, remembered on the record */
     if (!folder) await moderateShare(env, share);
     return json({
       success: true,
       url: shareUrl(request, share.token),
       protected: Boolean(share.hash),
+      access,
+      allowed: share.allowed || [],
       sensitive: share.sensitive === true,
     });
   }
@@ -79,6 +86,34 @@ export async function onRequestPost({ request, env }) {
   if (action === 'remove') {
     await deleteShareForFile(env, session.email, p);
     return json({ success: true });
+  }
+
+  /* manage who can open a restricted link */
+  if (action === 'allow-add' || action === 'allow-remove') {
+    const email = String(body?.email || '').trim().toLowerCase();
+    if (!email) return json({ success: false, error: 'bad-request' }, 400);
+
+    const token = await shareTokenForFile(env, session.email, p);
+    const share = token ? await getShare(env, token) : null;
+    if (!share || share.access !== 'restricted') {
+      return json({ success: false, error: 'not-found' }, 404);
+    }
+    const allowed = share.allowed || [];
+
+    if (action === 'allow-add') {
+      if (email === session.email) return json({ success: false, error: 'self' }, 400);
+      if (!(await getUser(env, email))) return json({ success: false, error: 'no-user' }, 404);
+      if (allowed.length >= MAX_ALLOWED && !allowed.includes(email)) {
+        return json({ success: false, error: 'too-many' }, 400);
+      }
+      if (!allowed.includes(email)) allowed.push(email);
+    } else {
+      const at = allowed.indexOf(email);
+      if (at >= 0) allowed.splice(at, 1);
+    }
+    share.allowed = allowed.sort();
+    await saveShare(env, share);
+    return json({ success: true, allowed: share.allowed });
   }
 
   return json({ success: false, error: 'bad-request' }, 400);

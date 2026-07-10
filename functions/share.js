@@ -1,4 +1,6 @@
-import { getShare, hashPassword, timingSafeEqualHex, moderateShare, parsePath } from '../lib/api.js';
+import {
+  getShare, hashPassword, timingSafeEqualHex, moderateShare, parsePath, getSession,
+} from '../lib/api.js';
 
 /* Public share pages: GET/POST /share/<token>
    - open link      → full-page branded view with a file preview (no account)
@@ -266,6 +268,7 @@ const CSS = `
     .card-meta { margin-top: 6px; font-size: 13px; font-weight: 600; color: #9C9C9C; }
     .card-meta em { font-style: normal; color: #D9A38C; }
     .hint { margin-top: 16px; font-size: 13.5px; font-weight: 600; line-height: 1.55; color: #B9B9B9; }
+    .hint em { font-style: normal; color: #D9A38C; }
     .error { margin-top: 14px; font-size: 13.5px; font-weight: 700; color: #F28B70; }
     input[type="password"] {
       width: 100%;
@@ -375,7 +378,22 @@ const CSS = `
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      color: inherit;
+      text-decoration: none;
     }
+    a.f-name:hover { color: #E08A63; }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #A3A3A3;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: #E08A63; }
     .f-size { flex: none; font-size: 12px; font-weight: 600; color: #9C9C9C; }
     .f-dl {
       flex: none;
@@ -500,7 +518,7 @@ function folderPage(share, rp, folders, files, proofQuery) {
   for (const file of files) {
     const rel = rp ? `${rp}/${file.name}` : file.name;
     rows.push(`<div class="f-row f-file">
-      ${FILE_ICON}<span class="f-name">${esc(file.name)}</span>
+      ${FILE_ICON}<a class="f-name" href="${base}?view=${encPath(rel)}${proofQuery}">${esc(file.name)}</a>
       <span class="f-size">${formatSize(file.size)}</span>
       <a class="f-dl" href="${base}?dl=${encPath(rel)}${proofQuery}" download aria-label="Download ${esc(file.name)}">${DL_ICON}</a>
     </div>`);
@@ -538,14 +556,8 @@ function passwordPage(share, size, { wrongPassword = false } = {}) {
   </main>`);
 }
 
-function previewPage(share, size, proofQuery) {
-  const name = share.path.split('/').pop();
-  const base = `/share/${share.token}`;
-  const rawUrl = `${base}?raw=1${proofQuery}`;
-  const dlUrl = `${base}?dl=1${proofQuery}`;
-  const kind = previewKind(name, size);
-  const sensitive = isSensitive(share, name, kind);
-
+/** Preview area markup for one file: media/frame/na block (+ censor cover). */
+function buildStage({ name, size, kind, sensitive, rawUrl, dlUrl }) {
   let stage;
   if (kind === 'image') {
     stage = `<img class="preview-media" src="${rawUrl}" alt="${esc(name)}">`;
@@ -584,6 +596,17 @@ function previewPage(share, size, proofQuery) {
 
   /* ambient backdrop from the image itself (never for censored files) */
   const backdropUrl = kind === 'image' && !sensitive ? rawUrl : null;
+  return { stage, note, backdropUrl };
+}
+
+function previewPage(share, size, proofQuery) {
+  const name = share.path.split('/').pop();
+  const base = `/share/${share.token}`;
+  const rawUrl = `${base}?raw=1${proofQuery}`;
+  const dlUrl = `${base}?dl=1${proofQuery}`;
+  const kind = previewKind(name, size);
+  const sensitive = isSensitive(share, name, kind);
+  const { stage, note, backdropUrl } = buildStage({ name, size, kind, sensitive, rawUrl, dlUrl });
 
   return page(name, `${topBar(dlUrl)}
   <section class="file-head">
@@ -592,6 +615,49 @@ function previewPage(share, size, proofQuery) {
   </section>
   <main class="share-stage">${stage}</main>
   ${note}`, { backdropUrl });
+}
+
+/** Preview of a single file inside a shared folder. */
+function folderPreviewPage(share, rel, size, proofQuery) {
+  const name = rel.split('/').pop();
+  const base = `/share/${share.token}`;
+  const rawUrl = `${base}?raw=${encPath(rel)}${proofQuery}`;
+  const dlUrl = `${base}?dl=${encPath(rel)}${proofQuery}`;
+  const kind = previewKind(name, size);
+  const sensitive = (kind === 'image' || kind === 'video') && SENSITIVE_RE.test(name);
+  const { stage, note, backdropUrl } = buildStage({ name, size, kind, sensitive, rawUrl, dlUrl });
+
+  const parent = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+  const backUrl = `${base}?${parent ? `p=${encPath(parent)}` : 'p='}${proofQuery}`;
+
+  return page(name, `${topBar(dlUrl)}
+  <section class="file-head">
+    <h1 class="share-name">${esc(name)}</h1>
+    <p class="share-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
+    <a class="back-link" href="${backUrl}">← Back to folder</a>
+  </section>
+  <main class="share-stage">${stage}</main>
+  ${note}`, { backdropUrl });
+}
+
+/** Restricted links: sign in, or signed in without access. */
+function restrictedPage(share, signedInAs) {
+  const name = share.path.split('/').pop();
+  const inner = signedInAs
+    ? `<h1 class="card-title">No access to “${esc(name)}”.</h1>
+      <p class="hint">You are signed in as <em>${esc(signedInAs)}</em>, but this link is limited to specific people. Ask <em>${esc(share.email)}</em> to add you.</p>`
+    : `<h1 class="card-title">${esc(name)}</h1>
+      <p class="hint">This link is private. Sign in with an account that has been given access.</p>
+      <a class="btn" href="/">Sign in</a>`;
+  return page(name, `${topBar(null)}
+  <main class="center-stage">
+    <div class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      </div>
+      ${inner}
+    </div>
+  </main>`, { status: 403 });
 }
 
 /* ---------- streaming ---------- */
@@ -647,14 +713,23 @@ async function handleFolderShare(request, env, share, url) {
     ? `&k=${encodeURIComponent(url.searchParams.get('k'))}&e=${encodeURIComponent(url.searchParams.get('e'))}`
     : '';
 
-  /* ?dl=<relative path> — download one file from the folder */
+  /* ?dl=<rel> download · ?raw=<rel> inline stream · ?view=<rel> preview page */
   const dl = url.searchParams.get('dl');
-  if (dl) {
-    const rel = parsePath(dl);
+  const raw = url.searchParams.get('raw');
+  if (dl || raw) {
+    const rel = parsePath(dl || raw);
     if (!rel) return notFoundPage();
     const object = await env.KILIW_FILES.get(`${rootPrefix}${rel}`);
     if (!object) return notFoundPage();
-    return streamFile(object, rel.split('/').pop(), false);
+    return streamFile(object, rel.split('/').pop(), Boolean(raw));
+  }
+  const view = url.searchParams.get('view');
+  if (view) {
+    const rel = parsePath(view);
+    if (!rel) return notFoundPage();
+    const head = await env.KILIW_FILES.head(`${rootPrefix}${rel}`);
+    if (!head) return notFoundPage();
+    return folderPreviewPage(share, rel, head.size, proofQuery);
   }
 
   /* ?p=<relative path> — browse a subfolder */
@@ -692,6 +767,17 @@ export async function handleShare(request, env, token) {
   const key = `u/${share.email}/${share.path}`;
   const name = share.path.split('/').pop();
   const url = new URL(request.url);
+
+  /* restricted links: only the owner and listed people, signed in */
+  if (share.access === 'restricted') {
+    let session = null;
+    try {
+      session = await getSession(request, env);
+    } catch { session = null; }
+    const ok = session
+      && (session.email === share.email || (share.allowed || []).includes(session.email));
+    if (!ok) return restrictedPage(share, session?.email || null);
+  }
 
   if (share.folder) return handleFolderShare(request, env, share, url);
 

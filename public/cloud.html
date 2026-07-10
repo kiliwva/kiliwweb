@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0C0C0C">
   <title>Kiliw Cloud</title>
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body data-title-key="title.cloud">
 
@@ -103,8 +103,13 @@
 
       <!-- Not shared yet -->
       <div id="share-off" hidden>
-        <p class="modal-hint" id="share-hint" data-i18n="share.hint">Anyone with the link can download this file — no account needed. Add a password to keep it private.</p>
-        <div class="group">
+        <p class="otp-label" data-i18n="share.accessLabel">Who can open the link</p>
+        <div class="seg" id="share-access">
+          <button type="button" class="seg-btn active" id="access-public" data-i18n="share.accessPublic">Anyone with the link</button>
+          <button type="button" class="seg-btn" id="access-restricted" data-i18n="share.accessRestricted">Only people you choose</button>
+        </div>
+        <p class="modal-hint" id="share-hint">Anyone with the link can download this file — no account needed. Add a password to keep it private.</p>
+        <div class="group" id="share-password-group">
           <div class="field">
             <input type="text" id="share-password" placeholder=" " autocomplete="off">
             <label for="share-password" data-i18n="share.passwordLabel">Password (optional)</label>
@@ -116,10 +121,21 @@
       <!-- Link exists -->
       <div id="share-on" hidden>
         <div class="share-link">
-          <input type="text" id="share-url" readonly>
-          <button type="button" class="submit small" id="share-copy" data-i18n="share.copy">Copy</button>
+          <input type="text" id="share-url" readonly title="Click to copy">
         </div>
         <p class="modal-hint" id="share-protected-hint"></p>
+
+        <!-- who can open a restricted link -->
+        <div id="share-viewers" hidden>
+          <p class="otp-label" data-i18n="share.viewers">People with access</p>
+          <ul class="collab-list" id="viewer-list"></ul>
+          <div class="share-link collab-add-row">
+            <input type="email" id="viewer-email" placeholder="email@example.com" autocomplete="off">
+            <button type="button" class="submit small" id="viewer-add" data-i18n="collab.add">Add</button>
+          </div>
+          <p class="modal-status" id="viewer-status" hidden></p>
+        </div>
+
         <button type="button" class="submit small danger" id="share-remove" data-i18n="share.remove">Delete link</button>
       </div>
 
@@ -269,7 +285,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-0E</button>
+        <button type="button" class="app-build" id="app-build">KW-0F</button>
       </div>
     </div>
   </div>
@@ -302,8 +318,11 @@
     </div>
   </div>
 
-  <script src="vendor/qrcode.min.js?v=14"></script>
-  <script src="ui.js?v=14"></script>
-  <script src="cloud.js?v=14"></script>
+  <!-- floating row actions menu (⋯) -->
+  <div class="row-menu" id="row-menu" hidden></div>
+
+  <script src="vendor/qrcode.min.js?v=15"></script>
+  <script src="ui.js?v=15"></script>
+  <script src="cloud.js?v=15"></script>
 </body>
 </html>
