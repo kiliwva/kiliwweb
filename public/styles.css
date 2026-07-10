@@ -352,40 +352,34 @@ body {
 }
 .cloud-brand svg { width: 28px; height: 28px; color: var(--accent-press); }
 
-/* ---- logo ---- */
-.logo-mark {
-  flex: none;
-  filter: drop-shadow(0 4px 12px rgba(217, 119, 87, 0.35));
+/* ---- typographic wordmark logo ---- */
+.wordmark {
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: var(--text);
+  text-transform: lowercase;
+  white-space: nowrap;
 }
-.cloud-brand .logo-mark { width: 32px; height: 32px; }
-.cloud-brand em,
-.brand-word em {
+.wordmark em {
   font-style: normal;
-  background: linear-gradient(120deg, #F0A57C 0%, #D97757 55%, #C96A47 100%);
+  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+.cloud-brand .wordmark { font-size: 23px; }
 .auth-brand {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-bottom: 22px;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  margin-bottom: 20px;
 }
-.auth-brand .logo-mark { width: 34px; height: 34px; }
+.auth-brand .wordmark { font-size: 26px; }
 .co-brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  font-size: 15.5px;
-  font-weight: 800;
-  letter-spacing: -0.2px;
+  gap: 8px;
 }
-.co-brand .logo-mark { width: 28px; height: 28px; }
+.co-brand .wordmark { font-size: 19px; }
 .cloud-user {
   display: flex;
   align-items: center;

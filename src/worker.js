@@ -22,6 +22,7 @@ import * as share from '../functions/api/share.js';
 import * as collab from '../functions/api/collab.js';
 import * as notifications from '../functions/api/notifications.js';
 import * as admin from '../functions/api/admin.js';
+import * as sessions from '../functions/api/sessions.js';
 import * as debug from '../functions/api/debug.js';
 import { handleShare } from '../functions/share.js';
 import { json } from '../lib/api.js';
@@ -45,6 +46,7 @@ const ROUTES = {
   '/api/collab': collab,
   '/api/notifications': notifications,
   '/api/admin': admin,
+  '/api/sessions': sessions,
   '/api/verify-email': verifyEmail,
   '/api/delete-account': deleteAccount,
   '/api/debug': debug,

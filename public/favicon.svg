@@ -5,13 +5,9 @@
       <stop offset=".5" stop-color="#D97757"/>
       <stop offset="1" stop-color="#B4552F"/>
     </linearGradient>
-    <linearGradient id="h" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".22"/>
-      <stop offset=".45" stop-color="#fff" stop-opacity="0"/>
-    </linearGradient>
   </defs>
-  <rect x="4" y="4" width="56" height="56" rx="17" fill="url(#g)"/>
-  <rect x="4" y="4" width="56" height="56" rx="17" fill="url(#h)"/>
-  <path d="M22 18v28" stroke="#fff" stroke-width="8" stroke-linecap="round" fill="none"/>
-  <path d="M42 18 30 32l12 14" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect width="64" height="64" rx="15" fill="#151515"/>
+  <text x="32" y="48" text-anchor="middle"
+    font-family="Manrope, -apple-system, 'Segoe UI', Arial, sans-serif"
+    font-size="46" font-weight="800" fill="url(#g)">k</text>
 </svg>

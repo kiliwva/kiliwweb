@@ -1170,7 +1170,73 @@ function showPane(name) {
   });
   profileNav.classList.remove('open');
   if (name === 'admin' && me?.owner && !adminLoaded) loadAdmin();
+  if (name === 'devices') loadSessions();
 }
+
+/* --- devices / sessions --- */
+
+async function loadSessions() {
+  const list = document.getElementById('session-list');
+  showStatus('devices-status', '');
+  const res = await fetch('/api/sessions');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    showStatus('devices-status', t('devices.fail'));
+    return;
+  }
+  list.innerHTML = '';
+  for (const s of data.sessions) {
+    const li = document.createElement('li');
+    li.className = 'collab-row';
+
+    const text = document.createElement('span');
+    const name = document.createElement('strong');
+    name.textContent = s.device || t('devices.unknown');
+    const meta = document.createElement('span');
+    meta.className = 'file-meta';
+    meta.textContent = ` · ${formatDate(new Date(s.created).toISOString())}`;
+    text.append(name, meta);
+
+    li.appendChild(text);
+    if (s.current) {
+      const badge = document.createElement('span');
+      badge.className = 'badge on';
+      badge.textContent = t('devices.current');
+      li.appendChild(badge);
+    }
+    const out = actionButton('delete', t(s.current ? 'cloud.logout' : 'devices.revoke'));
+    out.addEventListener('click', async () => {
+      const rev = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke', id: s.id }),
+      });
+      const rdata = await rev.json().catch(() => ({}));
+      if (rev.ok && rdata.success && rdata.loggedOut) {
+        window.location.href = '/';
+        return;
+      }
+      loadSessions();
+    });
+    li.appendChild(out);
+    list.appendChild(li);
+  }
+}
+
+document.getElementById('sessions-revoke-others').addEventListener('click', async () => {
+  const res = await fetch('/api/sessions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'revoke-others' }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    showStatus('devices-status', t('devices.revoked', { n: data.removed }), true);
+    loadSessions();
+  } else {
+    showStatus('devices-status', t('devices.fail'));
+  }
+});
 
 document.querySelectorAll('.pnav').forEach((btn) => {
   btn.addEventListener('click', () => showPane(btn.dataset.pane));
