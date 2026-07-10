@@ -1,7 +1,7 @@
 import {
   json, getSession, storageReady, getUser, putUser, destroySession,
   authRedirect, verifyTotp, hashPassword, timingSafeEqualHex,
-  mailReady, sendEmail, sixDigitCode,
+  mailReady, sendEmail, sixDigitCode, buildCodeEmail,
 } from '../../lib/api.js';
 
 const CODE_TTL = 15 * 60 * 1000;
@@ -9,14 +9,13 @@ const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN = 60 * 1000;
 
 function deletionEmail(code) {
-  const subject = `${code} — confirm account deletion`;
+  const { subject, html } = buildCodeEmail({
+    subject: `${code} — confirm account deletion`,
+    intro: 'Here is your account deletion code. Entering it will <span style="color:#FF7A5C;font-weight:700;">permanently delete your account and all files</span>.',
+    note: "The code expires in 15 minutes. If you didn't request this, change your password immediately.",
+    code,
+  });
   const text = `Your Kiliw account deletion code: ${code}\n\nEntering it will permanently delete your account and all files. If you didn't request this, change your password immediately.`;
-  const html = `<div style="font-family:Arial,sans-serif;max-width:420px;margin:0 auto;padding:24px">
-    <h2 style="margin:0 0 8px">Kiliw Cloud</h2>
-    <p style="color:#555">Account deletion code:</p>
-    <p style="font-size:32px;font-weight:bold;letter-spacing:6px;margin:12px 0">${code}</p>
-    <p style="color:#b00;font-size:13px">Entering it will permanently delete your account and all files. If you didn't request this, change your password immediately.</p>
-  </div>`;
   return { subject, text, html };
 }
 
