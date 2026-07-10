@@ -1,9 +1,10 @@
 /* Routes requests by host and session:
-   - auth.<domain>: signed out → auth page; signed in → redirect to <domain>
-   - <domain>:      signed out → redirect to auth.<domain>; signed in → cloud app
-   - *.pages.dev / localhost (no subdomains): auth and cloud served from one host */
+   - kiliw.com / www:   signed out → auth.kiliw.com, signed in → cloud.kiliw.com
+   - auth.kiliw.com:    signed out → auth page; signed in → cloud.kiliw.com
+   - cloud.kiliw.com:   signed out → auth.kiliw.com; signed in → cloud app
+   - *.workers.dev / *.pages.dev / localhost: auth and cloud on one host */
 
-import { getSession, authRedirect, mainHost } from '../lib/api.js';
+import { getSession, authRedirect, afterAuthRedirect, isPlainHost } from '../lib/api.js';
 
 export async function onRequest(context) {
   const { request, env, next } = context;
@@ -19,30 +20,41 @@ export async function onRequest(context) {
     session = null;
   }
 
-  const isAuthHost = host.startsWith('auth.');
   const isRoot = url.pathname === '/' || url.pathname === '/index.html';
+  const isCloudPage = url.pathname === '/cloud.html';
+
+  /* single-host mode (workers.dev previews, local dev) */
+  if (isPlainHost(host)) {
+    if (session && isRoot) return env.ASSETS.fetch(new URL('/cloud.html', url));
+    if (!session && isCloudPage) {
+      return Response.redirect(new URL('/', url).toString(), 302);
+    }
+    return next();
+  }
+
+  const isAuthHost = host.startsWith('auth.');
+  const isCloudHost = host.startsWith('cloud.');
 
   if (isAuthHost) {
-    if (session && isRoot) {
-      return Response.redirect(`${url.protocol}//${mainHost(host)}/`, 302);
-    }
+    if (session && isRoot) return Response.redirect(afterAuthRedirect(request), 302);
+    if (isCloudPage) return Response.redirect(afterAuthRedirect(request), 302);
     return next();
   }
 
-  if (session) {
-    if (isRoot) {
-      return env.ASSETS.fetch(new URL('/cloud.html', url));
+  if (isCloudHost) {
+    if (!session && (isRoot || isCloudPage)) {
+      return Response.redirect(authRedirect(request), 302);
     }
+    if (session && isRoot) return env.ASSETS.fetch(new URL('/cloud.html', url));
     return next();
   }
 
-  /* signed out */
-  if (url.pathname === '/cloud.html') {
-    return Response.redirect(new URL('/', url).toString(), 302);
-  }
-  if (isRoot) {
-    const target = authRedirect(request);
-    if (target !== '/') return Response.redirect(target, 302);
+  /* apex / www: pure dispatcher */
+  if (isRoot || isCloudPage) {
+    return Response.redirect(
+      session ? afterAuthRedirect(request) : authRedirect(request),
+      302,
+    );
   }
   return next();
 }

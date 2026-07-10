@@ -9,8 +9,9 @@ accent (`#D97757`). Runs as a **Cloudflare Worker** with static assets
 
 | URL | Behaviour |
 |---|---|
-| `kiliw.com` | Signed out → redirect to `auth.kiliw.com`. Signed in → cloud app |
-| `auth.kiliw.com` | Sign in / sign up. Signed in → redirect to `kiliw.com` |
+| `kiliw.com` | Dispatcher: signed out → `auth.kiliw.com`, signed in → `cloud.kiliw.com` |
+| `auth.kiliw.com` | Sign in / sign up. Signed in → redirect to `cloud.kiliw.com` |
+| `cloud.kiliw.com` | The cloud app. Signed out → redirect to `auth.kiliw.com` |
 | `*.workers.dev` / localhost | Same flows on a single host (no subdomain redirects) |
 
 Sessions live in a `kiliw_session` cookie (30 days) scoped to
@@ -42,7 +43,7 @@ fully work:
    dashboard binding setup is needed — just redeploy after creating the
    bucket (Deployments → ⋯ → Retry, or push any commit).
 2. **Domains** — Worker → *Settings → Domains & Routes* → add
-   `kiliw.com` and `auth.kiliw.com`.
+   `kiliw.com`, `auth.kiliw.com` and `cloud.kiliw.com`.
 3. **Turnstile** — Turnstile → *Add site* → domain `kiliw.com`. Put the
    **Site Key** into `TURNSTILE_SITE_KEY` in `public/auth.js`; add the
    **Secret Key** as a **secret** named `TURNSTILE_SECRET_KEY`
