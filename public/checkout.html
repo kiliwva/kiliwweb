@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0C0C0C">
   <title>Checkout</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body data-title-key="title.checkout">
 
@@ -18,7 +20,27 @@
 
     <main class="card checkout-card">
       <div class="co-head">
-        <span class="co-brand">Kiliw Cloud <span class="pro-mark">Pro</span></span>
+        <span class="co-brand">
+          <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="klg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#F0A57C"/>
+                <stop offset=".55" stop-color="#D97757"/>
+                <stop offset="1" stop-color="#B85C3E"/>
+              </linearGradient>
+              <mask id="klm">
+                <rect width="64" height="64" fill="#fff"/>
+                <path d="M32 24 41 34.5h-5.4V44h-7.2v-9.5H23Z" fill="#000"/>
+              </mask>
+            </defs>
+            <g mask="url(#klm)" fill="url(#klg)">
+              <circle cx="23.5" cy="33" r="12.5"/>
+              <circle cx="40" cy="29.5" r="15"/>
+              <rect x="11" y="33" width="43" height="14" rx="7"/>
+            </g>
+          </svg>
+          <span class="brand-word">Kiliw <em>Cloud</em> <span class="pro-mark">Pro</span></span>
+        </span>
         <a class="ghost-btn" href="/" data-i18n="checkout.back">Back</a>
       </div>
 
@@ -57,7 +79,7 @@
     </main>
   </div>
 
-  <script src="ui.js?v=21"></script>
-  <script src="checkout.js?v=21"></script>
+  <script src="ui.js?v=22"></script>
+  <script src="checkout.js?v=22"></script>
 </body>
 </html>

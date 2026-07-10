@@ -131,6 +131,9 @@ const CSS = `
       animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
       font-size: 16.5px;
       font-weight: 800;
       letter-spacing: -0.3px;
@@ -138,7 +141,20 @@ const CSS = `
       color: inherit;
       text-decoration: none;
     }
-    .brand em { font-style: normal; color: #D97757; }
+    .brand em {
+      font-style: normal;
+      margin-left: 4px;
+      background: linear-gradient(120deg, #F0A57C 0%, #D97757 55%, #C96A47 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .logo-mark {
+      width: 27px;
+      height: 27px;
+      flex: none;
+      filter: drop-shadow(0 4px 12px rgba(217, 119, 87, 0.35));
+    }
     .bar-actions { display: flex; align-items: center; gap: 8px; }
     .bar-avatar {
       display: grid;
@@ -481,6 +497,18 @@ const CSS = `
 
 const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
 
+const LOGO_MARK = `<svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <linearGradient id="klg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F0A57C"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B85C3E"/>
+    </linearGradient>
+    <mask id="klm"><rect width="64" height="64" fill="#fff"/><path d="M32 24 41 34.5h-5.4V44h-7.2v-9.5H23Z" fill="#000"/></mask>
+  </defs>
+  <g mask="url(#klm)" fill="url(#klg)">
+    <circle cx="23.5" cy="33" r="12.5"/><circle cx="40" cy="29.5" r="15"/><rect x="11" y="33" width="43" height="14" rx="7"/>
+  </g>
+</svg>`;
+
 /** Floating top bar: brand, Sign in (or the signed-in viewer's avatar),
     and optionally the Download button. */
 function topBar(dlUrl, viewer) {
@@ -493,7 +521,7 @@ function topBar(dlUrl, viewer) {
     : '<a class="btn ghost" href="/"><span class="btn-label">Sign in</span></a>';
   return `
   <header class="bar">
-    <a class="brand" href="/">Kiliw <em>Cloud</em></a>
+    <a class="brand" href="/">${LOGO_MARK}Kiliw <em>Cloud</em></a>
     <div class="bar-actions">
       ${dlUrl ? `<a class="btn" href="${dlUrl}" download>${DL_ICON}<span class="btn-label">Download</span></a>` : ''}
       ${who}
@@ -511,6 +539,8 @@ function page(title, inner, { status = 200, backdropUrl = null } = {}) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#090909">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <title>${esc(title)} — Kiliw Cloud</title>
   <style>${CSS}</style>
 </head>
