@@ -640,6 +640,7 @@ async function checkPaymentReturn() {
   });
   const data = await res.json().catch(() => ({}));
   openProfile();
+  showPane('plan');
   if (data.success && data.state === 'succeeded') {
     await refreshMe();
     showStatus('plan-status', t('plan.success'), true);
@@ -1156,12 +1157,40 @@ function renderTotpState(enabled) {
   totpSetupBox.hidden = true;
 }
 
+/* --- category menu (sidebar / burger on mobile) --- */
+
+const profileNav = document.getElementById('profile-nav');
+
+function showPane(name) {
+  document.querySelectorAll('.pnav').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.pane === name);
+  });
+  document.querySelectorAll('.profile-content .pane').forEach((pane) => {
+    pane.hidden = pane.id !== `pane-${name}`;
+  });
+  profileNav.classList.remove('open');
+  if (name === 'admin' && me?.owner && !adminLoaded) loadAdmin();
+}
+
+document.querySelectorAll('.pnav').forEach((btn) => {
+  btn.addEventListener('click', () => showPane(btn.dataset.pane));
+});
+document.getElementById('profile-burger').addEventListener('click', (e) => {
+  e.stopPropagation();
+  profileNav.classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  if (profileNav.classList.contains('open')
+    && !profileNav.contains(e.target) && !e.target.closest('#profile-burger')) {
+    profileNav.classList.remove('open');
+  }
+});
+
 function openProfile() {
+  document.getElementById('pnav-admin').hidden = !me?.owner;
+  showPane('account');
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
-  const adminSection = document.getElementById('admin-section');
-  adminSection.hidden = !me?.owner;
-  if (me?.owner && !adminLoaded) loadAdmin();
 }
 
 document.getElementById('profile-open').addEventListener('click', openProfile);

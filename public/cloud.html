@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0C0C0C">
   <title>Kiliw Cloud</title>
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=19">
+  <link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body data-title-key="title.cloud">
 
@@ -186,40 +186,77 @@
 
   <!-- Profile popup -->
   <div class="modal-overlay" id="profile-modal" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+    <div class="modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
       <div class="modal-head">
-        <h2 id="profile-title" data-i18n="profile.title">Profile</h2>
+        <div class="modal-head-actions">
+          <button type="button" class="icon-btn burger-btn" id="profile-burger" aria-label="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <h2 id="profile-title" data-i18n="profile.title">Profile</h2>
+        </div>
         <button type="button" class="icon-btn" id="profile-close" aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
         </button>
       </div>
 
-      <div class="profile-id">
-        <button type="button" class="avatar-btn big" id="avatar-change" aria-label="Change avatar">
-          <img id="avatar-img-big" alt="" hidden>
-          <span id="avatar-initial-big"></span>
-          <span class="avatar-edit" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          </span>
-        </button>
-        <div class="profile-id-text">
-          <p class="modal-email" id="profile-email"></p>
-          <p class="modal-hint avatar-hint" data-i18n="profile.avatarHint">Tap the avatar to change it.</p>
-          <p class="modal-status" id="avatar-status" hidden></p>
-        </div>
-      </div>
-      <input type="file" id="avatar-input" accept="image/*" hidden>
+      <div class="profile-layout">
+        <!-- category menu -->
+        <nav class="profile-nav" id="profile-nav" aria-label="Profile sections">
+          <button type="button" class="pnav active" data-pane="account">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-3.5 3.6-6 8-6s8 2.5 8 6"/></svg>
+            <span data-i18n="pnav.account">Account</span>
+          </button>
+          <button type="button" class="pnav" data-pane="plan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+            <span data-i18n="pnav.plan">Plan &amp; billing</span>
+          </button>
+          <button type="button" class="pnav" data-pane="security">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/></svg>
+            <span data-i18n="pnav.security">Security</span>
+          </button>
+          <button type="button" class="pnav" data-pane="admin" id="pnav-admin" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2L15 12l-3-3 2.7-2.7Z"/></svg>
+            <span data-i18n="pnav.admin">Site admin</span>
+          </button>
+          <button type="button" class="pnav danger" data-pane="danger">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+            <span data-i18n="pnav.danger">Danger zone</span>
+          </button>
+        </nav>
 
-      <!-- Plan -->
-      <section class="modal-section">
-        <h3><span data-i18n="profile.plan.title">Plan</span> <span class="badge" id="plan-badge">Free</span></h3>
-        <p class="modal-hint" id="plan-desc"></p>
-        <p class="modal-status" id="plan-status" hidden></p>
-        <button type="button" class="submit small" id="plan-open" data-i18n="plan.upgrade">Choose a Pro plan</button>
-      </section>
+        <div class="profile-content">
+          <!-- Account -->
+          <div class="pane" id="pane-account">
+            <div class="profile-id">
+              <button type="button" class="avatar-btn big" id="avatar-change" aria-label="Change avatar">
+                <img id="avatar-img-big" alt="" hidden>
+                <span id="avatar-initial-big"></span>
+                <span class="avatar-edit" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </span>
+              </button>
+              <div class="profile-id-text">
+                <p class="modal-email" id="profile-email"></p>
+                <p class="modal-hint avatar-hint" data-i18n="profile.avatarHint">Tap the avatar to change it.</p>
+                <p class="modal-status" id="avatar-status" hidden></p>
+              </div>
+            </div>
+            <input type="file" id="avatar-input" accept="image/*" hidden>
+          </div>
 
-      <!-- Change password -->
-      <section class="modal-section">
+          <!-- Plan & billing -->
+          <div class="pane" id="pane-plan" hidden>
+            <section class="modal-section">
+              <h3><span data-i18n="profile.plan.title">Plan</span> <span class="badge" id="plan-badge">Free</span></h3>
+              <p class="modal-hint" id="plan-desc"></p>
+              <p class="modal-status" id="plan-status" hidden></p>
+              <button type="button" class="submit small" id="plan-open" data-i18n="plan.upgrade">Choose a Pro plan</button>
+            </section>
+          </div>
+
+          <!-- Security -->
+          <div class="pane" id="pane-security" hidden>
+            <section class="modal-section">
         <h3 data-i18n="profile.pw.title">Change password</h3>
         <form id="password-form" novalidate>
           <div class="group">
@@ -238,9 +275,9 @@
         </form>
       </section>
 
-      <!-- Two-factor auth -->
-      <section class="modal-section">
-        <h3><span data-i18n="profile.2fa.title">Two-factor authentication</span> <span class="badge" id="totp-badge">Off</span></h3>
+            <!-- Two-factor auth -->
+            <section class="modal-section">
+              <h3><span data-i18n="profile.2fa.title">Two-factor authentication</span> <span class="badge" id="totp-badge">Off</span></h3>
 
         <!-- 2FA off -->
         <div id="totp-off">
@@ -275,9 +312,12 @@
         </div>
       </section>
 
-      <!-- Owner panel: promo codes + stats -->
-      <section class="modal-section" id="admin-section" hidden>
-        <h3><span data-i18n="admin.title">Site admin</span> <span class="badge on">Owner</span></h3>
+          </div>
+
+          <!-- Site admin (owner) -->
+          <div class="pane" id="pane-admin" hidden>
+            <section class="modal-section" id="admin-section">
+              <h3><span data-i18n="admin.title">Site admin</span> <span class="badge on">Owner</span></h3>
         <p class="modal-hint" id="admin-stats"></p>
         <p class="otp-label" data-i18n="admin.promos">Promo codes</p>
         <ul class="collab-list" id="promo-list"></ul>
@@ -288,20 +328,25 @@
           <button type="button" class="submit small" id="promo-add-btn" data-i18n="collab.add">Add</button>
         </div>
         <p class="modal-status" id="admin-status" hidden></p>
-      </section>
+            </section>
+          </div>
 
-      <!-- Danger zone -->
-      <section class="modal-section">
-        <h3 data-i18n="profile.delete.title">Delete account</h3>
-        <p class="modal-hint" data-i18n="profile.delete.hint">Permanently deletes your account and every file. This cannot be undone.</p>
-        <p class="modal-status" id="delete-start-status" hidden></p>
-        <button type="button" class="submit small danger" id="delete-start" data-i18n="profile.delete.start">Delete account</button>
-      </section>
+          <!-- Danger zone -->
+          <div class="pane" id="pane-danger" hidden>
+            <section class="modal-section">
+              <h3 data-i18n="profile.delete.title">Delete account</h3>
+              <p class="modal-hint" data-i18n="profile.delete.hint">Permanently deletes your account and every file. This cannot be undone.</p>
+              <p class="modal-status" id="delete-start-status" hidden></p>
+              <button type="button" class="submit small danger" id="delete-start" data-i18n="profile.delete.start">Delete account</button>
+            </section>
+          </div>
+        </div>
+      </div>
 
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-13</button>
+        <button type="button" class="app-build" id="app-build">KW-14</button>
       </div>
     </div>
   </div>
@@ -351,8 +396,8 @@
   <!-- floating row actions menu (⋯) -->
   <div class="row-menu" id="row-menu" hidden></div>
 
-  <script src="vendor/qrcode.min.js?v=19"></script>
-  <script src="ui.js?v=19"></script>
-  <script src="cloud.js?v=19"></script>
+  <script src="vendor/qrcode.min.js?v=20"></script>
+  <script src="ui.js?v=20"></script>
+  <script src="cloud.js?v=20"></script>
 </body>
 </html>

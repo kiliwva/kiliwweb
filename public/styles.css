@@ -960,6 +960,64 @@ body {
 /* plan, preview & delete modals open above the profile modal */
 #plan-modal, #preview-modal, #delete-modal { z-index: 55; }
 
+/* profile: category sidebar */
+.profile-modal { max-width: 640px; position: relative; }
+.profile-layout { display: flex; gap: 20px; margin-top: 10px; min-height: 330px; }
+.profile-nav {
+  flex: none;
+  width: 172px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 16px;
+  border-right: 1px solid var(--hairline);
+}
+.pnav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.pnav svg { width: 16px; height: 16px; flex: none; }
+.pnav:hover { background: var(--frost-soft); color: var(--text); }
+.pnav.active { background: rgba(217, 119, 87, 0.12); color: var(--accent); }
+.pnav.danger:hover { color: var(--error); }
+.pnav.danger.active { background: rgba(180, 55, 30, 0.12); color: var(--error); }
+.profile-content { flex: 1; min-width: 0; }
+.pane { animation: rise 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.pane > .modal-section:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+.burger-btn { display: none; }
+
+@media (max-width: 640px) {
+  .burger-btn { display: grid; }
+  .profile-layout { display: block; min-height: 0; }
+  .profile-nav {
+    display: none;
+    position: absolute;
+    top: 62px;
+    left: 16px;
+    right: 16px;
+    z-index: 6;
+    width: auto;
+    padding: 8px;
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    background: var(--bg-a);
+    box-shadow: var(--card-shadow);
+  }
+  .profile-nav.open { display: flex; animation: menu-in 0.16s cubic-bezier(0.22, 1, 0.36, 1); }
+}
+
 /* checkout page */
 .checkout-card { max-width: 460px; }
 .co-head {
