@@ -2,6 +2,7 @@ import {
   json, getSession, storageReady, getUser, putUser, destroySession,
   authRedirect, verifyTotp, hashPassword, timingSafeEqualHex,
   mailReady, sendEmail, sixDigitCode, buildCodeEmail, wipeCollabForAccount,
+  wipeApiKeys,
 } from '../../lib/api.js';
 
 const CODE_TTL = 15 * 60 * 1000;
@@ -49,6 +50,7 @@ async function wipeAccount(env, email) {
 
   /* folder edit grants, in both directions */
   await wipeCollabForAccount(env, email);
+  await wipeApiKeys(env, email);
 
   /* every session of this account */
   cursor = undefined;

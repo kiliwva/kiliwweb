@@ -147,6 +147,27 @@ list thumbnails, share pages and shared-folder previews. Videos can't
 be frame-analyzed inside a Worker, so they rely on the name check only.
 If the model is unavailable, everything gracefully falls back to names.
 
+## Developer API (DEV plan)
+
+The **DEV** plan ($12.99 / 30 days, 500 GB, files up to 50 GB) unlocks
+programmatic access. Keys are managed in the profile (API pane, up to 5;
+the secret `kw_…` is shown once, only its SHA-256 hash is stored). All
+requests use `Authorization: Bearer kw_…`:
+
+```
+GET    /api/v1/usage             plan + storage usage
+GET    /api/v1/files?path=a/b    list folders and files
+GET    /api/v1/files/<path>      download a file
+PUT    /api/v1/files/<path>      upload (body = contents, ≤ 100 MB)
+DELETE /api/v1/files/<path>      delete a file
+POST   /api/v1/folders           {"path": "a/b"} create a folder
+DELETE /api/v1/folders?path=a/b  delete a folder recursively
+```
+
+Uploads respect the plan's per-file and quota limits; images get the
+same background 18+ moderation as web uploads. The site owner has API
+access without a DEV subscription.
+
 ## Local development
 
 ```bash

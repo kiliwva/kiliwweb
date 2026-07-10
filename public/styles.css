@@ -1104,6 +1104,32 @@ body {
 .pay-card.disabled { opacity: 0.4; cursor: not-allowed; }
 .pay-card:active:not(.disabled) { transform: scale(0.98); }
 
+/* developer API pane */
+.api-docs {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--frost-soft);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  overflow-x: auto;
+  white-space: pre;
+}
+#apikey-secret {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  cursor: pointer;
+}
+.ok-hint { color: var(--ok-text) !important; }
+.tier.dev .tier-gb {
+  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 /* owner admin panel */
 .admin-add {
   display: grid;

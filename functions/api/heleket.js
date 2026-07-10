@@ -28,7 +28,7 @@ export async function onRequestPost({ request, env }) {
     try {
       meta = JSON.parse(data.result.additional_data || '{}');
     } catch { /* no metadata */ }
-    await applyProPurchase(env, meta.email, Number(meta.gb), uuid);
+    await applyProPurchase(env, meta.email, Number(meta.gb), uuid, meta.plan === 'dev' ? 'dev' : 'pro');
   }
   return json({ success: true });
 }

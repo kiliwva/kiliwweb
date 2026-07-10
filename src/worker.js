@@ -23,6 +23,8 @@ import * as collab from '../functions/api/collab.js';
 import * as notifications from '../functions/api/notifications.js';
 import * as admin from '../functions/api/admin.js';
 import * as sessions from '../functions/api/sessions.js';
+import * as apikeys from '../functions/api/apikeys.js';
+import * as apiV1 from '../functions/api/v1.js';
 import * as debug from '../functions/api/debug.js';
 import { handleShare } from '../functions/share.js';
 import { json } from '../lib/api.js';
@@ -47,6 +49,7 @@ const ROUTES = {
   '/api/notifications': notifications,
   '/api/admin': admin,
   '/api/sessions': sessions,
+  '/api/apikeys': apikeys,
   '/api/verify-email': verifyEmail,
   '/api/delete-account': deleteAccount,
   '/api/debug': debug,
@@ -69,6 +72,10 @@ export default {
     /* public share links: no session required, any host */
     const shared = pathname.match(/^\/share\/([0-9a-f]{32})$/);
     if (shared) return handleShare(request, env, shared[1]);
+
+    if (pathname.startsWith('/api/v1/')) {
+      return apiV1.handle({ request, env, waitUntil });
+    }
 
     if (pathname.startsWith('/api/')) {
       const mod = ROUTES[pathname];

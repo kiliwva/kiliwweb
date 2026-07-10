@@ -4,7 +4,9 @@
 
 const t = (key, vars) => KiliwUI.t(key, vars);
 
-const gb = Math.round(Number(new URLSearchParams(window.location.search).get('gb'))) || 250;
+const params = new URLSearchParams(window.location.search);
+const plan = params.get('plan') === 'dev' ? 'dev' : 'pro';
+const gb = Math.round(Number(params.get('gb'))) || 250;
 let quote = null;
 let promo = ''; // applied promo code
 let method = null;
@@ -19,8 +21,11 @@ function showStatus(id, message, ok = false) {
 }
 
 function render() {
-  document.getElementById('co-title').textContent = `${tierLabel(quote.gb)} — Kiliw Cloud Pro`;
-  document.title = `${tierLabel(quote.gb)} — ${t('title.checkout')}`;
+  const planName = quote.plan === 'dev'
+    ? `DEV (${tierLabel(quote.gb)} + API)`
+    : `${tierLabel(quote.gb)} — Kiliw Cloud Pro`;
+  document.getElementById('co-title').textContent = planName;
+  document.title = `${planName} — ${t('title.checkout')}`;
 
   const priceEl = document.getElementById('co-price');
   priceEl.textContent = `$${quote.base}`;
@@ -55,7 +60,7 @@ async function loadQuote(promoCode) {
   const res = await fetch('/api/billing', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'quote', gb, promo: promoCode || '' }),
+    body: JSON.stringify({ action: 'quote', plan, gb, promo: promoCode || '' }),
   });
   if (res.status === 401) {
     window.location.href = '/';
@@ -108,7 +113,7 @@ document.getElementById('co-pay').addEventListener('click', async () => {
     const res = await fetch('/api/billing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create', gb, method, promo }),
+      body: JSON.stringify({ action: 'create', plan, gb, method, promo }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success && data.url) {

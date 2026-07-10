@@ -23,6 +23,7 @@ export async function onRequestGet({ request, env }) {
       quota: limits.quota,
       gb: limits.gb,
       until: limits.until,
+      api: limits.api,
     },
     usage,
     billing: {

@@ -2,9 +2,17 @@ import {
   json, getSession, storageReady, getUser, putUser, randomHex,
   yookassaReady, yookassaRequest, applyPayment, applyProPurchase,
   heleketReady, heleketRequest, heleketOutcome,
-  proPrice, planLimits, PRO_DAYS, PRO_TIERS,
+  proPrice, planLimits, PRO_DAYS, PRO_TIERS, DEV_GB, DEV_PRICE,
   usdRubRate, validatePromo, bumpPromoUse, discountedPrice, normPromoCode,
 } from '../../lib/api.js';
+
+/** Tier + base price for a quote/create request: Pro by GB, or DEV. */
+function pickTier(body) {
+  if (body?.plan === 'dev') return { plan: 'dev', gb: DEV_GB, base: DEV_PRICE };
+  const gb = Math.round(Number(body?.gb));
+  const base = proPrice(gb);
+  return base ? { plan: 'pro', gb, base } : null;
+}
 
 /* POST /api/billing
    { action: "quote", gb, promo? }          → price, live rate, methods
@@ -31,9 +39,9 @@ export async function onRequestPost({ request, env }) {
 
   /* price + live exchange rate + promo validation for the checkout page */
   if (action === 'quote') {
-    const gb = Math.round(Number(body?.gb));
-    const base = proPrice(gb);
-    if (!base) return json({ success: false, error: 'bad-request' }, 400);
+    const tier = pickTier(body);
+    if (!tier) return json({ success: false, error: 'bad-request' }, 400);
+    const { plan, gb, base } = tier;
 
     const promoCode = normPromoCode(body?.promo);
     let promo = null;
@@ -46,6 +54,7 @@ export async function onRequestPost({ request, env }) {
 
     return json({
       success: true,
+      plan,
       gb,
       base,
       price,
@@ -60,9 +69,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (action === 'create') {
-    const gb = Math.round(Number(body?.gb));
-    const base = proPrice(gb);
-    if (!base) return json({ success: false, error: 'bad-request' }, 400);
+    const tier = pickTier(body);
+    if (!tier) return json({ success: false, error: 'bad-request' }, 400);
+    const { plan, gb, base } = tier;
 
     /* promo discounts are recomputed server-side, never trusted from the client */
     const promoCode = normPromoCode(body?.promo);
@@ -85,14 +94,14 @@ export async function onRequestPost({ request, env }) {
         amount: { value: rub.toFixed(2), currency: 'RUB' },
         capture: true,
         confirmation: { type: 'redirect', return_url: `${origin}/?payment=return` },
-        description: `Kiliw Cloud Pro — ${gb} GB, ${PRO_DAYS} days ($${price}${promoNote}) — ${session.email}`,
-        metadata: { email: session.email, gb: String(gb) },
+        description: `Kiliw Cloud ${plan === 'dev' ? 'DEV' : 'Pro'} — ${gb} GB, ${PRO_DAYS} days ($${price}${promoNote}) — ${session.email}`,
+        metadata: { email: session.email, gb: String(gb), plan },
       }, randomHex(16));
 
       if (!ok || !data?.confirmation?.confirmation_url) {
         return json({ success: false, error: 'payment-failed' }, 502);
       }
-      user.pendingPayment = { provider: 'yookassa', id: data.id, gb };
+      user.pendingPayment = { provider: 'yookassa', id: data.id, gb, plan };
       await putUser(env, user);
       if (promo) await bumpPromoUse(env, promo.code);
       return json({ success: true, url: data.confirmation.confirmation_url });
@@ -107,13 +116,13 @@ export async function onRequestPost({ request, env }) {
         order_id: `kiliw-${randomHex(10)}`,
         url_return: `${origin}/?payment=return`,
         url_callback: `${origin}/api/heleket`,
-        additional_data: JSON.stringify({ email: session.email, gb }),
+        additional_data: JSON.stringify({ email: session.email, gb, plan }),
       });
 
       if (!ok || !data?.result?.url) {
         return json({ success: false, error: 'payment-failed' }, 502);
       }
-      user.pendingPayment = { provider: 'heleket', id: data.result.uuid, gb };
+      user.pendingPayment = { provider: 'heleket', id: data.result.uuid, gb, plan };
       await putUser(env, user);
       if (promo) await bumpPromoUse(env, promo.code);
       return json({ success: true, url: data.result.url });
@@ -136,7 +145,7 @@ export async function onRequestPost({ request, env }) {
       if (!ok || !data?.result) return json({ success: false, error: 'payment-failed' }, 502);
       state = heleketOutcome(data.result.payment_status);
       if (state === 'succeeded') {
-        await applyProPurchase(env, session.email, pending.gb, pending.id);
+        await applyProPurchase(env, session.email, pending.gb, pending.id, pending.plan);
       }
     } else {
       const { ok, data } = await yookassaRequest(env, 'GET', `/payments/${pending.id}`);

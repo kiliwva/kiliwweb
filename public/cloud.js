@@ -572,33 +572,41 @@ function tierLabel(gb) {
   return gb >= 1024 ? `${gb / 1024} TB` : `${gb} GB`;
 }
 
+const DEV_TIER = { id: 'dev', gb: 500, price: 12.99 };
+
 function renderTiers() {
-  const tiers = me?.billing?.tiers?.length ? me.billing.tiers : DEFAULT_TIERS;
-  if (!selectedTier || !tiers.some((tier) => tier.gb === selectedTier)) {
-    selectedTier = tiers[0].gb;
+  const proTiers = (me?.billing?.tiers?.length ? me.billing.tiers : DEFAULT_TIERS)
+    .map((tier) => ({ id: tier.gb, ...tier }));
+  const tiers = [...proTiers, DEV_TIER];
+  if (!selectedTier || !tiers.some((tier) => tier.id === selectedTier)) {
+    selectedTier = tiers[0].id;
   }
   const grid = document.getElementById('tier-grid');
   grid.innerHTML = '';
   for (const tier of tiers) {
+    const isDev = tier.id === 'dev';
     const card = document.createElement('button');
     card.type = 'button';
-    card.className = 'tier';
-    card.classList.toggle('selected', tier.gb === selectedTier);
-    if (me?.plan?.type === 'pro' && me.plan.gb === tier.gb) card.classList.add('current');
+    card.className = `tier${isDev ? ' dev' : ''}`;
+    card.classList.toggle('selected', tier.id === selectedTier);
+    if (me?.plan?.gb === tier.gb
+      && ((isDev && me.plan.type === 'dev') || (!isDev && me.plan.type === 'pro'))) {
+      card.classList.add('current');
+    }
 
     const gbEl = document.createElement('span');
     gbEl.className = 'tier-gb';
-    gbEl.textContent = tierLabel(tier.gb);
+    gbEl.textContent = isDev ? 'DEV' : tierLabel(tier.gb);
     const priceEl = document.createElement('span');
     priceEl.className = 'tier-price';
     priceEl.textContent = `$${tier.price}`;
     const periodEl = document.createElement('span');
     periodEl.className = 'tier-period';
-    periodEl.textContent = t('plan.perMonth');
+    periodEl.textContent = isDev ? t('plan.devSub') : t('plan.perMonth');
 
     card.append(gbEl, priceEl, periodEl);
     card.addEventListener('click', () => {
-      selectedTier = tier.gb;
+      selectedTier = tier.id;
       renderTiers();
     });
     grid.appendChild(card);
@@ -625,7 +633,9 @@ planModal.addEventListener('click', (e) => {
 
 /* the actual payment happens on a dedicated checkout page */
 document.getElementById('plan-continue').addEventListener('click', () => {
-  window.location.href = `/checkout.html?gb=${selectedTier}`;
+  window.location.href = selectedTier === 'dev'
+    ? '/checkout.html?plan=dev'
+    : `/checkout.html?gb=${selectedTier}`;
 });
 
 async function checkPaymentReturn() {
@@ -1171,7 +1181,103 @@ function showPane(name) {
   profileNav.classList.remove('open');
   if (name === 'admin' && me?.owner && !adminLoaded) loadAdmin();
   if (name === 'devices') loadSessions();
+  if (name === 'api') openApiPane();
 }
+
+/* --- developer API keys --- */
+
+function openApiPane() {
+  const hasApi = Boolean(me?.plan?.api);
+  document.getElementById('api-locked').hidden = hasApi;
+  document.getElementById('api-unlocked').hidden = !hasApi;
+  document.getElementById('apikey-secret-wrap').hidden = true;
+  document.getElementById('apikey-once').hidden = true;
+  showStatus('api-status', '');
+  if (hasApi) {
+    document.getElementById('api-docs').textContent = [
+      '# list files',
+      `curl ${window.location.origin}/api/v1/files \\`,
+      '  -H "Authorization: Bearer kw_..."',
+      '',
+      '# upload',
+      `curl -X PUT ${window.location.origin}/api/v1/files/backup.zip \\`,
+      '  -H "Authorization: Bearer kw_..." --data-binary @backup.zip',
+    ].join('\n');
+    loadApiKeys();
+  }
+}
+
+function renderApiKeys(keys) {
+  const ul = document.getElementById('apikey-list');
+  ul.innerHTML = '';
+  if (!keys.length) {
+    const li = document.createElement('li');
+    li.className = 'collab-empty';
+    li.textContent = t('api.none');
+    ul.appendChild(li);
+    return;
+  }
+  for (const key of keys) {
+    const li = document.createElement('li');
+    li.className = 'collab-row';
+    const span = document.createElement('span');
+    span.textContent = `${key.name} · ${key.prefix}… · ${formatDate(new Date(key.created).toISOString())}`;
+    const rm = actionButton('delete', t('api.revoke'));
+    rm.addEventListener('click', async () => {
+      const res = await fetch('/api/apikeys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke', id: key.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) renderApiKeys(data.keys || []);
+    });
+    li.append(span, rm);
+    ul.appendChild(li);
+  }
+}
+
+async function loadApiKeys() {
+  const res = await fetch('/api/apikeys');
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) renderApiKeys(data.keys || []);
+  else showStatus('api-status', t('api.fail'));
+}
+
+document.getElementById('api-upgrade').addEventListener('click', () => {
+  window.location.href = '/checkout.html?plan=dev';
+});
+
+document.getElementById('apikey-create').addEventListener('click', async () => {
+  showStatus('api-status', '');
+  const res = await fetch('/api/apikeys', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'create', name: document.getElementById('apikey-name').value.trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    document.getElementById('apikey-name').value = '';
+    const wrap = document.getElementById('apikey-secret-wrap');
+    wrap.hidden = false;
+    document.getElementById('apikey-secret').value = data.secret;
+    document.getElementById('apikey-once').hidden = false;
+    renderApiKeys(data.keys || []);
+  } else {
+    showStatus('api-status', t(data.error === 'too-many' ? 'api.tooMany' : 'api.fail'));
+  }
+});
+
+document.getElementById('apikey-secret').addEventListener('click', async (e) => {
+  const input = e.target;
+  input.select();
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch {
+    document.execCommand('copy');
+  }
+  showStatus('api-status', t('share.copied'), true);
+});
 
 /* --- devices / sessions --- */
 

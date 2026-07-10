@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=25">
+  <link rel="stylesheet" href="styles.css?v=26">
 </head>
 <body data-title-key="title.cloud">
 
@@ -217,6 +217,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="15" height="11" rx="2"/><path d="M6 20h7M9.5 15v5"/><rect x="17" y="9" width="5" height="11" rx="1.6"/></svg>
             <span data-i18n="pnav.devices">Devices</span>
           </button>
+          <button type="button" class="pnav" data-pane="api">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 8-4 4 4 4M16 8l4 4-4 4"/></svg>
+            <span data-i18n="pnav.api">API</span>
+          </button>
           <button type="button" class="pnav" data-pane="admin" id="pnav-admin" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.2 5.2L4 17v3h3l5.5-5.5a4 4 0 0 0 5.2-5.2L15 12l-3-3 2.7-2.7Z"/></svg>
             <span data-i18n="pnav.admin">Site admin</span>
@@ -328,6 +332,33 @@
             </section>
           </div>
 
+          <!-- Developer API -->
+          <div class="pane" id="pane-api" hidden>
+            <section class="modal-section">
+              <h3><span data-i18n="api.title">Developer API</span> <span class="badge on">DEV</span></h3>
+
+              <div id="api-locked" hidden>
+                <p class="modal-hint" data-i18n="api.noAccess">Programmatic access to your storage (REST, API keys) comes with the DEV plan.</p>
+                <button type="button" class="submit small" id="api-upgrade" data-i18n="api.getDev">Get DEV — $12.99 / 30 days</button>
+              </div>
+
+              <div id="api-unlocked" hidden>
+                <p class="modal-hint" data-i18n="api.hint">Create keys and call the REST API with "Authorization: Bearer &lt;key&gt;". Up to 5 keys.</p>
+                <ul class="collab-list" id="apikey-list"></ul>
+                <div class="share-link collab-add-row">
+                  <input type="text" id="apikey-name" placeholder="Key name" autocomplete="off">
+                  <button type="button" class="submit small" id="apikey-create" data-i18n="api.create">Create key</button>
+                </div>
+                <div class="share-link" id="apikey-secret-wrap" hidden>
+                  <input type="text" id="apikey-secret" readonly title="Click to copy">
+                </div>
+                <p class="modal-hint ok-hint" id="apikey-once" hidden data-i18n="api.once">Copy the key now — it is shown only once.</p>
+                <p class="modal-status" id="api-status" hidden></p>
+                <pre class="api-docs" id="api-docs"></pre>
+              </div>
+            </section>
+          </div>
+
           <!-- Site admin (owner) -->
           <div class="pane" id="pane-admin" hidden>
             <section class="modal-section" id="admin-section">
@@ -360,7 +391,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-19</button>
+        <button type="button" class="app-build" id="app-build">KW-1A</button>
       </div>
     </div>
   </div>
@@ -410,8 +441,8 @@
   <!-- floating row actions menu (⋯) -->
   <div class="row-menu" id="row-menu" hidden></div>
 
-  <script src="vendor/qrcode.min.js?v=25"></script>
-  <script src="ui.js?v=25"></script>
-  <script src="cloud.js?v=25"></script>
+  <script src="vendor/qrcode.min.js?v=26"></script>
+  <script src="ui.js?v=26"></script>
+  <script src="cloud.js?v=26"></script>
 </body>
 </html>
