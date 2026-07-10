@@ -11,6 +11,7 @@ accent (`#D97757`). Runs as a **Cloudflare Worker** with static assets
 | URL | Behaviour |
 |---|---|
 | `kiliw.com` | Dispatcher: signed out → `auth.kiliw.com`, signed in → `cloud.kiliw.com` |
+| `cloud.kiliw.com/checkout.html?gb=<tier>` | Checkout page: live USD→RUB rate (CBR, hourly cache in `_rates/`), promo codes (`_promo/`, percent off, optional max uses, validated server-side), payment method choice (YooKassa card / Heleket crypto). The plan modal redirects here. The site owner (`OWNER_EMAIL`) gets a "Site admin" section in the profile: promo management + user/file/storage stats (`/api/admin`) |
 | `auth.kiliw.com` | Sign in / sign up. Signed in → redirect to `cloud.kiliw.com` |
 | `cloud.kiliw.com` | The cloud app. Signed out → redirect to `auth.kiliw.com` |
 | `*.workers.dev` / localhost | Same flows on a single host (no subdomain redirects) |

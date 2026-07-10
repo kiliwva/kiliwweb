@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>Checkout</title>
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=19">
+</head>
+<body data-title-key="title.checkout">
+
+  <div class="scene">
+    <!-- Ambient background -->
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+    <div class="orb orb-3" aria-hidden="true"></div>
+
+    <main class="card checkout-card">
+      <div class="co-head">
+        <span class="co-brand">Kiliw Cloud <span class="pro-mark">Pro</span></span>
+        <a class="ghost-btn" href="/" data-i18n="checkout.back">Back</a>
+      </div>
+
+      <h1 class="title" id="co-title">…</h1>
+      <p class="subtitle" data-i18n="plan.period">One-time payment, active for 30 days.</p>
+
+      <div class="co-summary">
+        <div class="co-row"><span data-i18n="checkout.price">Price</span><strong id="co-price"></strong></div>
+        <div class="co-row" id="co-discount-row" hidden><span data-i18n="checkout.discount">Discount</span><strong id="co-discount"></strong></div>
+        <div class="co-row co-total"><span data-i18n="checkout.total">Total</span><strong id="co-total"></strong></div>
+        <p class="co-rub" id="co-rub" hidden></p>
+      </div>
+
+      <!-- promo code -->
+      <div class="share-link co-promo">
+        <input type="text" id="promo-input" placeholder="Promo code" autocomplete="off">
+        <button type="button" class="submit small" id="promo-apply" data-i18n="checkout.apply">Apply</button>
+      </div>
+      <p class="modal-status" id="promo-status" hidden></p>
+
+      <!-- payment method -->
+      <p class="otp-label" data-i18n="checkout.method">Payment method</p>
+      <div class="pay-pick">
+        <button type="button" class="pay-card" id="pm-yookassa">
+          <strong data-i18n="checkout.cardMethod">Bank card</strong>
+          <span>YooKassa · RUB</span>
+        </button>
+        <button type="button" class="pay-card" id="pm-heleket">
+          <strong data-i18n="checkout.cryptoMethod">Crypto</strong>
+          <span>Heleket · USD</span>
+        </button>
+      </div>
+
+      <p class="modal-status" id="co-status" hidden></p>
+      <button type="submit" class="submit" id="co-pay" data-i18n="checkout.pay">Continue to payment</button>
+    </main>
+  </div>
+
+  <script src="ui.js?v=19"></script>
+  <script src="checkout.js?v=19"></script>
+</body>
+</html>

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0C0C0C">
   <title>Kiliw Cloud</title>
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=18">
+  <link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body data-title-key="title.cloud">
 
@@ -179,10 +179,7 @@
       <div class="tier-grid" id="tier-grid"></div>
 
       <p class="modal-status" id="plan-modal-status" hidden></p>
-      <div class="pay-methods">
-        <button type="button" class="submit" id="pay-yookassa" data-i18n="plan.payYookassa">Pay with card (YooKassa)</button>
-        <button type="button" class="submit alt" id="pay-heleket" data-i18n="plan.payHeleket">Pay with crypto (Heleket)</button>
-      </div>
+      <button type="button" class="submit" id="plan-continue" data-i18n="plan.continue">Continue to payment</button>
       <p class="note muted plan-period" data-i18n="plan.period">One-time payment, active for 30 days.</p>
     </div>
   </div>
@@ -278,6 +275,21 @@
         </div>
       </section>
 
+      <!-- Owner panel: promo codes + stats -->
+      <section class="modal-section" id="admin-section" hidden>
+        <h3><span data-i18n="admin.title">Site admin</span> <span class="badge on">Owner</span></h3>
+        <p class="modal-hint" id="admin-stats"></p>
+        <p class="otp-label" data-i18n="admin.promos">Promo codes</p>
+        <ul class="collab-list" id="promo-list"></ul>
+        <div class="admin-add">
+          <input type="text" id="promo-code" placeholder="CODE" autocomplete="off">
+          <input type="number" id="promo-percent" placeholder="%" min="1" max="90">
+          <input type="number" id="promo-max" placeholder="Uses" min="0" title="Max uses (0 = unlimited)">
+          <button type="button" class="submit small" id="promo-add-btn" data-i18n="collab.add">Add</button>
+        </div>
+        <p class="modal-status" id="admin-status" hidden></p>
+      </section>
+
       <!-- Danger zone -->
       <section class="modal-section">
         <h3 data-i18n="profile.delete.title">Delete account</h3>
@@ -289,7 +301,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-12</button>
+        <button type="button" class="app-build" id="app-build">KW-13</button>
       </div>
     </div>
   </div>
@@ -339,8 +351,8 @@
   <!-- floating row actions menu (⋯) -->
   <div class="row-menu" id="row-menu" hidden></div>
 
-  <script src="vendor/qrcode.min.js?v=18"></script>
-  <script src="ui.js?v=18"></script>
-  <script src="cloud.js?v=18"></script>
+  <script src="vendor/qrcode.min.js?v=19"></script>
+  <script src="ui.js?v=19"></script>
+  <script src="cloud.js?v=19"></script>
 </body>
 </html>

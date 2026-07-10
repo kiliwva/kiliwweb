@@ -623,26 +623,10 @@ planModal.addEventListener('click', (e) => {
   if (e.target === planModal) closePlanModal();
 });
 
-async function startPayment(method) {
-  if (!me?.billing?.[method]) {
-    showStatus('plan-modal-status', t('plan.notConfigured'));
-    return;
-  }
-  const res = await fetch('/api/billing', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'create', gb: selectedTier, method }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (res.ok && data.success && data.url) {
-    window.location.href = data.url;
-  } else {
-    showStatus('plan-modal-status', t(data.error === 'billing-not-configured' ? 'plan.notConfigured' : 'plan.fail'));
-  }
-}
-
-document.getElementById('pay-yookassa').addEventListener('click', () => startPayment('yookassa'));
-document.getElementById('pay-heleket').addEventListener('click', () => startPayment('heleket'));
+/* the actual payment happens on a dedicated checkout page */
+document.getElementById('plan-continue').addEventListener('click', () => {
+  window.location.href = `/checkout.html?gb=${selectedTier}`;
+});
 
 async function checkPaymentReturn() {
   const params = new URLSearchParams(window.location.search);
@@ -1175,6 +1159,9 @@ function renderTotpState(enabled) {
 function openProfile() {
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
+  const adminSection = document.getElementById('admin-section');
+  adminSection.hidden = !me?.owner;
+  if (me?.owner && !adminLoaded) loadAdmin();
 }
 
 document.getElementById('profile-open').addEventListener('click', openProfile);
@@ -1484,6 +1471,76 @@ document.getElementById('notif-open').addEventListener('click', async () => {
 document.getElementById('notif-close').addEventListener('click', closeNotifModal);
 notifModal.addEventListener('click', (e) => {
   if (e.target === notifModal) closeNotifModal();
+});
+
+/* ---------- owner admin panel ---------- */
+
+let adminLoaded = false;
+
+function renderPromos(promos) {
+  const ul = document.getElementById('promo-list');
+  ul.innerHTML = '';
+  if (!promos.length) {
+    const li = document.createElement('li');
+    li.className = 'collab-empty';
+    li.textContent = t('admin.noPromos');
+    ul.appendChild(li);
+    return;
+  }
+  for (const promo of promos) {
+    const li = document.createElement('li');
+    li.className = 'collab-row';
+    const span = document.createElement('span');
+    span.textContent = `${promo.code} · −${promo.percent}% · ${t('admin.used', {
+      used: promo.uses || 0,
+      max: promo.maxUses ? promo.maxUses : '∞',
+    })}`;
+    const rm = actionButton('delete', t('file.delete'));
+    rm.addEventListener('click', () => adminAction('promo-remove', { code: promo.code }));
+    li.append(span, rm);
+    ul.appendChild(li);
+  }
+}
+
+async function loadAdmin() {
+  const res = await fetch('/api/admin');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) return;
+  adminLoaded = true;
+  document.getElementById('admin-stats').textContent = t('admin.stats', {
+    users: data.stats.users,
+    files: data.stats.files,
+    size: formatSize(data.stats.bytes),
+  });
+  renderPromos(data.promos || []);
+}
+
+async function adminAction(action, extra) {
+  showStatus('admin-status', '');
+  const res = await fetch('/api/admin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...extra }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    renderPromos(data.promos || []);
+    return true;
+  }
+  const KEYS = { 'bad-code': 'admin.badCode', 'bad-percent': 'admin.badPercent' };
+  showStatus('admin-status', t(KEYS[data.error] || 'admin.fail'));
+  return false;
+}
+
+document.getElementById('promo-add-btn').addEventListener('click', async () => {
+  const code = document.getElementById('promo-code').value.trim();
+  const percent = Number(document.getElementById('promo-percent').value);
+  const maxUses = Number(document.getElementById('promo-max').value) || 0;
+  if (await adminAction('promo-add', { code, percent, maxUses })) {
+    document.getElementById('promo-code').value = '';
+    document.getElementById('promo-percent').value = '';
+    document.getElementById('promo-max').value = '';
+  }
 });
 
 /* ---------- support diagnostics ---------- */

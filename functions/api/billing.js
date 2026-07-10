@@ -2,12 +2,14 @@ import {
   json, getSession, storageReady, getUser, putUser, randomHex,
   yookassaReady, yookassaRequest, applyPayment, applyProPurchase,
   heleketReady, heleketRequest, heleketOutcome,
-  proPrice, planLimits, PRO_DAYS, RUB_PER_USD,
+  proPrice, planLimits, PRO_DAYS, PRO_TIERS,
+  usdRubRate, validatePromo, bumpPromoUse, discountedPrice, normPromoCode,
 } from '../../lib/api.js';
 
 /* POST /api/billing
-   { action: "create", gb, method: "yookassa" | "heleket" } → payment url
-   { action: "check" }                                      → pending payment state */
+   { action: "quote", gb, promo? }          → price, live rate, methods
+   { action: "create", gb, method, promo? } → payment url
+   { action: "check" }                      → pending payment state */
 export async function onRequestPost({ request, env }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
 
@@ -27,22 +29,63 @@ export async function onRequestPost({ request, env }) {
   const action = String(body?.action || '');
   const origin = new URL(request.url).origin;
 
+  /* price + live exchange rate + promo validation for the checkout page */
+  if (action === 'quote') {
+    const gb = Math.round(Number(body?.gb));
+    const base = proPrice(gb);
+    if (!base) return json({ success: false, error: 'bad-request' }, 400);
+
+    const promoCode = normPromoCode(body?.promo);
+    let promo = null;
+    if (promoCode) {
+      promo = await validatePromo(env, promoCode);
+      if (!promo) return json({ success: false, error: 'promo-invalid' }, 400);
+    }
+    const price = discountedPrice(base, promo);
+    const rate = await usdRubRate(env);
+
+    return json({
+      success: true,
+      gb,
+      base,
+      price,
+      percent: promo?.percent || 0,
+      promo: promo?.code || null,
+      rate: Math.round(rate * 100) / 100,
+      rub: Math.ceil(price * rate),
+      days: PRO_DAYS,
+      methods: { yookassa: yookassaReady(env), heleket: heleketReady(env) },
+      tiers: Object.entries(PRO_TIERS).map(([g, p]) => ({ gb: Number(g), price: p })),
+    });
+  }
+
   if (action === 'create') {
     const gb = Math.round(Number(body?.gb));
-    const price = proPrice(gb);
-    if (!price) return json({ success: false, error: 'bad-request' }, 400);
+    const base = proPrice(gb);
+    if (!base) return json({ success: false, error: 'bad-request' }, 400);
+
+    /* promo discounts are recomputed server-side, never trusted from the client */
+    const promoCode = normPromoCode(body?.promo);
+    let promo = null;
+    if (promoCode) {
+      promo = await validatePromo(env, promoCode);
+      if (!promo) return json({ success: false, error: 'promo-invalid' }, 400);
+    }
+    const price = discountedPrice(base, promo);
+    const promoNote = promo ? ` (promo ${promo.code} −${promo.percent}%)` : '';
 
     const method = String(body?.method || 'yookassa');
 
     if (method === 'yookassa') {
       if (!yookassaReady(env)) return json({ success: false, error: 'billing-not-configured' }, 503);
 
-      const rub = Math.round(price * RUB_PER_USD);
+      const rate = await usdRubRate(env);
+      const rub = Math.ceil(price * rate);
       const { ok, data } = await yookassaRequest(env, 'POST', '/payments', {
         amount: { value: rub.toFixed(2), currency: 'RUB' },
         capture: true,
         confirmation: { type: 'redirect', return_url: `${origin}/?payment=return` },
-        description: `Kiliw Cloud Pro — ${gb} GB, ${PRO_DAYS} days ($${price}) — ${session.email}`,
+        description: `Kiliw Cloud Pro — ${gb} GB, ${PRO_DAYS} days ($${price}${promoNote}) — ${session.email}`,
         metadata: { email: session.email, gb: String(gb) },
       }, randomHex(16));
 
@@ -51,6 +94,7 @@ export async function onRequestPost({ request, env }) {
       }
       user.pendingPayment = { provider: 'yookassa', id: data.id, gb };
       await putUser(env, user);
+      if (promo) await bumpPromoUse(env, promo.code);
       return json({ success: true, url: data.confirmation.confirmation_url });
     }
 
@@ -71,6 +115,7 @@ export async function onRequestPost({ request, env }) {
       }
       user.pendingPayment = { provider: 'heleket', id: data.result.uuid, gb };
       await putUser(env, user);
+      if (promo) await bumpPromoUse(env, promo.code);
       return json({ success: true, url: data.result.url });
     }
 

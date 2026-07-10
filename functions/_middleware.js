@@ -21,7 +21,10 @@ export async function onRequest(context) {
   }
 
   const isRoot = url.pathname === '/' || url.pathname === '/index.html';
-  const isCloudPage = url.pathname === '/cloud.html';
+  /* pages that require a session (the app + the checkout page);
+     the assets layer also serves them at extensionless clean URLs */
+  const isCloudPage = ['/cloud.html', '/cloud', '/checkout.html', '/checkout']
+    .includes(url.pathname);
 
   /* single-host mode (workers.dev previews, local dev) */
   if (isPlainHost(host)) {

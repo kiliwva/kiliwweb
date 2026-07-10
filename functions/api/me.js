@@ -1,6 +1,6 @@
 import {
   json, getSession, getUser, planLimits, storageUsage, storageReady,
-  yookassaReady, heleketReady, PRO_TIERS,
+  yookassaReady, heleketReady, PRO_TIERS, isOwner,
 } from '../../lib/api.js';
 
 export async function onRequestGet({ request, env }) {
@@ -16,6 +16,7 @@ export async function onRequestGet({ request, env }) {
     email: session.email,
     totp: Boolean(user?.totp),
     avatar: user?.avatar || null,
+    owner: isOwner(env, session.email),
     plan: {
       type: limits.type,
       maxFile: limits.maxFile,
