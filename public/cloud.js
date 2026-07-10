@@ -901,6 +901,18 @@ document.getElementById('delete-confirm').addEventListener('click', async () => 
   }
 });
 
+/* ---------- support diagnostics ---------- */
+
+document.getElementById('app-build').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/debug');
+    const text = await res.text();
+    alert(text);
+  } catch (err) {
+    alert('debug failed: ' + err.message);
+  }
+});
+
 /* ---------- init ---------- */
 
 refreshMe().then(async (ok) => {

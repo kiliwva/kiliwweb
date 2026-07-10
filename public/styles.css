@@ -1027,6 +1027,12 @@ body {
 
 
 .app-build {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
   margin-top: 16px;
   text-align: center;
   font-size: 11px;
