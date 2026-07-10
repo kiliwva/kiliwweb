@@ -1,12 +1,7 @@
 /* Auth page logic: Cloudflare Turnstile + real sign-in / sign-up. */
 
-/**
- * Cloudflare Turnstile site key.
- * This is Cloudflare's test key ("always passes") — it works on any
- * domain including localhost. For production, create a widget in the
- * Cloudflare dashboard (Turnstile → Add site) and put your site key here.
- */
-const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
+/** Cloudflare Turnstile site key (public by design). */
+const TURNSTILE_SITE_KEY = '0x4AAAAAADzDCGOmnNypLU3q';
 
 const tabsBar = document.querySelector('.tabs');
 const tabLogin = document.getElementById('tab-login');
