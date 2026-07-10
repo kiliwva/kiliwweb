@@ -73,6 +73,8 @@
     'profile.title': 'Profile',
     'profile.avatarHint': 'Tap the avatar to change it.',
     'avatar.fail': 'Could not upload the avatar. Try again.',
+    'avatar.badImage': 'Could not read this image. Try a JPG or PNG.',
+    'avatar.uploading': 'Uploading…',
     'profile.plan.title': 'Plan',
     'plan.free': 'Free',
     'plan.freeDesc': 'Up to 1 GB per file · 10 GB storage. Upgrade to Pro for files up to 50 GB.',

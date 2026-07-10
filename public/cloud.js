@@ -55,18 +55,45 @@ function renderAvatar() {
   }
 }
 
+/** Decode an image file; falls back to <img> for formats
+    createImageBitmap can't handle (e.g. HEIC photos on iPhone). */
+async function decodeImage(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    return { source: bitmap, width: bitmap.width, height: bitmap.height };
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return { source: img, width: img.naturalWidth, height: img.naturalHeight, url };
+    } catch (err) {
+      URL.revokeObjectURL(url);
+      throw err;
+    }
+  }
+}
+
 /** Downscale to a 256px square JPEG so uploads stay tiny. */
 async function shrinkAvatar(file) {
-  const bitmap = await createImageBitmap(file);
+  const { source, width, height, url } = await decodeImage(file);
   const size = 256;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  const scale = Math.max(size / bitmap.width, size / bitmap.height);
-  const w = bitmap.width * scale;
-  const h = bitmap.height * scale;
-  canvas.getContext('2d').drawImage(bitmap, (size - w) / 2, (size - h) / 2, w, h);
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  const scale = Math.max(size / width, size / height);
+  canvas.getContext('2d').drawImage(
+    source,
+    (size - width * scale) / 2,
+    (size - height * scale) / 2,
+    width * scale,
+    height * scale,
+  );
+  if (url) URL.revokeObjectURL(url);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('encode'))), 'image/jpeg', 0.85);
+  });
 }
 
 const avatarInput = document.getElementById('avatar-input');
@@ -75,9 +102,15 @@ avatarInput.addEventListener('change', async () => {
   const file = avatarInput.files[0];
   avatarInput.value = '';
   if (!file) return;
-  showStatus('avatar-status', '');
+  showStatus('avatar-status', t('avatar.uploading'), true);
+  let blob;
   try {
-    const blob = await shrinkAvatar(file);
+    blob = await shrinkAvatar(file);
+  } catch {
+    showStatus('avatar-status', t('avatar.badImage'));
+    return;
+  }
+  try {
     const res = await fetch('/api/avatar', {
       method: 'POST',
       headers: { 'Content-Type': 'image/jpeg' },
@@ -87,6 +120,7 @@ avatarInput.addEventListener('change', async () => {
     if (!res.ok || !data.success) throw new Error('upload');
     me.avatar = data.avatar;
     renderAvatar();
+    showStatus('avatar-status', '');
   } catch {
     showStatus('avatar-status', t('avatar.fail'));
   }
