@@ -148,7 +148,8 @@ const CSS = `
       white-space: nowrap;
       color: #FFF;
       background: linear-gradient(135deg, #E08A63 0%, #D46F4C 100%);
-      border: 0;
+      /* transparent border keeps the same height as the bordered ghost variant */
+      border: 1px solid transparent;
       border-radius: 999px;
       cursor: pointer;
       box-shadow: 0 10px 26px rgba(217, 119, 87, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
@@ -160,7 +161,7 @@ const CSS = `
     .btn.ghost {
       color: #F2F2F2;
       background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-color: rgba(255, 255, 255, 0.10);
       box-shadow: none;
     }
     .btn.ghost:hover { background: rgba(255, 255, 255, 0.12); filter: none; }
