@@ -81,143 +81,205 @@ const CSS = `
     html, body { max-width: 100%; overflow-x: hidden; }
     body {
       min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
       font-family: 'Manrope', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-      background: radial-gradient(120% 120% at 20% 0%, #262626 0%, #161616 48%, #0C0C0C 100%);
+      background:
+        radial-gradient(90% 60% at 85% -10%, rgba(217, 119, 87, 0.10) 0%, transparent 60%),
+        radial-gradient(120% 120% at 15% 0%, #1C1C1C 0%, #121212 46%, #090909 100%);
       background-attachment: fixed;
       color: #F2F2F2;
+      -webkit-font-smoothing: antialiased;
     }
-    body.center { display: grid; place-items: center; padding: 20px 14px; }
-    body.full { display: flex; flex-direction: column; }
-    .brand { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; white-space: nowrap; }
+
+    /* ambient backdrop from the file itself */
+    .backdrop {
+      position: fixed;
+      inset: -12%;
+      z-index: -1;
+      background-size: cover;
+      background-position: center;
+      filter: blur(90px) saturate(1.25) brightness(0.7);
+      opacity: 0;
+      animation: backdrop-in 1s ease 0.1s forwards;
+    }
+    @keyframes backdrop-in { to { opacity: 0.32; } }
+
+    /* floating glass top bar */
+    .bar {
+      flex: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 14px clamp(12px, 3vw, 26px) 0;
+      padding: 10px 12px 10px 20px;
+      background: rgba(18, 18, 18, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      backdrop-filter: blur(26px) saturate(1.5);
+      -webkit-backdrop-filter: blur(26px) saturate(1.5);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .brand {
+      font-size: 16.5px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      white-space: nowrap;
+      color: inherit;
+      text-decoration: none;
+    }
     .brand em { font-style: normal; color: #D97757; }
+    .bar-actions { display: flex; align-items: center; gap: 8px; }
+
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 13px 22px;
+      padding: 11px 20px;
       font: inherit;
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 800;
+      letter-spacing: 0.01em;
       text-align: center;
       text-decoration: none;
-      color: #FFF;
-      background: #D97757;
-      border: 0;
-      border-radius: 13px;
-      cursor: pointer;
       white-space: nowrap;
-      transition: background 0.15s, transform 0.1s;
+      color: #FFF;
+      background: linear-gradient(135deg, #E08A63 0%, #D46F4C 100%);
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 10px 26px rgba(217, 119, 87, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
     }
-    .btn:hover { background: rgba(185, 84, 50, 0.9); }
-    .btn:active { transform: scale(0.98); }
-    .btn svg { width: 17px; height: 17px; }
-    .foot {
-      padding: 14px;
-      font-size: 12px;
-      font-weight: 600;
-      color: #6C6C6C;
-      text-align: center;
-      flex: none;
+    .btn:hover { filter: brightness(1.06); }
+    .btn:active { transform: scale(0.97); }
+    .btn svg { width: 16px; height: 16px; }
+    .btn.ghost {
+      color: #F2F2F2;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      box-shadow: none;
     }
-    .foot a { color: #9C9C9C; text-decoration: none; }
-    .foot a:hover { color: #D97757; }
+    .btn.ghost:hover { background: rgba(255, 255, 255, 0.12); filter: none; }
 
-    /* centered card (password / not found) */
+    /* centered file title under the bar */
+    .file-head {
+      flex: none;
+      padding: clamp(18px, 4vh, 34px) 20px 0;
+      text-align: center;
+      animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .share-name {
+      max-width: min(720px, 92vw);
+      margin: 0 auto;
+      font-size: clamp(19px, 3vw, 26px);
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .share-meta {
+      max-width: min(720px, 92vw);
+      margin: 5px auto 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #A3A3A3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .share-meta em { font-style: normal; color: #D9A38C; }
+
+    .share-stage {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: clamp(14px, 3vh, 26px) 22px 26px;
+      min-height: 0;
+      animation: rise 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .preview-media {
+      max-width: 100%;
+      max-height: calc(100dvh - 250px);
+      border-radius: 20px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+    audio.preview-media { width: min(560px, 100%); box-shadow: none; }
+    .preview-frame {
+      width: min(1100px, 100%);
+      height: calc(100dvh - 250px);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 20px;
+      background: #191919;
+    }
+    .na { text-align: center; max-width: 400px; padding: 40px 24px; }
+    .na svg { width: 56px; height: 56px; color: #C96A47; }
+    .na p { margin: 14px 0 22px; font-size: 14px; font-weight: 600; line-height: 1.5; color: #9C9C9C; }
+
+    /* centered glass card (password / not found) */
+    .center-stage {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 24px 14px;
+    }
     .card {
       width: 100%;
-      max-width: 400px;
+      max-width: 410px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 24px;
-      padding: 30px 26px 26px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      border-radius: 28px;
+      padding: 32px 28px 28px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(30px) saturate(1.4);
       -webkit-backdrop-filter: blur(30px) saturate(1.4);
+      animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .card .brand { margin-bottom: 22px; }
-    .card .btn { display: flex; width: 100%; margin-top: 16px; padding: 15px 16px; }
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 18px;
+      border-radius: 16px;
+      background: rgba(217, 119, 87, 0.14);
+      border: 1px solid rgba(217, 119, 87, 0.25);
+    }
+    .card-icon svg { width: 24px; height: 24px; color: #E08A63; }
     .card-title {
-      font-size: 20px;
+      font-size: 21px;
       font-weight: 800;
       letter-spacing: -0.4px;
       line-height: 1.3;
       overflow-wrap: anywhere;
     }
     .card-meta { margin-top: 6px; font-size: 13px; font-weight: 600; color: #9C9C9C; }
-    .hint { margin-top: 16px; font-size: 13.5px; font-weight: 600; line-height: 1.5; color: #B9B9B9; }
+    .card-meta em { font-style: normal; color: #D9A38C; }
+    .hint { margin-top: 16px; font-size: 13.5px; font-weight: 600; line-height: 1.55; color: #B9B9B9; }
     .error { margin-top: 14px; font-size: 13.5px; font-weight: 700; color: #F28B70; }
     input[type="password"] {
       width: 100%;
-      margin-top: 16px;
-      padding: 14px 16px;
+      margin-top: 18px;
+      padding: 15px 18px;
       font: inherit;
       font-size: 15px;
       font-weight: 600;
       color: #F2F2F2;
       background: rgba(255, 255, 255, 0.06);
       border: 1.5px solid rgba(255, 255, 255, 0.12);
-      border-radius: 14px;
+      border-radius: 16px;
       outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    input[type="password"]:focus { border-color: #D97757; }
-
-    /* full-page share view */
-    .share-head {
-      flex: none;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 14px 22px;
-      background: rgba(255, 255, 255, 0.04);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+    input[type="password"]:focus {
+      border-color: #D97757;
+      box-shadow: 0 0 0 4px rgba(217, 119, 87, 0.18);
     }
-    .share-info { flex: 1; min-width: 0; }
-    .share-name {
-      max-width: 100%;
-      font-size: 15.5px;
-      font-weight: 800;
-      letter-spacing: -0.2px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .share-meta {
-      max-width: 100%;
-      margin-top: 1px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: #9C9C9C;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .share-stage {
-      flex: 1;
-      display: grid;
-      place-items: center;
-      padding: 22px;
-      min-height: 0;
-    }
-    .preview-media {
-      max-width: 100%;
-      max-height: calc(100dvh - 150px);
-      border-radius: 14px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-    }
-    audio.preview-media { width: min(560px, 100%); box-shadow: none; }
-    .preview-frame {
-      width: min(1100px, 100%);
-      height: calc(100dvh - 150px);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 14px;
-      background: #1E1E1E;
-    }
-    .na { text-align: center; max-width: 380px; }
-    .na svg { width: 56px; height: 56px; color: #B05C40; }
-    .na p { margin: 14px 0 20px; font-size: 14px; font-weight: 600; line-height: 1.5; color: #9C9C9C; }
+    .card .btn { display: flex; width: 100%; margin-top: 16px; padding: 15px 16px; border-radius: 16px; }
 
     /* censored sensitive previews */
     .sensitive {
@@ -229,7 +291,7 @@ const CSS = `
     .sensitive:not(.revealed) {
       width: min(760px, 92vw);
       height: min(480px, 62dvh);
-      border-radius: 16px;
+      border-radius: 20px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
@@ -252,7 +314,7 @@ const CSS = `
       inset: 0;
       display: grid;
       place-items: center;
-      background: rgba(12, 12, 12, 0.45);
+      background: rgba(10, 10, 10, 0.45);
       text-align: center;
       padding: 20px;
     }
@@ -274,16 +336,53 @@ const CSS = `
       align-self: center;
     }
 
+    .foot {
+      flex: none;
+      padding: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6C6C6C;
+      text-align: center;
+    }
+    .foot a { color: #9C9C9C; text-decoration: none; }
+    .foot a:hover { color: #D97757; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: none; }
+    }
+
     @media (max-width: 560px) {
-      .share-head { flex-wrap: wrap; padding: 12px 16px; row-gap: 10px; }
-      .share-info { order: 3; flex-basis: 100%; }
-      .share-head .btn { margin-left: auto; padding: 10px 16px; font-size: 13.5px; }
-      .share-stage { padding: 14px; }
-      .preview-media, .preview-frame { max-height: calc(100dvh - 190px); }
-      .preview-frame { height: calc(100dvh - 190px); }
+      .bar { margin: 10px 10px 0; padding: 8px 10px 8px 16px; }
+      .btn { padding: 10px 16px; font-size: 13.5px; }
+      .btn .btn-label { display: none; }
+      .btn.ghost .btn-label { display: inline; }
+      .share-stage { padding: 12px 14px 20px; }
+      .preview-media { max-height: calc(100dvh - 270px); }
+      .preview-frame { height: calc(100dvh - 270px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
     }`;
 
-function page(title, bodyClass, inner, status = 200) {
+const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
+
+/** Floating top bar: brand, Sign in, and optionally the Download button. */
+function topBar(dlUrl) {
+  return `
+  <header class="bar">
+    <a class="brand" href="/">Kiliw <em>Cloud</em></a>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/"><span class="btn-label">Sign in</span></a>
+      ${dlUrl ? `<a class="btn" href="${dlUrl}" download>${DL_ICON}<span class="btn-label">Download</span></a>` : ''}
+    </div>
+  </header>`;
+}
+
+function page(title, inner, { status = 200, backdropUrl = null } = {}) {
+  const backdrop = backdropUrl
+    ? `<div class="backdrop" style="background-image:url('${backdropUrl}')" aria-hidden="true"></div>`
+    : '';
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -292,8 +391,9 @@ function page(title, bodyClass, inner, status = 200) {
   <title>${esc(title)} — Kiliw Cloud</title>
   <style>${CSS}</style>
 </head>
-<body class="${bodyClass}">
-${inner}
+<body>
+${backdrop}${inner}
+  <p class="foot"><a href="/">kiliw.com</a> — private cloud storage</p>
 </body>
 </html>`;
   return new Response(html, {
@@ -303,33 +403,37 @@ ${inner}
 }
 
 function notFoundPage() {
-  return page('Link not found', 'center', `
-  <main class="card">
-    <p class="brand">Kiliw <em>Cloud</em></p>
-    <h1 class="card-title">This link doesn't work anymore.</h1>
-    <p class="hint">The file was removed or the share link was deleted by its owner.</p>
-    <p class="foot"><a href="/">kiliw.com</a> — private cloud storage</p>
-  </main>`, 404);
+  return page('Link not found', `${topBar(null)}
+  <main class="center-stage">
+    <div class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/><path d="M4 4l16 16"/></svg>
+      </div>
+      <h1 class="card-title">This link doesn't work anymore.</h1>
+      <p class="hint">The file was removed or the share link was deleted by its owner.</p>
+    </div>
+  </main>`, { status: 404 });
 }
 
 function passwordPage(share, size, { wrongPassword = false } = {}) {
   const name = share.path.split('/').pop();
-  return page(name, 'center', `
-  <main class="card">
-    <p class="brand">Kiliw <em>Cloud</em></p>
-    <h1 class="card-title">${esc(name)}</h1>
-    <p class="card-meta">${formatSize(size)} · shared by ${esc(share.email)}</p>
-    <p class="hint">This file is protected. Enter the password to open it.</p>
-    <form method="POST" action="/share/${share.token}">
-      <input type="password" name="password" placeholder="Password" autocomplete="off" required autofocus>
-      ${wrongPassword ? '<p class="error">Wrong password. Try again.</p>' : ''}
-      <button class="btn" type="submit">Unlock</button>
-    </form>
-    <p class="foot"><a href="/">kiliw.com</a> — private cloud storage</p>
+  return page(name, `${topBar(null)}
+  <main class="center-stage">
+    <div class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      </div>
+      <h1 class="card-title">${esc(name)}</h1>
+      <p class="card-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
+      <p class="hint">This file is protected. Enter the password to open it.</p>
+      <form method="POST" action="/share/${share.token}">
+        <input type="password" name="password" placeholder="Password" autocomplete="off" required autofocus>
+        ${wrongPassword ? '<p class="error">Wrong password. Try again.</p>' : ''}
+        <button class="btn" type="submit">Unlock</button>
+      </form>
+    </div>
   </main>`);
 }
-
-const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
 
 function previewPage(share, size, proofQuery) {
   const name = share.path.split('/').pop();
@@ -375,18 +479,16 @@ function previewPage(share, size, proofQuery) {
     ? '<p class="sensitive-note">⚠ Sensitive content — this file may contain adult material.</p>'
     : '';
 
-  return page(name, 'full', `
-  <header class="share-head">
-    <span class="brand">Kiliw <em>Cloud</em></span>
-    <div class="share-info">
-      <p class="share-name">${esc(name)}</p>
-      <p class="share-meta">${formatSize(size)} · shared by ${esc(share.email)}</p>
-    </div>
-    <a class="btn" href="${dlUrl}" download>${DL_ICON}Download</a>
-  </header>
+  /* ambient backdrop from the image itself (never for censored files) */
+  const backdropUrl = kind === 'image' && !sensitive ? rawUrl : null;
+
+  return page(name, `${topBar(dlUrl)}
+  <section class="file-head">
+    <h1 class="share-name">${esc(name)}</h1>
+    <p class="share-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
+  </section>
   <main class="share-stage">${stage}</main>
-  ${note}
-  <p class="foot"><a href="/">kiliw.com</a> — private cloud storage</p>`);
+  ${note}`, { backdropUrl });
 }
 
 /* ---------- streaming ---------- */
