@@ -467,18 +467,32 @@ async function checkPaymentReturn() {
 
 /* ---------- upload ---------- */
 
-async function uploadOne(file, progress) {
+/** XHR upload so we get byte-level progress (fetch can't report it). */
+function xhrUpload(method, url, body, contentType, onBytes) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    if (contentType) xhr.setRequestHeader('Content-Type', contentType);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onBytes) onBytes(e.loaded);
+    };
+    xhr.onload = () => {
+      let data = {};
+      try { data = JSON.parse(xhr.responseText); } catch { /* not json */ }
+      resolve({ ok: xhr.status >= 200 && xhr.status < 300, data });
+    };
+    xhr.onerror = () => reject(new Error('network'));
+    xhr.send(body);
+  });
+}
+
+async function uploadOne(file, onBytes) {
   const query = `name=${encodeURIComponent(file.name)}&path=${encodeURIComponent(pathStr())}`;
   const type = file.type || 'application/octet-stream';
 
   if (file.size <= PART_SIZE) {
-    const res = await fetch(`/api/files?${query}`, {
-      method: 'POST',
-      headers: { 'Content-Type': type },
-      body: file,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.success) throw new Error(data.error || 'upload');
+    const { ok, data } = await xhrUpload('POST', `/api/files?${query}`, file, type, onBytes);
+    if (!ok || !data.success) throw new Error(data.error || 'upload');
     return;
   }
 
@@ -492,15 +506,18 @@ async function uploadOne(file, progress) {
   const total = Math.ceil(file.size / PART_SIZE);
   try {
     for (let i = 0; i < total; i++) {
-      const chunk = file.slice(i * PART_SIZE, Math.min((i + 1) * PART_SIZE, file.size));
-      const res = await fetch(`/api/mpu?action=part&${query}&id=${encodeURIComponent(id)}&part=${i + 1}`, {
-        method: 'PUT',
-        body: chunk,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.error || 'upload');
+      const offset = i * PART_SIZE;
+      const chunk = file.slice(offset, Math.min(offset + PART_SIZE, file.size));
+      const { ok, data } = await xhrUpload(
+        'PUT',
+        `/api/mpu?action=part&${query}&id=${encodeURIComponent(id)}&part=${i + 1}`,
+        chunk,
+        'application/octet-stream',
+        (loaded) => onBytes(offset + loaded),
+      );
+      if (!ok || !data.success) throw new Error(data.error || 'upload');
       parts.push({ partNumber: data.partNumber, etag: data.etag });
-      progress(Math.round(((i + 1) / total) * 100));
+      onBytes(offset + chunk.size);
     }
     const doneRes = await fetch('/api/mpu?action=complete', {
       method: 'POST',
@@ -528,19 +545,27 @@ async function uploadFiles(files) {
   statusEl.hidden = false;
 
   for (const file of queue) {
-    const label = (pct) => {
-      statusEl.textContent = pct === undefined
-        ? t('drop.uploading', { name: file.name, i: done + 1, n: queue.length })
-        : t('drop.uploadingPct', { name: file.name, pct });
+    const prefix = queue.length > 1 ? `(${done + 1}/${queue.length}) ` : '';
+    let lastShown = 0;
+    const label = (bytes) => {
+      const now = Date.now();
+      if (bytes !== undefined && now - lastShown < 150 && bytes < file.size) return;
+      lastShown = now;
+      statusEl.textContent = prefix + t('drop.progress', {
+        name: file.name,
+        done: formatSize(Math.min(bytes || 0, file.size)),
+        total: formatSize(file.size),
+        pct: Math.min(100, Math.round(((bytes || 0) / file.size) * 100)),
+      });
     };
-    label();
+    label(0);
     if (me && file.size > me.plan.maxFile) {
       failed.push(`${file.name} (${t('drop.tooLarge')})`);
       done++;
       continue;
     }
     try {
-      await uploadOne(file, (pct) => label(pct));
+      await uploadOne(file, label);
     } catch (err) {
       failed.push(`${file.name}${err.message === 'quota' ? ` (${t('drop.quota')})` : ''}`);
     }

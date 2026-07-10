@@ -53,6 +53,7 @@
     'drop.hint': 'Up to {limit} per file',
     'drop.uploading': 'Uploading {name}… ({i}/{n})',
     'drop.uploadingPct': 'Uploading {name}… {pct}%',
+    'drop.progress': 'Uploading {name}… {done} of {total} ({pct}%)',
     'drop.uploaded': 'Uploaded {files}.',
     'drop.failed': 'Failed to upload: {list}',
     'drop.tooLarge': 'too large',
