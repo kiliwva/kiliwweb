@@ -225,19 +225,27 @@ const CSS = `
       display: grid;
       place-items: center;
       max-width: 100%;
-      /* keep the warning cover readable even for small images */
-      min-width: min(460px, 92vw);
-      min-height: min(340px, 60dvh);
-      border-radius: 14px;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.07);
     }
-    .sensitive .preview-media { border-radius: 0; }
+    .sensitive:not(.revealed) {
+      width: min(760px, 92vw);
+      height: min(480px, 62dvh);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    /* while censored the media fills the whole card as one big blur */
     .sensitive:not(.revealed) .preview-media {
-      filter: blur(52px) saturate(0.8);
-      transform: scale(1.1);
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      object-fit: cover;
+      border-radius: 0;
+      filter: blur(56px) saturate(0.85);
+      transform: scale(1.2);
       pointer-events: none;
+      box-shadow: none;
     }
     .sensitive-cover {
       position: absolute;
