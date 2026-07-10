@@ -113,11 +113,27 @@ after paying, so webhooks are a safety net rather than a requirement.
 Note: the free tier of R2 itself is 10 GB total for the whole bucket —
 storage beyond that is billed by Cloudflare to the bucket owner.
 
+### 18+ content detection
+
+Shared photos and videos whose names contain adult markers (porn/nsfw/xxx)
+open censored: blurred behind a "Sensitive content" cover. Shared images
+are additionally analyzed by **Workers AI** (LLaVA vision model, `ai`
+binding in `wrangler.jsonc` — no manual setup, included in the Workers
+free tier): the verdict is computed when the link is created and stored
+on the share record, so the check is name-independent. Videos can't be
+frame-analyzed inside a Worker, so they rely on the name check only. If
+the model is unavailable, everything gracefully falls back to names.
+
 ## Local development
 
 ```bash
 npx wrangler dev
 ```
+
+Note: the `ai` binding makes `wrangler dev` open a remote session, which
+requires `npx wrangler login` (or `CLOUDFLARE_API_TOKEN`). Without
+credentials, temporarily remove the `ai` block from `wrangler.jsonc` —
+the code degrades to name-based detection automatically.
 
 R2 is emulated locally. The Turnstile test key is used automatically; if
 `challenges.cloudflare.com` is unreachable the captcha check is skipped

@@ -1,6 +1,7 @@
 import {
   json, getSession, storageReady, parsePath,
   createShare, deleteShareForFile, shareTokenForFile, getShare, shareUrl,
+  moderateShare,
 } from '../../lib/api.js';
 
 async function requireSession(request, env) {
@@ -58,10 +59,13 @@ export async function onRequestPost({ request, env }) {
       return json({ success: false, error: 'password-short' }, 400);
     }
     const share = await createShare(env, session.email, p, password || null);
+    /* content-based 18+ check for images, remembered on the record */
+    await moderateShare(env, share);
     return json({
       success: true,
       url: shareUrl(request, share.token),
       protected: Boolean(share.hash),
+      sensitive: share.sensitive === true,
     });
   }
 

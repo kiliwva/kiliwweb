@@ -1,4 +1,4 @@
-import { getShare, hashPassword, timingSafeEqualHex } from '../lib/api.js';
+import { getShare, hashPassword, timingSafeEqualHex, moderateShare } from '../lib/api.js';
 
 /* Public share pages: GET/POST /share/<token>
    - open link      → full-page branded view with a file preview (no account)
@@ -26,10 +26,13 @@ function previewKind(name, size) {
   return kind || null;
 }
 
-/** Photos/videos with adult markers in the name start censored. */
+/* Adult content detection: images are analyzed by a vision model when the
+   link is created (share.sensitive on the record); the name check below is
+   the fallback and the only signal for videos. */
 const SENSITIVE_RE = /porn|nsfw|xxx/i;
 
-function isSensitive(name, kind) {
+function isSensitive(share, name, kind) {
+  if (share.sensitive === true) return true;
   return (kind === 'image' || kind === 'video') && SENSITIVE_RE.test(name);
 }
 
@@ -445,7 +448,7 @@ function previewPage(share, size, proofQuery) {
   const rawUrl = `${base}?raw=1${proofQuery}`;
   const dlUrl = `${base}?dl=1${proofQuery}`;
   const kind = previewKind(name, size);
-  const sensitive = isSensitive(name, kind);
+  const sensitive = isSensitive(share, name, kind);
 
   let stage;
   if (kind === 'image') {
@@ -567,6 +570,8 @@ export async function handleShare(request, env, token) {
 
   const head = await env.KILIW_FILES.head(key);
   if (!head) return notFoundPage();
+  /* links created before content moderation existed: check on first view */
+  await moderateShare(env, share);
   const proofQuery = share.hash
     ? `&k=${encodeURIComponent(url.searchParams.get('k'))}&e=${encodeURIComponent(url.searchParams.get('e'))}`
     : '';

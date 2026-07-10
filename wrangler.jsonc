@@ -17,6 +17,10 @@
       "bucket_name": "kiliw-files"
     }
   ],
+  "ai": {
+    // Workers AI: content-based 18+ detection for shared images
+    "binding": "AI"
+  },
   "vars": {
     // the site owner gets a permanent 1 TB Pro plan
     "OWNER_EMAIL": "denislybin3@gmail.com"
