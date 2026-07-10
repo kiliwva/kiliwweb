@@ -1001,21 +1001,21 @@ body {
 @media (max-width: 640px) {
   .burger-btn { display: grid; }
   .profile-layout { display: block; min-height: 0; }
+  /* the menu opens in flow, right under the header: always fully visible */
   .profile-nav {
     display: none;
-    position: absolute;
-    top: 62px;
-    left: 16px;
-    right: 16px;
-    z-index: 6;
-    width: auto;
+    width: 100%;
     padding: 8px;
+    margin-bottom: 16px;
     border: 1px solid var(--panel-border);
     border-radius: 16px;
-    background: var(--bg-a);
-    box-shadow: var(--card-shadow);
+    background: var(--frost-soft);
   }
-  .profile-nav.open { display: flex; animation: menu-in 0.16s cubic-bezier(0.22, 1, 0.36, 1); }
+  .profile-nav.open {
+    display: flex;
+    flex-direction: column;
+    animation: menu-in 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 }
 
 /* checkout page */

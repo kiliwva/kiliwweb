@@ -1177,7 +1177,10 @@ document.querySelectorAll('.pnav').forEach((btn) => {
 });
 document.getElementById('profile-burger').addEventListener('click', (e) => {
   e.stopPropagation();
+  const opening = !profileNav.classList.contains('open');
   profileNav.classList.toggle('open');
+  /* the menu sits right under the header: bring it into view */
+  if (opening) modal.querySelector('.modal').scrollTo({ top: 0, behavior: 'smooth' });
 });
 document.addEventListener('click', (e) => {
   if (profileNav.classList.contains('open')
