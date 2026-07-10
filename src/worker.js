@@ -17,6 +17,7 @@ import * as yookassa from '../functions/api/yookassa.js';
 import * as heleket from '../functions/api/heleket.js';
 import * as avatar from '../functions/api/avatar.js';
 import * as verifyEmail from '../functions/api/verify-email.js';
+import * as deleteAccount from '../functions/api/delete-account.js';
 import { json } from '../lib/api.js';
 
 const ROUTES = {
@@ -35,6 +36,7 @@ const ROUTES = {
   '/api/heleket': heleket,
   '/api/avatar': avatar,
   '/api/verify-email': verifyEmail,
+  '/api/delete-account': deleteAccount,
 };
 
 function dispatch(mod, context) {

@@ -642,8 +642,10 @@ document.getElementById('profile-open').addEventListener('click', openProfile);
 function closeModal() {
   modal.hidden = true;
   document.body.style.overflow = '';
-  ['password-status', 'totp-enable-status', 'totp-disable-status', 'plan-status'].forEach((id) => showStatus(id, ''));
+  ['password-status', 'totp-enable-status', 'totp-disable-status', 'plan-status', 'delete-status'].forEach((id) => showStatus(id, ''));
   document.getElementById('password-form').reset();
+  document.getElementById('delete-confirm-box').hidden = true;
+  document.getElementById('delete-password').value = '';
   renderTotpState();
 }
 
@@ -746,6 +748,79 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
     KiliwUI.otpClear('totp-disable-otp');
   } else {
     showStatus('totp-disable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.disableFail'));
+  }
+});
+
+/* ---------- delete account ---------- */
+
+const deleteBox = document.getElementById('delete-confirm-box');
+let deleteMethod = null;
+
+document.getElementById('delete-start').addEventListener('click', async () => {
+  if (!confirm(t('delete.prompt'))) return;
+  showStatus('delete-status', '');
+  const res = await fetch('/api/delete-account', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'start' }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    showStatus('delete-status', t(data.error === 'mail-failed' ? 'api.mail-failed' : 'delete.fail'));
+    deleteBox.hidden = false;
+    document.getElementById('delete-otp-wrap').hidden = true;
+    document.getElementById('delete-pw-wrap').hidden = true;
+    return;
+  }
+  deleteMethod = data.method;
+  deleteBox.hidden = false;
+  const isPassword = deleteMethod === 'password';
+  document.getElementById('delete-otp-wrap').hidden = isPassword;
+  document.getElementById('delete-pw-wrap').hidden = !isPassword;
+  document.getElementById('delete-method-hint').textContent = t(
+    deleteMethod === 'totp' ? 'delete.methodTotp'
+      : deleteMethod === 'email' ? 'delete.methodEmail'
+        : 'delete.methodPassword',
+  );
+  if (isPassword) {
+    document.getElementById('delete-password').focus();
+  } else {
+    KiliwUI.otpClear('delete-otp');
+    KiliwUI.otpFocus('delete-otp');
+  }
+});
+
+document.getElementById('delete-confirm').addEventListener('click', async () => {
+  const payload = { action: 'confirm' };
+  if (deleteMethod === 'password') {
+    payload.password = document.getElementById('delete-password').value;
+    if (!payload.password) return;
+  } else {
+    payload.code = document.getElementById('delete-code').value.trim();
+    if (!/^\d{6}$/.test(payload.code)) {
+      showStatus('delete-status', t('api.code-invalid'));
+      return;
+    }
+  }
+  const btn = document.getElementById('delete-confirm');
+  btn.classList.add('loading');
+  try {
+    const res = await fetch('/api/delete-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      window.location.href = data.redirect || '/';
+      return;
+    }
+    const KEYS = { 'totp-invalid': 'api.totp-invalid', 'code-invalid': 'api.code-invalid', 'code-expired': 'api.code-expired', 'too-many': 'api.too-many', 'wrong-password': 'profile.pw.wrong', 'mail-failed': 'api.mail-failed' };
+    showStatus('delete-status', t(KEYS[data.error] || 'delete.fail'));
+  } catch {
+    showStatus('delete-status', t('delete.fail'));
+  } finally {
+    btn.classList.remove('loading');
   }
 });
 

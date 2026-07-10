@@ -111,6 +111,15 @@
     'profile.2fa.wrongCode': 'Wrong code. Check your authenticator app and try again.',
     'profile.2fa.enableFail': 'Could not enable 2FA. Try again.',
     'profile.2fa.disableFail': 'Could not disable 2FA. Try again.',
+    'profile.delete.title': 'Delete account',
+    'profile.delete.hint': 'Permanently deletes your account and every file. This cannot be undone.',
+    'profile.delete.start': 'Delete account',
+    'profile.delete.confirm': 'Delete forever',
+    'delete.prompt': 'Delete your account and ALL files permanently? This cannot be undone.',
+    'delete.methodTotp': 'Enter the 6-digit code from your authenticator app to confirm deletion.',
+    'delete.methodEmail': 'We sent a 6-digit code to your email. Enter it to confirm deletion.',
+    'delete.methodPassword': 'Enter your current password to confirm deletion.',
+    'delete.fail': 'Could not delete the account. Try again.',
   };
 
   function t(key, vars) {
