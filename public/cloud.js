@@ -711,7 +711,8 @@ document.getElementById('totp-setup').addEventListener('click', async () => {
     link.textContent = 'Open in authenticator app';
     qrHolder.appendChild(link);
   }
-  document.getElementById('totp-enable-code').focus();
+  KiliwUI.otpClear('totp-enable-otp');
+  KiliwUI.otpFocus('totp-enable-otp');
 });
 
 document.getElementById('totp-enable-form').addEventListener('submit', async (e) => {
@@ -725,7 +726,7 @@ document.getElementById('totp-enable-form').addEventListener('submit', async (e)
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
     renderTotpState(true);
-    e.target.reset();
+    KiliwUI.otpClear('totp-enable-otp');
   } else {
     showStatus('totp-enable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.enableFail'));
   }
@@ -742,7 +743,7 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
     renderTotpState(false);
-    e.target.reset();
+    KiliwUI.otpClear('totp-disable-otp');
   } else {
     showStatus('totp-disable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.disableFail'));
   }

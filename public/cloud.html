@@ -186,12 +186,9 @@
           <div class="totp-qr" id="totp-qr"></div>
           <p class="totp-secret" id="totp-secret"></p>
           <form id="totp-enable-form" novalidate>
-            <div class="group">
-              <div class="field">
-                <input type="text" id="totp-enable-code" placeholder=" " inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
-                <label for="totp-enable-code" data-i18n="profile.2fa.code">6-digit code</label>
-              </div>
-            </div>
+            <p class="otp-label" data-i18n="profile.2fa.code">6-digit code</p>
+            <div class="otp" id="totp-enable-otp" data-otp data-otp-target="totp-enable-code"></div>
+            <input type="hidden" id="totp-enable-code">
             <p class="modal-status" id="totp-enable-status" hidden></p>
             <button type="submit" class="submit small" data-i18n="profile.2fa.confirm">Confirm & enable</button>
           </form>
@@ -201,12 +198,9 @@
         <div id="totp-on" hidden>
           <p class="modal-hint" data-i18n="profile.2fa.onHint">2FA is on: signing in requires a code from your authenticator app. To turn it off, enter a current code.</p>
           <form id="totp-disable-form" novalidate>
-            <div class="group">
-              <div class="field">
-                <input type="text" id="totp-disable-code" placeholder=" " inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
-                <label for="totp-disable-code" data-i18n="profile.2fa.code">6-digit code</label>
-              </div>
-            </div>
+            <p class="otp-label" data-i18n="profile.2fa.code">6-digit code</p>
+            <div class="otp" id="totp-disable-otp" data-otp data-otp-target="totp-disable-code"></div>
+            <input type="hidden" id="totp-disable-code">
             <p class="modal-status" id="totp-disable-status" hidden></p>
             <button type="submit" class="submit small danger" data-i18n="profile.2fa.disable">Disable 2FA</button>
           </form>

@@ -153,7 +153,8 @@ async function handleSubmit(form, kind) {
       /* account has 2FA: reveal the code field and ask for it */
       document.getElementById('login-totp-group').hidden = false;
       showFormError(form, KiliwUI.t('auth.totpPrompt'));
-      if (totpInput) totpInput.focus();
+      KiliwUI.otpClear('login-totp-otp');
+      KiliwUI.otpFocus('login-totp-otp');
       return;
     }
     let message = API_ERROR_KEYS.includes(data.error)
@@ -193,9 +194,8 @@ function showVerifyStep(email) {
   formVerify.hidden = false;
   formVerify.classList.add('active');
   document.getElementById('verify-sub').textContent = KiliwUI.t('verify.sub', { email });
-  const input = document.getElementById('verify-code');
-  input.value = '';
-  input.focus();
+  KiliwUI.otpClear('verify-otp');
+  KiliwUI.otpFocus('verify-otp');
 }
 
 function hideVerifyStep() {

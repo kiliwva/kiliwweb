@@ -127,8 +127,93 @@
     return `${n} ${n === 1 ? 'file' : 'files'}`;
   }
 
+  /* ---------- OTP inputs: one box per digit ----------
+     <div class="otp" id="my-otp" data-otp data-otp-target="hidden-input-id"></div>
+     The joined value is mirrored into the hidden target input. */
+
+  function initOtpInputs() {
+    document.querySelectorAll('[data-otp]').forEach((box) => {
+      if (box.dataset.otpReady) return;
+      box.dataset.otpReady = '1';
+      const target = document.getElementById(box.dataset.otpTarget);
+      const cells = [];
+
+      const sync = () => {
+        if (target) {
+          target.value = cells.map((c) => c.value).join('');
+          target.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      };
+
+      for (let i = 0; i < 6; i++) {
+        const cell = document.createElement('input');
+        cell.type = 'text';
+        cell.inputMode = 'numeric';
+        cell.autocomplete = i === 0 ? 'one-time-code' : 'off';
+        cell.maxLength = 6; /* allow SMS-autofill/paste of the whole code */
+        cell.className = 'otp-cell';
+        cell.setAttribute('aria-label', `Digit ${i + 1}`);
+        cells.push(cell);
+        box.appendChild(cell);
+      }
+
+      cells.forEach((cell, i) => {
+        cell.addEventListener('input', () => {
+          const digits = cell.value.replace(/\D/g, '');
+          if (digits.length > 1) {
+            /* full code pasted or autofilled: distribute across boxes */
+            for (let j = 0; j < 6; j++) cells[j].value = digits[j] || '';
+            cells[Math.min(digits.length, 5)].focus();
+          } else {
+            cell.value = digits;
+            if (digits && i < 5) cells[i + 1].focus();
+          }
+          sync();
+        });
+        cell.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !cell.value && i > 0) {
+            e.preventDefault();
+            cells[i - 1].value = '';
+            cells[i - 1].focus();
+            sync();
+          } else if (e.key === 'ArrowLeft' && i > 0) {
+            e.preventDefault();
+            cells[i - 1].focus();
+          } else if (e.key === 'ArrowRight' && i < 5) {
+            e.preventDefault();
+            cells[i + 1].focus();
+          }
+        });
+        cell.addEventListener('focus', () => cell.select());
+        cell.addEventListener('paste', (e) => {
+          e.preventDefault();
+          const digits = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+          if (!digits) return;
+          for (let j = 0; j < 6; j++) cells[j].value = digits[j] || '';
+          cells[Math.min(digits.length, 5)].focus();
+          sync();
+        });
+      });
+
+      box._otpCells = cells;
+      box._otpSync = sync;
+    });
+  }
+
+  function otpFocus(boxId) {
+    document.getElementById(boxId)?._otpCells?.[0]?.focus();
+  }
+
+  function otpClear(boxId) {
+    const box = document.getElementById(boxId);
+    if (!box?._otpCells) return;
+    box._otpCells.forEach((c) => { c.value = ''; });
+    box._otpSync();
+  }
+
   function apply() {
     document.documentElement.lang = 'en';
+    initOtpInputs();
 
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       el.textContent = t(el.dataset.i18n);
@@ -145,6 +230,8 @@
     t,
     filesCount,
     lang: 'en',
+    otpFocus,
+    otpClear,
   };
 
   document.addEventListener('DOMContentLoaded', apply);

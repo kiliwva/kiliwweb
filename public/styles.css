@@ -969,3 +969,43 @@ body {
   .cloud-brand svg { width: 24px; height: 24px; }
   .cloud-user { gap: 8px; }
 }
+
+
+/* ============================================================
+   OTP code boxes
+   ============================================================ */
+
+.otp-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.otp {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.otp-cell {
+  flex: 1;
+  min-width: 0;
+  height: 56px;
+  text-align: center;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  background: var(--frost-soft);
+  border: 1.5px solid var(--hairline);
+  border-radius: 12px;
+  outline: none;
+  caret-color: var(--accent);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.otp-cell:focus {
+  border-color: var(--accent);
+  background: var(--frost);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.totp-group { margin-bottom: 4px; }
+.verify-submit { margin-top: 4px; }
