@@ -25,7 +25,7 @@
           <span>Kiliw Cloud</span>
         </div>
         <div class="cloud-user">
-          <span id="user-email"></span>
+          <button type="button" class="ghost-btn" id="profile-open"><span id="user-email"></span></button>
           <button type="button" class="ghost-btn" id="logout">Log out</button>
         </div>
       </header>
@@ -56,6 +56,84 @@
     </main>
   </div>
 
+  <!-- Profile popup -->
+  <div class="modal-overlay" id="profile-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <div class="modal-head">
+        <h2 id="profile-title">Profile</h2>
+        <button type="button" class="icon-btn" id="profile-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+
+      <p class="modal-email" id="profile-email"></p>
+
+      <!-- Change password -->
+      <section class="modal-section">
+        <h3>Change password</h3>
+        <form id="password-form" novalidate>
+          <div class="group">
+            <div class="field">
+              <input type="password" id="pw-current" placeholder=" " autocomplete="current-password" required>
+              <label for="pw-current">Current password</label>
+            </div>
+            <div class="divider"></div>
+            <div class="field">
+              <input type="password" id="pw-next" placeholder=" " autocomplete="new-password" minlength="8" required>
+              <label for="pw-next">New password (min 8 characters)</label>
+            </div>
+          </div>
+          <p class="modal-status" id="password-status" hidden></p>
+          <button type="submit" class="submit small">Update password</button>
+        </form>
+      </section>
+
+      <!-- Two-factor auth -->
+      <section class="modal-section">
+        <h3>Two-factor authentication <span class="badge" id="totp-badge">Off</span></h3>
+
+        <!-- 2FA off -->
+        <div id="totp-off">
+          <p class="modal-hint">Protect your account with one-time codes from Google Authenticator, 1Password or any TOTP app.</p>
+          <button type="button" class="submit small" id="totp-setup">Enable 2FA</button>
+        </div>
+
+        <!-- 2FA setup in progress -->
+        <div id="totp-setup-box" hidden>
+          <p class="modal-hint">Scan the QR code with your authenticator app, or enter the secret manually. Then type the 6-digit code to confirm.</p>
+          <div class="totp-qr" id="totp-qr"></div>
+          <p class="totp-secret" id="totp-secret"></p>
+          <form id="totp-enable-form" novalidate>
+            <div class="group">
+              <div class="field">
+                <input type="text" id="totp-enable-code" placeholder=" " inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+                <label for="totp-enable-code">6-digit code</label>
+              </div>
+            </div>
+            <p class="modal-status" id="totp-enable-status" hidden></p>
+            <button type="submit" class="submit small">Confirm & enable</button>
+          </form>
+        </div>
+
+        <!-- 2FA on -->
+        <div id="totp-on" hidden>
+          <p class="modal-hint">2FA is on: signing in requires a code from your authenticator app. To turn it off, enter a current code.</p>
+          <form id="totp-disable-form" novalidate>
+            <div class="group">
+              <div class="field">
+                <input type="text" id="totp-disable-code" placeholder=" " inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+                <label for="totp-disable-code">6-digit code</label>
+              </div>
+            </div>
+            <p class="modal-status" id="totp-disable-status" hidden></p>
+            <button type="submit" class="submit small danger">Disable 2FA</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="vendor/qrcode.min.js"></script>
   <script src="cloud.js"></script>
 </body>
 </html>

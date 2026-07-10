@@ -42,6 +42,14 @@
             <label for="login-password">Password</label>
           </div>
         </div>
+
+        <!-- 2FA code (shown only when the account has 2FA enabled) -->
+        <div class="group totp-group" id="login-totp-group" hidden>
+          <div class="field">
+            <input type="text" id="login-totp" name="code" placeholder=" " inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+            <label for="login-totp">2FA code from your authenticator app</label>
+          </div>
+        </div>
         <p class="group-error" data-error></p>
 
         <div class="turnstile-slot" data-turnstile></div>

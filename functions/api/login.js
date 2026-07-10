@@ -1,6 +1,6 @@
 import {
   json, hashPassword, timingSafeEqualHex, createSession, verifyTurnstile, afterAuthRedirect,
-  storageReady, getUser,
+  storageReady, getUser, verifyTotp,
 } from '../../lib/api.js';
 
 export async function onRequestPost({ request, env }) {
@@ -27,6 +27,15 @@ export async function onRequestPost({ request, env }) {
   const hash = await hashPassword(password, user.salt);
   if (!timingSafeEqualHex(hash, user.hash)) {
     return json({ success: false, error: 'invalid-credentials' }, 401);
+  }
+
+  /* second factor */
+  if (user.totp) {
+    const code = String(body?.code || '');
+    if (!code) return json({ success: false, error: 'totp-required' }, 401);
+    if (!(await verifyTotp(user.totp, code))) {
+      return json({ success: false, error: 'totp-invalid' }, 401);
+    }
   }
 
   const { cookie } = await createSession(env, email, request);

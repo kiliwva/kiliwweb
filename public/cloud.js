@@ -1,4 +1,4 @@
-/* Kiliw Cloud — file storage frontend. */
+/* Kiliw Cloud — file storage + profile frontend. */
 
 const fileInput = document.getElementById('file-input');
 const drop = document.getElementById('drop');
@@ -14,6 +14,8 @@ const MAX_SIZE = 100 * 1024 * 1024;
 
 /* ---------- session ---------- */
 
+let totpEnabled = false;
+
 async function loadMe() {
   const res = await fetch('/api/me');
   if (!res.ok) {
@@ -22,6 +24,9 @@ async function loadMe() {
   }
   const data = await res.json();
   emailEl.textContent = data.email;
+  document.getElementById('profile-email').textContent = data.email;
+  totpEnabled = Boolean(data.totp);
+  renderTotpState();
   return true;
 }
 
@@ -181,6 +186,148 @@ fileInput.addEventListener('change', () => {
 });
 drop.addEventListener('drop', (e) => {
   if (e.dataTransfer?.files?.length) uploadFiles(e.dataTransfer.files);
+});
+
+/* ---------- profile popup ---------- */
+
+const modal = document.getElementById('profile-modal');
+const totpBadge = document.getElementById('totp-badge');
+const totpOff = document.getElementById('totp-off');
+const totpOn = document.getElementById('totp-on');
+const totpSetupBox = document.getElementById('totp-setup-box');
+
+function renderTotpState() {
+  totpBadge.textContent = totpEnabled ? 'On' : 'Off';
+  totpBadge.classList.toggle('on', totpEnabled);
+  totpOn.hidden = !totpEnabled;
+  totpOff.hidden = totpEnabled;
+  totpSetupBox.hidden = true;
+}
+
+function showStatus(id, message, ok = false) {
+  const el = document.getElementById(id);
+  el.textContent = message;
+  el.hidden = !message;
+  el.classList.toggle('ok', ok);
+}
+
+document.getElementById('profile-open').addEventListener('click', () => {
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+});
+
+function closeModal() {
+  modal.hidden = true;
+  document.body.style.overflow = '';
+  ['password-status', 'totp-enable-status', 'totp-disable-status'].forEach((id) => showStatus(id, ''));
+  document.getElementById('password-form').reset();
+  renderTotpState();
+}
+
+document.getElementById('profile-close').addEventListener('click', closeModal);
+modal.addEventListener('click', (e) => {
+  if (e.target === modal) closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !modal.hidden) closeModal();
+});
+
+/* --- change password --- */
+
+document.getElementById('password-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const current = document.getElementById('pw-current').value;
+  const next = document.getElementById('pw-next').value;
+  if (next.length < 8) {
+    showStatus('password-status', 'New password must be at least 8 characters.');
+    return;
+  }
+  const res = await fetch('/api/password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ current, next }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    showStatus('password-status', 'Password updated. Other devices were signed out.', true);
+    e.target.reset();
+  } else {
+    showStatus('password-status', data.error === 'wrong-password'
+      ? 'Current password is incorrect.'
+      : 'Could not update the password. Try again.');
+  }
+});
+
+/* --- 2FA --- */
+
+document.getElementById('totp-setup').addEventListener('click', async () => {
+  const res = await fetch('/api/2fa', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'setup' }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) return;
+
+  totpOff.hidden = true;
+  totpSetupBox.hidden = false;
+  document.getElementById('totp-secret').textContent = data.secret;
+
+  const qrHolder = document.getElementById('totp-qr');
+  qrHolder.innerHTML = '';
+  if (window.qrcode) {
+    const qr = window.qrcode(0, 'M');
+    qr.addData(data.uri);
+    qr.make();
+    qrHolder.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  } else {
+    const link = document.createElement('a');
+    link.className = 'link';
+    link.href = data.uri;
+    link.textContent = 'Open in authenticator app';
+    qrHolder.appendChild(link);
+  }
+  document.getElementById('totp-enable-code').focus();
+});
+
+document.getElementById('totp-enable-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('totp-enable-code').value.trim();
+  const res = await fetch('/api/2fa', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'enable', code }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    totpEnabled = true;
+    renderTotpState();
+    e.target.reset();
+  } else {
+    showStatus('totp-enable-status', data.error === 'totp-invalid'
+      ? 'Wrong code. Check your authenticator app and try again.'
+      : 'Could not enable 2FA. Try again.');
+  }
+});
+
+document.getElementById('totp-disable-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = document.getElementById('totp-disable-code').value.trim();
+  const res = await fetch('/api/2fa', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'disable', code }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    totpEnabled = false;
+    renderTotpState();
+    e.target.reset();
+  } else {
+    showStatus('totp-disable-status', data.error === 'totp-invalid'
+      ? 'Wrong code. Check your authenticator app and try again.'
+      : 'Could not disable 2FA. Try again.');
+  }
 });
 
 /* ---------- init ---------- */

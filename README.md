@@ -1,7 +1,8 @@
 # Kiliw — auth + cloud storage
 
-Sign-in / sign-up protected by Cloudflare Turnstile, and a personal file
-cloud (upload / download / delete). Frosted matte design with a coral
+Sign-in / sign-up protected by Cloudflare Turnstile (with optional TOTP
+two-factor auth), and a personal file cloud (upload / download /
+delete) with a profile popup for password change and 2FA setup. Frosted matte design with a coral
 accent (`#D97757`). Runs as a **Cloudflare Worker** with static assets
 (also compatible with Cloudflare Pages).
 
@@ -30,6 +31,8 @@ u/<email>/<filename>          the user's files
 | `public/` | Static assets: auth page, cloud app, styles, fonts |
 | `src/worker.js` | Worker entry: routes /api/*, auth-gates pages |
 | `functions/` | The same handlers in Pages Functions layout (reused by the worker) |
+| `functions/api/password.js` | POST — change password (signs out other sessions) |
+| `functions/api/2fa.js` | POST — TOTP 2FA: setup / enable / disable |
 | `lib/api.js` | Shared logic: users, sessions, PBKDF2, Turnstile |
 | `wrangler.jsonc` | Worker config: assets dir + R2 binding |
 

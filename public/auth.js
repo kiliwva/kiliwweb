@@ -78,6 +78,7 @@ const API_ERRORS = {
   'user-exists': 'An account with this email already exists. Try signing in.',
   'invalid-email': 'Enter a valid email address.',
   'invalid-password': 'Password must be at least 8 characters.',
+  'totp-invalid': 'Wrong 2FA code. Check your authenticator app and try again.',
   captcha: 'Captcha verification failed. Please try again.',
   'not-configured': 'Server storage is not configured yet. Contact the site owner.',
 };
@@ -131,14 +132,18 @@ async function handleSubmit(form, kind) {
   submitBtn.classList.add('loading');
 
   try {
+    const payload = {
+      email: form.querySelector('input[type="email"]').value.trim(),
+      password: form.querySelector('input[type="password"]').value,
+      token,
+    };
+    const totpInput = form.querySelector('#login-totp');
+    if (totpInput && totpInput.value.trim()) payload.code = totpInput.value.trim();
+
     const res = await fetch(kind === 'login' ? '/api/login' : '/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: form.querySelector('input[type="email"]').value.trim(),
-        password: form.querySelector('input[type="password"]').value,
-        token,
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json().catch(() => null);
 
@@ -147,10 +152,16 @@ async function handleSubmit(form, kind) {
       return;
     }
     if (!data) {
-      /* HTML instead of JSON: the Pages Functions are not deployed */
+      /* HTML instead of JSON: the server code is not deployed */
       showFormError(form,
-        'Server API is unavailable: Pages Functions are not deployed. '
-        + 'Deploy with git integration or "wrangler pages deploy" (see README).');
+        'Server API is unavailable: the Worker is not deployed correctly (see README).');
+      return;
+    }
+    if (data.error === 'totp-required') {
+      /* account has 2FA: reveal the code field and ask for it */
+      document.getElementById('login-totp-group').hidden = false;
+      showFormError(form, 'Enter the 6-digit code from your authenticator app.');
+      if (totpInput) totpInput.focus();
       return;
     }
     showFormError(form, API_ERRORS[data.error] || 'Something went wrong. Please try again.');
