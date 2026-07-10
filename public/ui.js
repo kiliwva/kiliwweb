@@ -160,6 +160,7 @@
         cell.inputMode = 'numeric';
         cell.autocomplete = i === 0 ? 'one-time-code' : 'off';
         cell.maxLength = 6; /* allow SMS-autofill/paste of the whole code */
+        cell.size = 1; /* keep the intrinsic width tiny so rows never overflow */
         cell.className = 'otp-cell';
         cell.setAttribute('aria-label', `Digit ${i + 1}`);
         cells.push(cell);
