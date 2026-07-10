@@ -1,6 +1,6 @@
 import {
-  json, getSession, getUser, planLimits, storageUsage, storageReady, yookassaReady,
-  PRO_TIERS,
+  json, getSession, getUser, planLimits, storageUsage, storageReady,
+  yookassaReady, heleketReady, PRO_TIERS,
 } from '../../lib/api.js';
 
 export async function onRequestGet({ request, env }) {
@@ -24,7 +24,8 @@ export async function onRequestGet({ request, env }) {
     },
     usage,
     billing: {
-      available: yookassaReady(env),
+      yookassa: yookassaReady(env),
+      heleket: heleketReady(env),
       tiers: Object.entries(PRO_TIERS).map(([gb, price]) => ({ gb: Number(gb), price })),
     },
   });

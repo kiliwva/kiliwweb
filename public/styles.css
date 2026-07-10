@@ -940,3 +940,18 @@ body {
 
 /* plan & preview modals open above the profile modal */
 #plan-modal, #preview-modal { z-index: 55; }
+
+
+/* payment method buttons */
+.pay-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.submit.alt {
+  background: var(--frost-soft);
+  color: var(--text);
+  border: 1.5px solid var(--hairline);
+  box-shadow: none;
+}
+.submit.alt:hover:not(:disabled) { background: var(--frost); }

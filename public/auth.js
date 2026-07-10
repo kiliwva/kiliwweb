@@ -20,7 +20,7 @@ window.onTurnstileLoad = function () {
     const widgetId = turnstile.render(slot, {
       sitekey: TURNSTILE_SITE_KEY,
       theme: KiliwUI.theme,
-      language: KiliwUI.lang,
+      language: 'en',
       callback: () => setSubmitEnabled(form, true),
       'expired-callback': () => setSubmitEnabled(form, false),
       'error-callback': () => setSubmitEnabled(form, false),
@@ -40,7 +40,6 @@ function rerenderTurnstile() {
   window.onTurnstileLoad();
 }
 KiliwUI.onTheme(rerenderTurnstile);
-KiliwUI.onLang(rerenderTurnstile);
 
 function setSubmitEnabled(form, enabled) {
   form.querySelector('.submit').disabled = !enabled;

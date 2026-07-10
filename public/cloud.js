@@ -46,9 +46,7 @@ document.getElementById('logout').addEventListener('click', async () => {
 /* ---------- helpers ---------- */
 
 function formatSize(bytes) {
-  const units = KiliwUI.lang === 'ru'
-    ? ['Б', 'КБ', 'МБ', 'ГБ', 'ТБ']
-    : ['B', 'KB', 'MB', 'GB', 'TB'];
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let value = bytes;
   let unit = 0;
   while (value >= 1024 && unit < units.length - 1) {
@@ -60,9 +58,8 @@ function formatSize(bytes) {
 
 function formatDate(iso) {
   const d = new Date(iso);
-  const locale = KiliwUI.lang === 'ru' ? 'ru-RU' : 'en-GB';
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
-    + ', ' + d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
 function showError(message) {
@@ -262,10 +259,9 @@ function renderPlan() {
 
   const desc = document.getElementById('plan-desc');
   if (isPro) {
-    const locale = KiliwUI.lang === 'ru' ? 'ru-RU' : 'en-GB';
     desc.textContent = t('plan.proDesc', {
       gb: me.plan.gb,
-      date: new Date(me.plan.until).toLocaleDateString(locale),
+      date: new Date(me.plan.until).toLocaleDateString('en-GB'),
     });
   } else {
     desc.textContent = t('plan.freeDesc');
@@ -276,15 +272,14 @@ function renderPlan() {
 
 const planModal = document.getElementById('plan-modal');
 const DEFAULT_TIERS = [
-  { gb: 250, price: 399 },
-  { gb: 500, price: 749 },
-  { gb: 1024, price: 1490 },
+  { gb: 250, price: 4.99 },
+  { gb: 500, price: 8.99 },
+  { gb: 1024, price: 17.99 },
 ];
 let selectedTier = null;
 
 function tierLabel(gb) {
-  if (gb >= 1024) return KiliwUI.lang === 'ru' ? `${gb / 1024} ТБ` : `${gb / 1024} TB`;
-  return KiliwUI.lang === 'ru' ? `${gb} ГБ` : `${gb} GB`;
+  return gb >= 1024 ? `${gb / 1024} TB` : `${gb} GB`;
 }
 
 function renderTiers() {
@@ -306,7 +301,7 @@ function renderTiers() {
     gbEl.textContent = tierLabel(tier.gb);
     const priceEl = document.createElement('span');
     priceEl.className = 'tier-price';
-    priceEl.textContent = `${tier.price} ₽`;
+    priceEl.textContent = `$${tier.price}`;
     const periodEl = document.createElement('span');
     periodEl.className = 'tier-period';
     periodEl.textContent = t('plan.perMonth');
@@ -338,15 +333,15 @@ planModal.addEventListener('click', (e) => {
   if (e.target === planModal) closePlanModal();
 });
 
-document.getElementById('plan-pay').addEventListener('click', async () => {
-  if (!me?.billing?.available) {
+async function startPayment(method) {
+  if (!me?.billing?.[method]) {
     showStatus('plan-modal-status', t('plan.notConfigured'));
     return;
   }
   const res = await fetch('/api/billing', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'create', gb: selectedTier }),
+    body: JSON.stringify({ action: 'create', gb: selectedTier, method }),
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success && data.url) {
@@ -354,7 +349,10 @@ document.getElementById('plan-pay').addEventListener('click', async () => {
   } else {
     showStatus('plan-modal-status', t(data.error === 'billing-not-configured' ? 'plan.notConfigured' : 'plan.fail'));
   }
-});
+}
+
+document.getElementById('pay-yookassa').addEventListener('click', () => startPayment('yookassa'));
+document.getElementById('pay-heleket').addEventListener('click', () => startPayment('heleket'));
 
 async function checkPaymentReturn() {
   const params = new URLSearchParams(window.location.search);
@@ -693,16 +691,6 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
   } else {
     showStatus('totp-disable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.disableFail'));
   }
-});
-
-/* ---------- language switch re-renders ---------- */
-
-KiliwUI.onLang(() => {
-  renderTotpState();
-  renderPlan();
-  renderUsage();
-  loadFiles();
-  if (!planModal.hidden) renderTiers();
 });
 
 /* ---------- init ---------- */

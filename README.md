@@ -57,23 +57,31 @@ fully work:
 If the build fails, check *Settings → Build* — the deploy command should
 be `npx wrangler deploy` (default).
 
-## Plans & billing (YooKassa)
+## Plans & billing
 
-Free plan: up to 1 GB per file, 10 GB of storage. Pro (paid via
-YooKassa): up to 50 GB per file, user-selected storage from 50 GB to
-1 TB, 1.5 ₽/GB per 30 days (min 149 ₽). Large files upload in 64 MiB
-chunks through R2 multipart, so the Workers per-request body limit is
-never exceeded.
+Free plan: up to 1 GB per file, 10 GB of storage. Pro tiers (USD, per
+30 days): 250 GB — $4.99, 500 GB — $8.99, 1 TB — $17.99; up to 50 GB
+per file. Large files upload in 64 MiB chunks through R2 multipart, so
+the Workers per-request body limit is never exceeded.
 
-To enable payments:
+Two payment methods, each enabled by its own secrets
+(*Settings → Variables and Secrets → Secret*):
 
-1. Create a shop at yookassa.ru, take **shopId** and the **secret key**.
-2. Add both as Worker secrets: `YOOKASSA_SHOP_ID` and
-   `YOOKASSA_SECRET_KEY` (*Settings → Variables and Secrets → Secret*).
-3. In the YooKassa dashboard set the HTTP notification (webhook) URL to
-   `https://cloud.kiliw.com/api/yookassa` and subscribe to
-   `payment.succeeded`. (Even without the webhook the plan activates
-   when the user returns to the site after paying.)
+**YooKassa** (cards; charges RUB at a fixed 90 ₽/$ rate — adjust
+`RUB_PER_USD` in `lib/api.js`):
+1. Create a shop at yookassa.ru → secrets `YOOKASSA_SHOP_ID` and
+   `YOOKASSA_SECRET_KEY`.
+2. Webhook URL: `https://cloud.kiliw.com/api/yookassa`, event
+   `payment.succeeded`.
+
+**Heleket** (crypto):
+1. Create a merchant at heleket.com → secrets `HELEKET_MERCHANT_ID`
+   (merchant UUID) and `HELEKET_API_KEY` (payment API key).
+2. Callback URL is passed automatically
+   (`https://cloud.kiliw.com/api/heleket`).
+
+Either way the plan also activates when the user returns to the site
+after paying, so webhooks are a safety net rather than a requirement.
 
 Note: the free tier of R2 itself is 10 GB total for the whole bucket —
 storage beyond that is billed by Cloudflare to the bucket owner.
