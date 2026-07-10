@@ -19,15 +19,31 @@ function deletionEmail(code) {
   return { subject, text, html };
 }
 
-async function wipeAccount(env, email) {
-  /* files */
+async function wipePrefix(env, prefix) {
   let cursor;
   do {
-    const page = await env.KILIW_FILES.list({ prefix: `u/${email}/`, cursor, limit: 1000 });
+    const page = await env.KILIW_FILES.list({ prefix, cursor, limit: 1000 });
     const keys = page.objects.map((o) => o.key);
     if (keys.length) await env.KILIW_FILES.delete(keys);
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
+}
+
+async function wipeAccount(env, email) {
+  await wipePrefix(env, `u/${email}/`);
+
+  /* public share links (records first, then the file index) */
+  let cursor;
+  do {
+    const page = await env.KILIW_FILES.list({ prefix: `_share/f/${email}/`, cursor, limit: 1000 });
+    for (const obj of page.objects) {
+      const rec = await env.KILIW_FILES.get(obj.key);
+      const token = rec ? (await rec.text()).trim() : '';
+      if (token) await env.KILIW_FILES.delete(`_share/t/${token}.json`);
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  await wipePrefix(env, `_share/f/${email}/`);
 
   /* every session of this account */
   cursor = undefined;

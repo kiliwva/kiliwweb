@@ -1,4 +1,7 @@
-import { json, getSession, storageReady, parsePath } from '../../lib/api.js';
+import {
+  json, getSession, storageReady, parsePath, cleanSegment,
+  deleteShareForFile, moveShare,
+} from '../../lib/api.js';
 
 /* content types that are safe to render inline without a sandbox */
 const SAFE_INLINE = /^(image\/(?!svg)|video\/|audio\/|application\/pdf)/;
@@ -46,6 +49,44 @@ export async function onRequestGet({ request, env }) {
   return new Response(object.body, { headers });
 }
 
+/* PUT /api/file { p, newName } — rename a file (same folder) */
+export async function onRequestPut({ request, env }) {
+  const { session, error } = await requireSession(request, env);
+  if (error) return error;
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ success: false, error: 'bad-request' }, 400);
+  }
+
+  const p = parsePath(body?.p);
+  const newName = cleanSegment(body?.newName);
+  if (!p || !newName) return json({ success: false, error: 'bad-name' }, 400);
+
+  const dir = p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
+  const newPath = `${dir}${newName}`;
+  if (newPath === p) return json({ success: true, name: newName });
+
+  const oldKey = `u/${session.email}/${p}`;
+  const newKey = `u/${session.email}/${newPath}`;
+  if (await env.KILIW_FILES.head(newKey)) {
+    return json({ success: false, error: 'exists' }, 409);
+  }
+
+  const object = await env.KILIW_FILES.get(oldKey);
+  if (!object) return json({ success: false, error: 'not-found' }, 404);
+
+  /* R2 has no server-side rename: stream-copy, then delete the original */
+  await env.KILIW_FILES.put(newKey, object.body, {
+    httpMetadata: object.httpMetadata,
+  });
+  await env.KILIW_FILES.delete(oldKey);
+  await moveShare(env, session.email, p, newPath);
+  return json({ success: true, name: newName });
+}
+
 /* DELETE /api/file?p=folder/name.ext */
 export async function onRequestDelete({ request, env }) {
   const { session, error } = await requireSession(request, env);
@@ -55,5 +96,6 @@ export async function onRequestDelete({ request, env }) {
   if (!p) return json({ success: false, error: 'bad-name' }, 400);
 
   await env.KILIW_FILES.delete(`u/${session.email}/${p}`);
+  await deleteShareForFile(env, session.email, p);
   return json({ success: true });
 }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <title>Kiliw Cloud</title>
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body data-title-key="title.cloud">
 
@@ -85,6 +85,44 @@
         </div>
       </div>
       <div class="preview-body" id="preview-body"></div>
+    </div>
+  </div>
+
+  <!-- Share file -->
+  <div class="modal-overlay" id="share-modal" hidden>
+    <div class="modal share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title">
+      <div class="modal-head">
+        <h2 id="share-title" data-i18n="share.title">Share file</h2>
+        <button type="button" class="icon-btn" id="share-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+
+      <p class="modal-email share-file" id="share-file-name"></p>
+
+      <!-- Not shared yet -->
+      <div id="share-off" hidden>
+        <p class="modal-hint" data-i18n="share.hint">Anyone with the link can download this file — no account needed. Add a password to keep it private.</p>
+        <div class="group">
+          <div class="field">
+            <input type="text" id="share-password" placeholder=" " autocomplete="off">
+            <label for="share-password" data-i18n="share.passwordLabel">Password (optional)</label>
+          </div>
+        </div>
+        <button type="button" class="submit small" id="share-create" data-i18n="share.create">Create link</button>
+      </div>
+
+      <!-- Link exists -->
+      <div id="share-on" hidden>
+        <div class="share-link">
+          <input type="text" id="share-url" readonly>
+          <button type="button" class="submit small" id="share-copy" data-i18n="share.copy">Copy</button>
+        </div>
+        <p class="modal-hint" id="share-protected-hint"></p>
+        <button type="button" class="submit small danger" id="share-remove" data-i18n="share.remove">Delete link</button>
+      </div>
+
+      <p class="modal-status" id="share-status" hidden></p>
     </div>
   </div>
 
@@ -215,7 +253,7 @@
         <button type="button" class="submit small danger" id="delete-start" data-i18n="profile.delete.start">Delete account</button>
       </section>
 
-      <button type="button" class="app-build" id="app-build">build 8</button>
+      <button type="button" class="app-build" id="app-build">build 9</button>
     </div>
   </div>
 
@@ -247,8 +285,8 @@
     </div>
   </div>
 
-  <script src="vendor/qrcode.min.js?v=8"></script>
-  <script src="ui.js?v=8"></script>
-  <script src="cloud.js?v=8"></script>
+  <script src="vendor/qrcode.min.js?v=9"></script>
+  <script src="ui.js?v=9"></script>
+  <script src="cloud.js?v=9"></script>
 </body>
 </html>

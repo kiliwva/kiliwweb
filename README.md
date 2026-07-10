@@ -22,7 +22,18 @@ Sessions live in a `kiliw_session` cookie (30 days) scoped to
 _auth/users/<email>.json      account records (PBKDF2-SHA256 password hashes)
 _auth/sessions/<token>.json   sessions
 u/<email>/<filename>          the user's files
+_share/t/<token>.json         public share links (optional PBKDF2 password)
+_share/f/<email>/<path>       file → share-token index
 ```
+
+### Public share links
+
+Any file can be shared via `https://kiliw.com/share/<token>` — a branded
+download page that works without an account. Links can optionally require
+a password (asked on the page before the download starts). Shares follow
+renames and are removed automatically when the file, its folder, or the
+account is deleted. One link per file; creating a new link replaces the
+old one (old URL stops working).
 
 ## Files
 

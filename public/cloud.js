@@ -182,14 +182,20 @@ function iconSvg(kind) {
   return svg;
 }
 
+const ACTION_ICONS = {
+  download: '<path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>',
+  delete: '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  share: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  rename: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+};
+
 function actionButton(kind, title) {
   const btn = document.createElement(kind === 'download' ? 'a' : 'button');
+  if (kind !== 'download') btn.type = 'button';
   btn.className = `icon-btn${kind === 'delete' ? ' danger' : ''}`;
   btn.title = title;
   btn.setAttribute('aria-label', title);
-  btn.innerHTML = kind === 'download'
-    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>'
-    : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+  btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ACTION_ICONS[kind]}</svg>`;
   return btn;
 }
 
@@ -299,6 +305,10 @@ function renderList(folders, files) {
 
     const actions = document.createElement('div');
     actions.className = 'file-actions';
+    const share = actionButton('share', t('file.share'));
+    share.addEventListener('click', () => openShare(file));
+    const rename = actionButton('rename', t('file.rename'));
+    rename.addEventListener('click', () => renameFile(file));
     const download = actionButton('download', t('file.download'));
     download.href = fileUrl(file.name, false);
     const del = actionButton('delete', t('file.delete'));
@@ -310,7 +320,7 @@ function renderList(folders, files) {
         refreshMe();
       }
     });
-    actions.append(download, del);
+    actions.append(share, rename, download, del);
 
     li.append(iconSvg('file'), info, actions);
     listEl.appendChild(li);
@@ -608,6 +618,117 @@ drop.addEventListener('drop', (e) => {
   if (e.dataTransfer?.files?.length) uploadFiles(e.dataTransfer.files);
 });
 
+/* ---------- rename ---------- */
+
+async function renameFile(file) {
+  const name = prompt(t('rename.prompt'), file.name);
+  if (!name || !name.trim() || name.trim() === file.name) return;
+  const res = await fetch('/api/file', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p: fullPath(file.name), newName: name.trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    loadFiles();
+  } else {
+    alert(t(data.error === 'exists' ? 'rename.exists' : 'rename.fail'));
+  }
+}
+
+/* ---------- share ---------- */
+
+const shareModal = document.getElementById('share-modal');
+const shareOff = document.getElementById('share-off');
+const shareOn = document.getElementById('share-on');
+let sharePath = null;
+
+function renderShareState(data) {
+  shareOff.hidden = Boolean(data.shared);
+  shareOn.hidden = !data.shared;
+  if (data.shared) {
+    document.getElementById('share-url').value = data.url;
+    document.getElementById('share-protected-hint').textContent = t(
+      data.protected ? 'share.protectedOn' : 'share.protectedOff',
+    );
+  }
+}
+
+async function openShare(file) {
+  sharePath = fullPath(file.name);
+  document.getElementById('share-file-name').textContent = file.name;
+  document.getElementById('share-password').value = '';
+  showStatus('share-status', '');
+  shareOff.hidden = true;
+  shareOn.hidden = true;
+  shareModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+
+  const res = await fetch(`/api/share?p=${encodeURIComponent(sharePath)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    showStatus('share-status', t('share.fail'));
+    return;
+  }
+  renderShareState(data);
+}
+
+function closeShareModal() {
+  shareModal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.getElementById('share-close').addEventListener('click', closeShareModal);
+shareModal.addEventListener('click', (e) => {
+  if (e.target === shareModal) closeShareModal();
+});
+
+document.getElementById('share-create').addEventListener('click', async () => {
+  const password = document.getElementById('share-password').value;
+  if (password && password.length < 4) {
+    showStatus('share-status', t('share.passwordShort'));
+    return;
+  }
+  showStatus('share-status', '');
+  const res = await fetch('/api/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'create', p: sharePath, password }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    renderShareState({ shared: true, url: data.url, protected: data.protected });
+  } else {
+    showStatus('share-status', t(data.error === 'password-short' ? 'share.passwordShort' : 'share.fail'));
+  }
+});
+
+document.getElementById('share-copy').addEventListener('click', async () => {
+  const input = document.getElementById('share-url');
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch {
+    input.select();
+    document.execCommand('copy');
+  }
+  showStatus('share-status', t('share.copied'), true);
+});
+
+document.getElementById('share-remove').addEventListener('click', async () => {
+  const res = await fetch('/api/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'remove', p: sharePath }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    showStatus('share-status', '');
+    renderShareState({ shared: false });
+  } else {
+    showStatus('share-status', t('share.fail'));
+  }
+});
+
 /* ---------- preview ---------- */
 
 const previewModal = document.getElementById('preview-modal');
@@ -719,6 +840,7 @@ modal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!previewModal.hidden) closePreview();
+  else if (!shareModal.hidden) closeShareModal();
   else if (!deleteModal.hidden) closeDeleteModal();
   else if (!planModal.hidden) closePlanModal();
   else if (!modal.hidden) closeModal();

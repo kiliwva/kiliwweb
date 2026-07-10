@@ -1,5 +1,5 @@
 import {
-  json, getSession, storageReady, cleanSegment, parsePath,
+  json, getSession, storageReady, cleanSegment, parsePath, deleteSharesUnder,
 } from '../../lib/api.js';
 
 async function requireSession(request, env) {
@@ -50,5 +50,6 @@ export async function onRequestDelete({ request, env }) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 
+  await deleteSharesUnder(env, session.email, p);
   return json({ success: true });
 }

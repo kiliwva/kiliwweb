@@ -18,7 +18,9 @@ import * as heleket from '../functions/api/heleket.js';
 import * as avatar from '../functions/api/avatar.js';
 import * as verifyEmail from '../functions/api/verify-email.js';
 import * as deleteAccount from '../functions/api/delete-account.js';
+import * as share from '../functions/api/share.js';
 import * as debug from '../functions/api/debug.js';
+import { handleShare } from '../functions/share.js';
 import { json } from '../lib/api.js';
 
 const ROUTES = {
@@ -36,6 +38,7 @@ const ROUTES = {
   '/api/yookassa': yookassa,
   '/api/heleket': heleket,
   '/api/avatar': avatar,
+  '/api/share': share,
   '/api/verify-email': verifyEmail,
   '/api/delete-account': deleteAccount,
   '/api/debug': debug,
@@ -53,6 +56,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const { pathname } = url;
+
+    /* public share links: no session required, any host */
+    const shared = pathname.match(/^\/share\/([0-9a-f]{32})$/);
+    if (shared) return handleShare(request, env, shared[1]);
 
     if (pathname.startsWith('/api/')) {
       const mod = ROUTES[pathname];

@@ -574,6 +574,10 @@ body {
 @media (max-width: 560px) {
   .cloud-head { flex-wrap: wrap; }
   .files { padding: 18px 16px; }
+  .file-row { gap: 10px; }
+  .file-actions { gap: 4px; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 9px; }
+  .icon-btn svg { width: 16px; height: 16px; }
 }
 
 @media (max-width: 440px) {
@@ -881,6 +885,30 @@ body {
 
 /* plan, preview & delete modals open above the profile modal */
 #plan-modal, #preview-modal, #delete-modal { z-index: 55; }
+
+/* share modal */
+.share-modal { max-width: 420px; }
+.share-file { margin-bottom: 14px; overflow-wrap: anywhere; white-space: normal; }
+.share-link {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.share-link input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--frost-soft);
+  border: 1.5px solid var(--panel-border);
+  border-radius: 12px;
+  outline: none;
+}
+.share-link input:focus { border-color: var(--accent); }
+.share-link .submit.small { margin-top: 0; flex: none; }
 
 .delete-modal { max-width: 400px; }
 .danger-title { color: var(--error); }
