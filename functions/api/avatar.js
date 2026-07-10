@@ -43,9 +43,8 @@ export async function onRequestPost({ request, env }) {
   });
 
   const user = await getUser(env, session.email);
-  if (user) {
-    user.avatar = Date.now();
-    await putUser(env, user);
-  }
-  return json({ success: true, avatar: user?.avatar || Date.now() });
+  if (!user) return json({ success: false, error: 'no-user' }, 500);
+  user.avatar = Date.now();
+  await putUser(env, user);
+  return json({ success: true, avatar: user.avatar });
 }

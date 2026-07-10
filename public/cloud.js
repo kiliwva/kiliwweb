@@ -123,12 +123,12 @@ avatarInput.addEventListener('change', async () => {
       body: blob,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.success) throw new Error('upload');
+    if (!res.ok || !data.success) throw new Error(data.error || `http-${res.status}`);
     showStatus('avatar-status', '');
     /* re-read the profile from the server: the authoritative state */
     await refreshMe();
-  } catch {
-    showStatus('avatar-status', t('avatar.fail'));
+  } catch (err) {
+    showStatus('avatar-status', `${t('avatar.fail')} [${err.message}]`);
   }
 });
 
