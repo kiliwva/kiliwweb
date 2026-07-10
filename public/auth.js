@@ -1,7 +1,7 @@
 /* Auth page logic: Cloudflare Turnstile + real sign-in / sign-up. */
 
 /** Cloudflare Turnstile site key (public by design). */
-const TURNSTILE_SITE_KEY = '0x4AAAAAADzDCGOmnNypLU3q';
+const TURNSTILE_SITE_KEY = '0x4AAAAAADzEB5uAu6K8lY2o';
 
 const tabsBar = document.querySelector('.tabs');
 const tabLogin = document.getElementById('tab-login');
