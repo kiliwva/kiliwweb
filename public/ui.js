@@ -1,4 +1,4 @@
-/* Shared UI module: strings + light/dark theme with a corner toggle.
+/* Shared UI module: interface strings.
    Loads before page scripts; exposes window.KiliwUI. */
 
 (function () {
@@ -98,9 +98,6 @@
     'profile.2fa.disableFail': 'Could not disable 2FA. Try again.',
   };
 
-  let theme = localStorage.getItem('kiliw_theme') === 'dark' ? 'dark' : 'light';
-  const themeCbs = [];
-
   function t(key, vars) {
     let str = STRINGS[key] ?? key;
     if (vars) {
@@ -117,7 +114,6 @@
 
   function apply() {
     document.documentElement.lang = 'en';
-    document.documentElement.dataset.theme = theme;
 
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       el.textContent = t(el.dataset.i18n);
@@ -134,17 +130,7 @@
     t,
     filesCount,
     lang: 'en',
-    get theme() { return theme; },
-    onTheme(cb) { themeCbs.push(cb); },
   };
 
-  document.addEventListener('DOMContentLoaded', () => {
-    apply();
-    document.getElementById('theme-toggle')?.addEventListener('click', () => {
-      theme = theme === 'light' ? 'dark' : 'light';
-      localStorage.setItem('kiliw_theme', theme);
-      apply();
-      themeCbs.forEach((cb) => cb(theme));
-    });
-  });
+  document.addEventListener('DOMContentLoaded', apply);
 })();

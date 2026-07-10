@@ -28,26 +28,6 @@
   --accent-hover: #C9663F;
   --accent-press: #B85C3C;
   --accent-ring: rgba(184, 92, 60, 0.35);
-  --text: #1A1A1A;
-  --muted: #7C7C7C;
-  --frost: rgba(255, 255, 255, 0.55);
-  --frost-strong: rgba(255, 255, 255, 0.72);
-  --frost-soft: rgba(255, 255, 255, 0.38);
-  --hairline: rgba(0, 0, 0, 0.1);
-  --error: #C23217;
-  --panel-border: rgba(255, 255, 255, 0.55);
-  --overlay-bg: rgba(15, 15, 15, 0.4);
-  --ok-text: #B85C3C;
-  --card-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    0 32px 80px -16px rgba(0, 0, 0, 0.4);
-  /* full-bleed monochrome background */
-  --bg-a: #F5F5F5;
-  --bg-b: #E3E3E3;
-  --bg-c: #C9C9C9;
-}
-
-:root[data-theme="dark"] {
   --text: #F2F2F2;
   --muted: #9C9C9C;
   --frost: rgba(24, 24, 24, 0.55);
@@ -61,20 +41,13 @@
   --card-shadow:
     0 2px 8px rgba(0, 0, 0, 0.35),
     0 32px 80px -16px rgba(0, 0, 0, 0.6);
+  /* full-bleed monochrome background */
   --bg-a: #262626;
   --bg-b: #161616;
   --bg-c: #0C0C0C;
 }
 
-:root[data-theme="dark"] .orb-1 {
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 60%);
-}
-:root[data-theme="dark"] .orb-2 {
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 60%);
-}
-:root[data-theme="dark"] .orb-3 {
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 60%);
-}
+
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -115,19 +88,19 @@ body {
 .orb-1 {
   width: 80vmax; height: 80vmax;
   top: -30vmax; left: -25vmax;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.7), transparent 62%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.14), transparent 62%);
 }
 .orb-2 {
   width: 75vmax; height: 75vmax;
   bottom: -28vmax; right: -22vmax;
-  background: radial-gradient(circle, rgba(110, 110, 110, 0.35), transparent 62%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 62%);
   animation-delay: -3s;
   animation-duration: 7s;
 }
 .orb-3 {
   width: 60vmax; height: 60vmax;
   top: 30%; left: 30%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 62%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1), transparent 62%);
   animation-delay: -6s;
   animation-duration: 11s;
 }
@@ -749,61 +722,11 @@ body {
 .totp-group { margin-top: 12px; }
 
 
-/* ============================================================
-   Corner controls (theme + language)
-   ============================================================ */
 
-.corner-controls {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  z-index: 60;
-  display: flex;
-  gap: 8px;
-}
-
-.corner-btn {
-  height: 42px;
-  min-width: 42px;
-  padding: 0 13px;
-  border-radius: 12px;
-  border: 1px solid var(--panel-border);
-  background: var(--frost);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  display: grid;
-  place-items: center;
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  cursor: pointer;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.12),
-    0 3px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.15s, background 0.15s;
-}
-.corner-btn:hover {
-  transform: translateY(-1px);
-  background: var(--frost-strong);
-}
-.corner-btn:active { transform: scale(0.96); }
-.corner-btn svg { width: 19px; height: 19px; }
-
-/* show the icon of the theme you would switch to */
-.corner-btn .icon-sun { display: none; }
-.corner-btn .icon-moon { display: block; }
-:root[data-theme="dark"] .corner-btn .icon-sun { display: block; }
-:root[data-theme="dark"] .corner-btn .icon-moon { display: none; }
-
-/* keep the cloud header clear of the fixed corner buttons */
-.scene-wide { padding-top: 72px; }
+.scene-wide { padding-top: 28px; }
 @media (max-width: 700px) {
   .scene-wide { padding-top: 16px; }
   .cloud { margin-top: 0; }
-  /* brand row shares the top line with the theme toggle */
-  .cloud-head { padding-right: 52px; }
   .drop { padding: 24px 16px; }
 }
 
@@ -870,8 +793,7 @@ body {
    ============================================================ */
 
 .plan-modal { max-width: 480px; }
-.pro-mark { color: var(--accent-press); }
-:root[data-theme="dark"] .pro-mark { color: var(--accent); }
+.pro-mark { color: var(--accent); }
 
 .plan-benefits {
   list-style: none;
@@ -931,8 +853,7 @@ body {
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .tier-gb { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
-.tier-price { font-size: 14px; font-weight: 800; color: var(--accent-press); }
-:root[data-theme="dark"] .tier-price { color: var(--accent); }
+.tier-price { font-size: 14px; font-weight: 800; color: var(--accent); }
 .tier-period { font-size: 11px; font-weight: 700; color: var(--muted); }
 .tier.current::after {
   content: "•";

@@ -19,7 +19,7 @@ window.onTurnstileLoad = function () {
     const form = slot.closest('form');
     const widgetId = turnstile.render(slot, {
       sitekey: TURNSTILE_SITE_KEY,
-      theme: KiliwUI.theme,
+      theme: 'dark',
       language: 'en',
       callback: () => setSubmitEnabled(form, true),
       'expired-callback': () => setSubmitEnabled(form, false),
@@ -29,17 +29,6 @@ window.onTurnstileLoad = function () {
   });
 };
 
-/* re-render the widgets when theme or language changes */
-function rerenderTurnstile() {
-  if (!window.turnstile) return;
-  widgets.forEach((id, form) => {
-    turnstile.remove(id);
-    setSubmitEnabled(form, false);
-  });
-  widgets.clear();
-  window.onTurnstileLoad();
-}
-KiliwUI.onTheme(rerenderTurnstile);
 
 function setSubmitEnabled(form, enabled) {
   form.querySelector('.submit').disabled = !enabled;
