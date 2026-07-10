@@ -143,7 +143,6 @@ const CSS = `
     }
     .brand em {
       font-style: normal;
-      margin-left: 4px;
       background: linear-gradient(120deg, #F0A57C 0%, #D97757 55%, #C96A47 100%);
       -webkit-background-clip: text;
       background-clip: text;
@@ -521,7 +520,7 @@ function topBar(dlUrl, viewer) {
     : '<a class="btn ghost" href="/"><span class="btn-label">Sign in</span></a>';
   return `
   <header class="bar">
-    <a class="brand" href="/">${LOGO_MARK}Kiliw <em>Cloud</em></a>
+    <a class="brand" href="/">${LOGO_MARK}<span>Kiliw <em>Cloud</em></span></a>
     <div class="bar-actions">
       ${dlUrl ? `<a class="btn" href="${dlUrl}" download>${DL_ICON}<span class="btn-label">Download</span></a>` : ''}
       ${who}
