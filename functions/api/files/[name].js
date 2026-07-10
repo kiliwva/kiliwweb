@@ -1,7 +1,7 @@
-import { json, getSession } from '../../../lib/api.js';
+import { json, getSession, storageReady } from '../../../lib/api.js';
 
 async function requireSession(request, env) {
-  if (!env.KILIW_KV || !env.KILIW_FILES) {
+  if (!storageReady(env)) {
     return { error: json({ success: false, error: 'not-configured' }, 503) };
   }
   const session = await getSession(request, env);

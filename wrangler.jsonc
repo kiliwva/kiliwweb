@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kiliwweb",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // every request goes through the Worker first: auth redirects,
+    // session-gated cloud app, /api/* routes
+    "run_worker_first": true
+  },
+  "r2_buckets": [
+    {
+      "binding": "KILIW_FILES",
+      // create a bucket with exactly this name in the Cloudflare dashboard (R2)
+      "bucket_name": "kiliw-files"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

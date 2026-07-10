@@ -1,4 +1,4 @@
-import { json, getSession } from '../../../lib/api.js';
+import { json, getSession, storageReady } from '../../../lib/api.js';
 
 const MAX_NAME = 180;
 const MAX_SIZE = 100 * 1024 * 1024; // 100 MB — Workers request body limit
@@ -13,7 +13,7 @@ function cleanName(raw) {
 }
 
 async function requireSession(request, env) {
-  if (!env.KILIW_KV || !env.KILIW_FILES) {
+  if (!storageReady(env)) {
     return { error: json({ success: false, error: 'not-configured' }, 503) };
   }
   const session = await getSession(request, env);

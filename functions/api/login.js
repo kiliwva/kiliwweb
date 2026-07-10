@@ -1,9 +1,10 @@
 import {
   json, hashPassword, timingSafeEqualHex, createSession, verifyTurnstile, afterAuthRedirect,
+  storageReady, getUser,
 } from '../../lib/api.js';
 
 export async function onRequestPost({ request, env }) {
-  if (!env.KILIW_KV) return json({ success: false, error: 'not-configured' }, 503);
+  if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
 
   let body;
   try {
@@ -20,15 +21,8 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'captcha' }, 403);
   }
 
-  const raw = email ? await env.KILIW_KV.get(`user:${email}`) : null;
-  if (!raw) return json({ success: false, error: 'invalid-credentials' }, 401);
-
-  let user;
-  try {
-    user = JSON.parse(raw);
-  } catch {
-    return json({ success: false, error: 'invalid-credentials' }, 401);
-  }
+  const user = email ? await getUser(env, email) : null;
+  if (!user) return json({ success: false, error: 'invalid-credentials' }, 401);
 
   const hash = await hashPassword(password, user.salt);
   if (!timingSafeEqualHex(hash, user.hash)) {

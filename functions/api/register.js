@@ -1,11 +1,12 @@
 import {
   json, randomHex, hashPassword, createSession, verifyTurnstile, afterAuthRedirect,
+  storageReady, getUser, putUser,
 } from '../../lib/api.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function onRequestPost({ request, env }) {
-  if (!env.KILIW_KV) return json({ success: false, error: 'not-configured' }, 503);
+  if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
 
   let body;
   try {
@@ -28,16 +29,13 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'captcha' }, 403);
   }
 
-  if (await env.KILIW_KV.get(`user:${email}`)) {
+  if (await getUser(env, email)) {
     return json({ success: false, error: 'user-exists' }, 409);
   }
 
   const salt = randomHex(16);
   const hash = await hashPassword(password, salt);
-  await env.KILIW_KV.put(
-    `user:${email}`,
-    JSON.stringify({ email, salt, hash, created: Date.now() }),
-  );
+  await putUser(env, { email, salt, hash, created: Date.now() });
 
   const { cookie } = await createSession(env, email, request);
   return json(

@@ -2,7 +2,8 @@
 
 Sign-in / sign-up protected by Cloudflare Turnstile, and a personal file
 cloud (upload / download / delete). Frosted matte design with a coral
-accent (`#D97757`), built for Cloudflare Pages.
+accent (`#D97757`). Runs as a **Cloudflare Worker** with static assets
+(also compatible with Cloudflare Pages).
 
 ## How it works
 
@@ -10,57 +11,61 @@ accent (`#D97757`), built for Cloudflare Pages.
 |---|---|
 | `kiliw.com` | Signed out → redirect to `auth.kiliw.com`. Signed in → cloud app |
 | `auth.kiliw.com` | Sign in / sign up. Signed in → redirect to `kiliw.com` |
-| `*.pages.dev` / localhost | Same flows on a single host (no subdomain redirects) |
+| `*.workers.dev` / localhost | Same flows on a single host (no subdomain redirects) |
 
 Sessions live in a `kiliw_session` cookie (30 days) scoped to
-`.kiliw.com`, so signing in on `auth.kiliw.com` also signs you in on
-`kiliw.com`.
+`.kiliw.com`. All data is stored in **one R2 bucket** (`kiliw-files`):
+
+```
+_auth/users/<email>.json      account records (PBKDF2-SHA256 password hashes)
+_auth/sessions/<token>.json   sessions
+u/<email>/<filename>          the user's files
+```
 
 ## Files
 
 | Path | Purpose |
 |---|---|
-| `index.html`, `auth.js` | Auth page (Turnstile, sign in / sign up) |
-| `cloud.html`, `cloud.js` | Cloud app (list, upload, download, delete) |
-| `styles.css`, `fonts/` | Shared styles, self-hosted Manrope |
-| `functions/_middleware.js` | Host/session routing |
-| `functions/api/login.js` | POST — verify captcha + credentials, create session |
-| `functions/api/register.js` | POST — verify captcha, create user + session |
-| `functions/api/logout.js` | POST — destroy session |
-| `functions/api/me.js` | GET — current user |
-| `functions/api/files/index.js` | GET list / POST upload |
-| `functions/api/files/[name].js` | GET download / DELETE |
-| `lib/api.js` | Shared helpers (sessions, PBKDF2, Turnstile) |
-
-Passwords are stored as PBKDF2-SHA256 hashes (100k iterations, per-user
-salt). Files are stored in R2 under `u/<email>/<filename>` — each user
-only ever sees their own prefix.
+| `public/` | Static assets: auth page, cloud app, styles, fonts |
+| `src/worker.js` | Worker entry: routes /api/*, auth-gates pages |
+| `functions/` | The same handlers in Pages Functions layout (reused by the worker) |
+| `lib/api.js` | Shared logic: users, sessions, PBKDF2, Turnstile |
+| `wrangler.jsonc` | Worker config: assets dir + R2 binding |
 
 ## Cloudflare setup (one time)
 
-1. **KV** — Dashboard → Workers & Pages → KV → *Create namespace* (e.g.
-   `kiliw-auth`). In the Pages project: *Settings → Bindings → Add → KV
-   namespace*, variable name **`KILIW_KV`**.
-2. **R2** — R2 → *Create bucket* (e.g. `kiliw-files`). Add a Pages
-   binding: *R2 bucket*, variable name **`KILIW_FILES`**.
-3. **Turnstile** — Turnstile → *Add site* → domain `kiliw.com` (covers
-   subdomains). Put the **Site Key** into `TURNSTILE_SITE_KEY` in
-   `auth.js`; add the **Secret Key** as an environment variable
-   **`TURNSTILE_SECRET_KEY`** (*Settings → Environment variables*,
-   type Secret). Until then the test key is used — the captcha shows
-   "For testing only" and always passes.
-4. **Domains** — Pages project → *Custom domains* → add both
-   `kiliw.com` and `auth.kiliw.com`.
+The project deploys automatically from git (Workers Builds). To make it
+fully work:
 
-Redeploy after adding bindings.
+1. **R2 bucket** — dashboard → **R2** → *Create bucket* → name it exactly
+   **`kiliw-files`**. The binding is declared in `wrangler.jsonc`, so no
+   dashboard binding setup is needed — just redeploy after creating the
+   bucket (Deployments → ⋯ → Retry, or push any commit).
+2. **Domains** — Worker → *Settings → Domains & Routes* → add
+   `kiliw.com` and `auth.kiliw.com`.
+3. **Turnstile** — Turnstile → *Add site* → domain `kiliw.com`. Put the
+   **Site Key** into `TURNSTILE_SITE_KEY` in `public/auth.js`; add the
+   **Secret Key** as a **secret** named `TURNSTILE_SECRET_KEY`
+   (*Settings → Variables and Secrets → Add → Secret*). Until then the
+   test key is used — the captcha shows "For testing only" and always
+   passes.
+
+If the build fails, check *Settings → Build* — the deploy command should
+be `npx wrangler deploy` (default).
 
 ## Local development
 
 ```bash
-npx wrangler pages dev . --kv KILIW_KV --r2 KILIW_FILES
+npx wrangler dev
 ```
 
-KV and R2 are emulated locally; the Turnstile test key is used
-automatically, and if `challenges.cloudflare.com` is unreachable the
-captcha check is skipped in dev (it fails closed in production, where a
-real `TURNSTILE_SECRET_KEY` is set).
+R2 is emulated locally. The Turnstile test key is used automatically; if
+`challenges.cloudflare.com` is unreachable the captcha check is skipped
+in dev (it fails closed in production, where a real
+`TURNSTILE_SECRET_KEY` is set).
+
+## Health check
+
+Open `/api/me` — a working deployment answers
+`{"success":false,"error":"unauthorized"}` (or your email when signed
+in). `{"error":"not-configured"}` means the R2 bucket is missing.
