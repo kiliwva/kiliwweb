@@ -82,7 +82,7 @@ export async function onRequestPost({ request, env }) {
       ? { provider: 'yookassa', id: user.pendingPayment }
       : user.pendingPayment;
     if (!pending?.id) {
-      return json({ success: true, state: 'none', plan: planLimits(user) });
+      return json({ success: true, state: 'none', plan: planLimits(user, env) });
     }
 
     let state = 'pending';
@@ -109,7 +109,7 @@ export async function onRequestPost({ request, env }) {
       await putUser(env, user);
     }
     const fresh = await getUser(env, session.email);
-    return json({ success: true, state, plan: planLimits(fresh) });
+    return json({ success: true, state, plan: planLimits(fresh, env) });
   }
 
   return json({ success: false, error: 'bad-request' }, 400);

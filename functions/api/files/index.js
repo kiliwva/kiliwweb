@@ -52,7 +52,7 @@ export async function onRequestPost({ request, env }) {
   if (!name || path === null) return json({ success: false, error: 'bad-name' }, 400);
 
   const user = await getUser(env, session.email);
-  const limits = planLimits(user);
+  const limits = planLimits(user, env);
   const length = Number(request.headers.get('Content-Length') || 0);
   if (length > limits.maxFile) return json({ success: false, error: 'too-large' }, 413);
 

@@ -37,7 +37,7 @@ export async function onRequestPost({ request, env }) {
     if (!name || path === null) return json({ success: false, error: 'bad-name' }, 400);
 
     const user = await getUser(env, session.email);
-    const limits = planLimits(user);
+    const limits = planLimits(user, env);
     if (size > limits.maxFile) return json({ success: false, error: 'too-large' }, 413);
     const usage = await storageUsage(env, session.email);
     if (usage + size > limits.quota) return json({ success: false, error: 'quota' }, 413);
@@ -72,7 +72,7 @@ export async function onRequestPost({ request, env }) {
     }
     /* re-check limits against the real size; declared size is client-supplied */
     const user = await getUser(env, session.email);
-    const limits = planLimits(user);
+    const limits = planLimits(user, env);
     const usage = await storageUsage(env, session.email);
     if (object.size > limits.maxFile || usage > limits.quota) {
       await env.KILIW_FILES.delete(object.key);

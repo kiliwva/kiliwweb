@@ -17,6 +17,10 @@
       "bucket_name": "kiliw-files"
     }
   ],
+  "vars": {
+    // the site owner gets a permanent 1 TB Pro plan
+    "OWNER_EMAIL": "denislybin3@gmail.com"
+  },
   "observability": {
     "enabled": true
   }
