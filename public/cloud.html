@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=26">
+  <link rel="stylesheet" href="styles.css?v=27">
 </head>
 <body data-title-key="title.cloud">
 
@@ -340,6 +340,7 @@
               <div id="api-locked" hidden>
                 <p class="modal-hint" data-i18n="api.noAccess">Programmatic access to your storage (REST, API keys) comes with the DEV plan.</p>
                 <button type="button" class="submit small" id="api-upgrade" data-i18n="api.getDev">Get DEV — $12.99 / 30 days</button>
+                <p class="note"><a class="link" href="/docs.html" target="_blank" data-i18n="api.docsLink">Read the API documentation →</a></p>
               </div>
 
               <div id="api-unlocked" hidden>
@@ -355,6 +356,7 @@
                 <p class="modal-hint ok-hint" id="apikey-once" hidden data-i18n="api.once">Copy the key now — it is shown only once.</p>
                 <p class="modal-status" id="api-status" hidden></p>
                 <pre class="api-docs" id="api-docs"></pre>
+                <p class="note"><a class="link" href="/docs.html" target="_blank" data-i18n="api.docsLink">Read the API documentation →</a></p>
               </div>
             </section>
           </div>
@@ -391,7 +393,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-1A</button>
+        <button type="button" class="app-build" id="app-build">KW-1B</button>
       </div>
     </div>
   </div>
@@ -441,8 +443,8 @@
   <!-- floating row actions menu (⋯) -->
   <div class="row-menu" id="row-menu" hidden></div>
 
-  <script src="vendor/qrcode.min.js?v=26"></script>
-  <script src="ui.js?v=26"></script>
-  <script src="cloud.js?v=26"></script>
+  <script src="vendor/qrcode.min.js?v=27"></script>
+  <script src="ui.js?v=27"></script>
+  <script src="cloud.js?v=27"></script>
 </body>
 </html>

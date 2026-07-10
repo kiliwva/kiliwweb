@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>API Documentation — Kiliw Cloud</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=27">
+  <style>
+    .docs-wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+    .docs-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 0 26px;
+    }
+    .docs-bar a.home { text-decoration: none; }
+    .docs h1 {
+      font-size: clamp(28px, 5vw, 38px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+    }
+    .docs .lead {
+      font-size: 15.5px;
+      font-weight: 500;
+      line-height: 1.6;
+      color: var(--muted);
+      margin-bottom: 26px;
+    }
+    .docs h2 {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin: 40px 0 12px;
+      padding-top: 22px;
+      border-top: 1px solid var(--hairline);
+    }
+    .docs h3 { font-size: 15.5px; font-weight: 800; margin: 24px 0 8px; }
+    .docs p, .docs li {
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+    .docs p strong, .docs li strong { color: var(--text); }
+    .docs ul { padding-left: 20px; margin: 8px 0; }
+    .docs code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 6px;
+      padding: 1.5px 6px;
+      color: var(--text);
+    }
+    .docs pre {
+      margin: 12px 0 18px;
+      padding: 15px 17px;
+      background: rgba(0, 0, 0, 0.32);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      overflow-x: auto;
+    }
+    .docs pre code {
+      background: none;
+      border: 0;
+      padding: 0;
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #D8D8D8;
+      white-space: pre;
+    }
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 22px 0 6px;
+    }
+    .method {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 4px 10px;
+      border-radius: 8px;
+      flex: none;
+    }
+    .method.get { background: rgba(110, 170, 120, 0.16); color: #8FCB9B; }
+    .method.put { background: rgba(217, 119, 87, 0.16); color: #E8A38B; }
+    .method.post { background: rgba(120, 150, 220, 0.16); color: #A3B8F0; }
+    .method.del { background: rgba(200, 80, 60, 0.16); color: #F28B70; }
+    .endpoint code {
+      font-size: 13.5px;
+      font-weight: 700;
+      background: none;
+      border: 0;
+      padding: 0;
+    }
+    .docs table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      font-size: 13px;
+    }
+    .docs th, .docs td {
+      text-align: left;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--hairline);
+      color: var(--muted);
+      font-weight: 500;
+      vertical-align: top;
+    }
+    .docs th { color: var(--text); font-weight: 800; font-size: 12px; letter-spacing: 0.03em; text-transform: uppercase; }
+    .docs td code { white-space: nowrap; }
+    .docs .table-scroll { overflow-x: auto; }
+    .docs-foot {
+      margin-top: 50px;
+      padding-top: 18px;
+      border-top: 1px solid var(--hairline);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      opacity: 0.75;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="docs-wrap docs">
+    <div class="docs-bar">
+      <a class="home" href="/"><span class="wordmark" style="font-size:20px">kiliw<em>cloud</em></span></a>
+      <a class="ghost-btn" href="/">Open the cloud</a>
+    </div>
+
+    <h1>Developer API</h1>
+    <p class="lead">
+      Programmatic access to your Kiliw Cloud storage over a simple REST API:
+      upload, download, list and delete files and folders from scripts, CI
+      pipelines, backups or your own apps. API access is included in the
+      <strong>DEV plan</strong> ($12.99 / 30 days · 500 GB · files up to 50 GB).
+    </p>
+
+    <h2 id="auth">Authentication</h2>
+    <p>
+      Create API keys in the cloud app: <strong>Profile → API → Create key</strong>
+      (up to 5 keys per account). The secret looks like <code>kw_…</code> and is
+      shown <strong>only once</strong> — store it safely. Only a hash of the key is
+      kept on the server; a lost key cannot be recovered, only revoked and re-created.
+    </p>
+    <p>Every request must carry the key in the <code>Authorization</code> header:</p>
+    <pre><code>Authorization: Bearer kw_&lt;your key&gt;</code></pre>
+    <p>
+      Base URL: <code>https://cloud.kiliw.com</code>. All responses are JSON unless
+      you are downloading a file. Without a valid key the API returns
+      <code>401 unauthorized</code>; with a key on a plan without API access —
+      <code>403 plan-required</code>.
+    </p>
+
+    <h2 id="quickstart">Quick start</h2>
+    <pre><code># who am I / how much space is left
+curl https://cloud.kiliw.com/api/v1/usage \
+  -H "Authorization: Bearer kw_..."
+
+# upload a file into the folder "backups"
+curl -X PUT https://cloud.kiliw.com/api/v1/files/backups/db.sql.gz \
+  -H "Authorization: Bearer kw_..." \
+  --data-binary @db.sql.gz
+
+# list that folder
+curl "https://cloud.kiliw.com/api/v1/files?path=backups" \
+  -H "Authorization: Bearer kw_..."
+
+# download it back
+curl -o db.sql.gz https://cloud.kiliw.com/api/v1/files/backups/db.sql.gz \
+  -H "Authorization: Bearer kw_..."</code></pre>
+
+    <h2 id="endpoints">Endpoints</h2>
+
+    <div class="endpoint"><span class="method get">GET</span><code>/api/v1/usage</code></div>
+    <p>The account's plan and current storage usage.</p>
+    <pre><code>{
+  "success": true,
+  "email": "you@example.com",
+  "plan": { "type": "dev", "maxFile": 53687091200, "quota": 536870912000, "until": 1786291200000 },
+  "usage": 1073741824
+}</code></pre>
+
+    <div class="endpoint"><span class="method get">GET</span><code>/api/v1/files?path=&lt;folder&gt;</code></div>
+    <p>
+      List one folder level. <code>path</code> is optional (empty = root),
+      e.g. <code>?path=backups/2026</code>.
+    </p>
+    <pre><code>{
+  "success": true,
+  "path": "backups",
+  "folders": ["2026"],
+  "files": [ { "name": "db.sql.gz", "size": 10485760, "uploaded": "2026-07-10T12:00:00.000Z" } ]
+}</code></pre>
+
+    <div class="endpoint"><span class="method put">PUT</span><code>/api/v1/files/&lt;path&gt;</code></div>
+    <p>
+      Upload a file; the request body is the file contents. Parent folders are
+      implicit — uploading to <code>a/b/c.txt</code> creates the path. Set
+      <code>Content-Type</code> if you want it preserved for downloads.
+      Single-request uploads are limited to <strong>100&nbsp;MB</strong>; the
+      plan's per-file and total-storage limits also apply.
+    </p>
+    <pre><code>curl -X PUT https://cloud.kiliw.com/api/v1/files/photos/cat.jpg \
+  -H "Authorization: Bearer kw_..." \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @cat.jpg
+
+→ { "success": true, "path": "photos/cat.jpg", "size": 482113 }</code></pre>
+
+    <div class="endpoint"><span class="method get">GET</span><code>/api/v1/files/&lt;path&gt;</code></div>
+    <p>Download a file. The response body is the file; <code>404 not-found</code> if it doesn't exist.</p>
+
+    <div class="endpoint"><span class="method del">DELETE</span><code>/api/v1/files/&lt;path&gt;</code></div>
+    <p>Delete a file. Any public share link pointing at it is removed too.</p>
+
+    <div class="endpoint"><span class="method post">POST</span><code>/api/v1/folders</code></div>
+    <p>Create a (possibly nested) folder.</p>
+    <pre><code>curl -X POST https://cloud.kiliw.com/api/v1/folders \
+  -H "Authorization: Bearer kw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"path": "backups/2026"}'</code></pre>
+
+    <div class="endpoint"><span class="method del">DELETE</span><code>/api/v1/folders?path=&lt;folder&gt;</code></div>
+    <p>Delete a folder <strong>recursively</strong>, with every file inside. Share links and edit grants for the folder are cleaned up.</p>
+
+    <h2 id="errors">Errors</h2>
+    <p>Failed requests return <code>{"success": false, "error": "&lt;code&gt;"}</code> with a matching HTTP status:</p>
+    <div class="table-scroll">
+      <table>
+        <tr><th>Status</th><th>Code</th><th>Meaning</th></tr>
+        <tr><td>401</td><td><code>unauthorized</code></td><td>Missing, malformed or revoked API key</td></tr>
+        <tr><td>403</td><td><code>plan-required</code></td><td>The key's account has no active DEV plan</td></tr>
+        <tr><td>400</td><td><code>bad-path</code> / <code>bad-request</code></td><td>Invalid path or body (names ≤ 180 chars, depth ≤ 12, no <code>/</code> in names)</td></tr>
+        <tr><td>404</td><td><code>not-found</code></td><td>No such file or endpoint</td></tr>
+        <tr><td>413</td><td><code>too-large</code></td><td>Body exceeds 100 MB or the plan's per-file limit</td></tr>
+        <tr><td>413</td><td><code>quota</code></td><td>The upload would exceed the plan's storage quota</td></tr>
+        <tr><td>405</td><td><code>method-not-allowed</code></td><td>Unsupported HTTP method for this endpoint</td></tr>
+      </table>
+    </div>
+
+    <h2 id="notes">Good to know</h2>
+    <ul>
+      <li>Files uploaded via the API appear in the web app instantly, and vice versa — it is the same storage.</li>
+      <li>Uploaded images go through the same automatic 18+ content check as web uploads.</li>
+      <li>URL-encode special characters in paths (spaces → <code>%20</code>).</li>
+      <li>Revoking a key in the profile invalidates it immediately.</li>
+      <li>Need files over 100 MB via API, more keys or higher limits? Reach out — the plan can grow.</li>
+    </ul>
+
+    <p class="docs-foot">© 2026 KiliwCloud · a product of Synestix, LLC · 2200 Porter Rd, Bear, DE 19701-2022, USA</p>
+  </div>
+
+</body>
+</html>
