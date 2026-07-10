@@ -1,5 +1,6 @@
 import {
-  getShare, hashPassword, timingSafeEqualHex, moderateShare, parsePath, getSession,
+  getShare, hashPassword, timingSafeEqualHex, moderateShare, moderateStoredImage,
+  parsePath, getSession, getUser,
 } from '../lib/api.js';
 
 /* Public share pages: GET/POST /share/<token>
@@ -139,6 +140,23 @@ const CSS = `
     }
     .brand em { font-style: normal; color: #D97757; }
     .bar-actions { display: flex; align-items: center; gap: 8px; }
+    .bar-avatar {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: linear-gradient(135deg, #E08A63 0%, #C96A47 100%);
+      color: #FFF;
+      font-size: 16px;
+      font-weight: 800;
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      transition: transform 0.15s, filter 0.15s;
+    }
+    .bar-avatar:hover { transform: scale(1.06); filter: brightness(1.05); }
+    .bar-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
     .btn {
       display: inline-flex;
@@ -441,14 +459,22 @@ const CSS = `
 
 const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
 
-/** Floating top bar: brand, Sign in, and optionally the Download button. */
-function topBar(dlUrl) {
+/** Floating top bar: brand, Sign in (or the signed-in viewer's avatar),
+    and optionally the Download button. */
+function topBar(dlUrl, viewer) {
+  const who = viewer
+    ? `<a class="bar-avatar" href="/" title="${esc(viewer.email)}">${
+      viewer.avatar
+        ? `<img src="/api/avatar?v=${viewer.avatar}" alt="">`
+        : `<span>${esc(viewer.email[0].toUpperCase())}</span>`
+    }</a>`
+    : '<a class="btn ghost" href="/"><span class="btn-label">Sign in</span></a>';
   return `
   <header class="bar">
     <a class="brand" href="/">Kiliw <em>Cloud</em></a>
     <div class="bar-actions">
-      <a class="btn ghost" href="/"><span class="btn-label">Sign in</span></a>
       ${dlUrl ? `<a class="btn" href="${dlUrl}" download>${DL_ICON}<span class="btn-label">Download</span></a>` : ''}
+      ${who}
     </div>
   </header>`;
 }
@@ -477,8 +503,8 @@ ${backdrop}${inner}
   });
 }
 
-function notFoundPage() {
-  return page('Link not found', `${topBar(null)}
+function notFoundPage(viewer = null) {
+  return page('Link not found', `${topBar(null, viewer)}
   <main class="center-stage">
     <div class="card">
       <div class="card-icon">
@@ -499,7 +525,7 @@ function encPath(path) {
   return encodeURIComponent(path).replace(/%2F/gi, '/');
 }
 
-function folderPage(share, rp, folders, files, proofQuery) {
+function folderPage(share, rp, folders, files, proofQuery, viewer) {
   const rootName = share.path.split('/').pop();
   const title = rp ? `${rootName}/${rp}` : rootName;
   const base = `/share/${share.token}`;
@@ -528,7 +554,7 @@ function folderPage(share, rp, folders, files, proofQuery) {
     : '<p class="f-empty">This folder is empty.</p>';
 
   const count = folders.length + files.length;
-  return page(title, `${topBar(null)}
+  return page(title, `${topBar(null, viewer)}
   <section class="file-head">
     <h1 class="share-name">${esc(title)}</h1>
     <p class="share-meta">${count} item${count === 1 ? '' : 's'} · folder shared by <em>${esc(share.email)}</em></p>
@@ -536,9 +562,9 @@ function folderPage(share, rp, folders, files, proofQuery) {
   <main class="share-stage"><div class="folder-panel">${list}</div></main>`);
 }
 
-function passwordPage(share, size, { wrongPassword = false } = {}) {
+function passwordPage(share, size, viewer, { wrongPassword = false } = {}) {
   const name = share.path.split('/').pop();
-  return page(name, `${topBar(null)}
+  return page(name, `${topBar(null, viewer)}
   <main class="center-stage">
     <div class="card">
       <div class="card-icon">
@@ -599,7 +625,7 @@ function buildStage({ name, size, kind, sensitive, rawUrl, dlUrl }) {
   return { stage, note, backdropUrl };
 }
 
-function previewPage(share, size, proofQuery) {
+function previewPage(share, size, proofQuery, viewer) {
   const name = share.path.split('/').pop();
   const base = `/share/${share.token}`;
   const rawUrl = `${base}?raw=1${proofQuery}`;
@@ -608,7 +634,7 @@ function previewPage(share, size, proofQuery) {
   const sensitive = isSensitive(share, name, kind);
   const { stage, note, backdropUrl } = buildStage({ name, size, kind, sensitive, rawUrl, dlUrl });
 
-  return page(name, `${topBar(dlUrl)}
+  return page(name, `${topBar(dlUrl, viewer)}
   <section class="file-head">
     <h1 class="share-name">${esc(name)}</h1>
     <p class="share-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
@@ -618,19 +644,20 @@ function previewPage(share, size, proofQuery) {
 }
 
 /** Preview of a single file inside a shared folder. */
-function folderPreviewPage(share, rel, size, proofQuery) {
+function folderPreviewPage(share, rel, size, proofQuery, viewer, aiSensitive = false) {
   const name = rel.split('/').pop();
   const base = `/share/${share.token}`;
   const rawUrl = `${base}?raw=${encPath(rel)}${proofQuery}`;
   const dlUrl = `${base}?dl=${encPath(rel)}${proofQuery}`;
   const kind = previewKind(name, size);
-  const sensitive = (kind === 'image' || kind === 'video') && SENSITIVE_RE.test(name);
+  const sensitive = aiSensitive
+    || ((kind === 'image' || kind === 'video') && SENSITIVE_RE.test(name));
   const { stage, note, backdropUrl } = buildStage({ name, size, kind, sensitive, rawUrl, dlUrl });
 
   const parent = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
   const backUrl = `${base}?${parent ? `p=${encPath(parent)}` : 'p='}${proofQuery}`;
 
-  return page(name, `${topBar(dlUrl)}
+  return page(name, `${topBar(dlUrl, viewer)}
   <section class="file-head">
     <h1 class="share-name">${esc(name)}</h1>
     <p class="share-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
@@ -641,15 +668,15 @@ function folderPreviewPage(share, rel, size, proofQuery) {
 }
 
 /** Restricted links: sign in, or signed in without access. */
-function restrictedPage(share, signedInAs) {
+function restrictedPage(share, viewer) {
   const name = share.path.split('/').pop();
-  const inner = signedInAs
+  const inner = viewer
     ? `<h1 class="card-title">No access to “${esc(name)}”.</h1>
-      <p class="hint">You are signed in as <em>${esc(signedInAs)}</em>, but this link is limited to specific people. Ask <em>${esc(share.email)}</em> to add you.</p>`
+      <p class="hint">You are signed in as <em>${esc(viewer.email)}</em>, but this link is limited to specific people. Ask <em>${esc(share.email)}</em> to add you.</p>`
     : `<h1 class="card-title">${esc(name)}</h1>
       <p class="hint">This link is private. Sign in with an account that has been given access.</p>
       <a class="btn" href="/">Sign in</a>`;
-  return page(name, `${topBar(null)}
+  return page(name, `${topBar(null, viewer)}
   <main class="center-stage">
     <div class="card">
       <div class="card-icon">
@@ -681,12 +708,12 @@ function streamFile(object, name, inline) {
 
 /* ---------- shared folder handler ---------- */
 
-async function handleFolderShare(request, env, share, url) {
+async function handleFolderShare(request, env, share, url, viewer) {
   const rootPrefix = `u/${share.email}/${share.path}/`;
 
   /* the folder must still exist */
   const probe = await env.KILIW_FILES.list({ prefix: rootPrefix, limit: 1 });
-  if (!probe.objects.length) return notFoundPage();
+  if (!probe.objects.length) return notFoundPage(viewer);
 
   if (request.method === 'POST') {
     if (!share.hash) return Response.redirect(`${url.origin}/share/${share.token}`, 303);
@@ -696,7 +723,7 @@ async function handleFolderShare(request, env, share, url) {
     } catch { /* no form body */ }
     const ok = password
       && timingSafeEqualHex(await hashPassword(password, share.salt), share.hash);
-    if (!ok) return passwordPage(share, 0, { wrongPassword: true });
+    if (!ok) return passwordPage(share, 0, viewer, { wrongPassword: true });
     const proof = await makeProof(share);
     return Response.redirect(`${url.origin}/share/${share.token}?k=${proof.k}&e=${proof.e}`, 303);
   }
@@ -707,7 +734,7 @@ async function handleFolderShare(request, env, share, url) {
     if (url.searchParams.get('dl')) {
       return Response.redirect(`${url.origin}/share/${share.token}`, 302);
     }
-    return passwordPage(share, 0);
+    return passwordPage(share, 0, viewer);
   }
   const proofQuery = share.hash
     ? `&k=${encodeURIComponent(url.searchParams.get('k'))}&e=${encodeURIComponent(url.searchParams.get('e'))}`
@@ -718,18 +745,20 @@ async function handleFolderShare(request, env, share, url) {
   const raw = url.searchParams.get('raw');
   if (dl || raw) {
     const rel = parsePath(dl || raw);
-    if (!rel) return notFoundPage();
+    if (!rel) return notFoundPage(viewer);
     const object = await env.KILIW_FILES.get(`${rootPrefix}${rel}`);
-    if (!object) return notFoundPage();
+    if (!object) return notFoundPage(viewer);
     return streamFile(object, rel.split('/').pop(), Boolean(raw));
   }
   const view = url.searchParams.get('view');
   if (view) {
     const rel = parsePath(view);
-    if (!rel) return notFoundPage();
+    if (!rel) return notFoundPage(viewer);
     const head = await env.KILIW_FILES.head(`${rootPrefix}${rel}`);
-    if (!head) return notFoundPage();
-    return folderPreviewPage(share, rel, head.size, proofQuery);
+    if (!head) return notFoundPage(viewer);
+    /* content-based 18+ check (cached per file) on top of the name check */
+    const aiSensitive = await moderateStoredImage(env, share.email, `${share.path}/${rel}`);
+    return folderPreviewPage(share, rel, head.size, proofQuery, viewer, aiSensitive === true);
   }
 
   /* ?p=<relative path> — browse a subfolder */
@@ -754,7 +783,7 @@ async function handleFolderShare(request, env, share, url) {
   } while (cursor);
   files.sort((a, b) => a.name.localeCompare(b.name));
 
-  return folderPage(share, rp, [...folders].sort(), files, proofQuery);
+  return folderPage(share, rp, [...folders].sort(), files, proofQuery, viewer);
 }
 
 /* ---------- handler ---------- */
@@ -768,18 +797,24 @@ export async function handleShare(request, env, token) {
   const name = share.path.split('/').pop();
   const url = new URL(request.url);
 
+  /* who is looking at the page (avatar in the top bar instead of Sign in) */
+  let viewer = null;
+  try {
+    const session = await getSession(request, env);
+    if (session) {
+      const user = await getUser(env, session.email);
+      viewer = { email: session.email, avatar: user?.avatar || null };
+    }
+  } catch { viewer = null; }
+
   /* restricted links: only the owner and listed people, signed in */
   if (share.access === 'restricted') {
-    let session = null;
-    try {
-      session = await getSession(request, env);
-    } catch { session = null; }
-    const ok = session
-      && (session.email === share.email || (share.allowed || []).includes(session.email));
-    if (!ok) return restrictedPage(share, session?.email || null);
+    const ok = viewer
+      && (viewer.email === share.email || (share.allowed || []).includes(viewer.email));
+    if (!ok) return restrictedPage(share, viewer);
   }
 
-  if (share.folder) return handleFolderShare(request, env, share, url);
+  if (share.folder) return handleFolderShare(request, env, share, url, viewer);
 
   /* POST = password check; success redirects to the preview page */
   if (request.method === 'POST') {
@@ -794,8 +829,8 @@ export async function handleShare(request, env, token) {
       && timingSafeEqualHex(await hashPassword(password, share.salt), share.hash);
     if (!ok) {
       const head = await env.KILIW_FILES.head(key);
-      if (!head) return notFoundPage();
-      return passwordPage(share, head.size, { wrongPassword: true });
+      if (!head) return notFoundPage(viewer);
+      return passwordPage(share, head.size, viewer, { wrongPassword: true });
     }
     const proof = await makeProof(share);
     return Response.redirect(`${url.origin}/share/${token}?k=${proof.k}&e=${proof.e}`, 303);
@@ -811,22 +846,22 @@ export async function handleShare(request, env, token) {
     /* file bytes stay locked; the page asks for the password */
     if (want !== 'page') return Response.redirect(`${url.origin}/share/${token}`, 302);
     const head = await env.KILIW_FILES.head(key);
-    if (!head) return notFoundPage();
-    return passwordPage(share, head.size);
+    if (!head) return notFoundPage(viewer);
+    return passwordPage(share, head.size, viewer);
   }
 
   if (want !== 'page') {
     const object = await env.KILIW_FILES.get(key);
-    if (!object) return notFoundPage();
+    if (!object) return notFoundPage(viewer);
     return streamFile(object, name, want === 'raw');
   }
 
   const head = await env.KILIW_FILES.head(key);
-  if (!head) return notFoundPage();
+  if (!head) return notFoundPage(viewer);
   /* links created before content moderation existed: check on first view */
   await moderateShare(env, share);
   const proofQuery = share.hash
     ? `&k=${encodeURIComponent(url.searchParams.get('k'))}&e=${encodeURIComponent(url.searchParams.get('e'))}`
     : '';
-  return previewPage(share, head.size, proofQuery);
+  return previewPage(share, head.size, proofQuery, viewer);
 }

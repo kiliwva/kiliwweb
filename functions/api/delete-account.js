@@ -44,6 +44,7 @@ async function wipeAccount(env, email) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
   await wipePrefix(env, `_share/f/${email}/`);
+  await wipePrefix(env, `_mod/${email}/`); // cached image-moderation verdicts
 
   /* folder edit grants, in both directions */
   await wipeCollabForAccount(env, email);
