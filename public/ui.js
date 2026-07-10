@@ -74,6 +74,7 @@
     'file.share': 'Share',
     'file.rename': 'Rename',
     'rename.prompt': 'New file name',
+    'rename.promptExt': 'New file name (the {ext} extension is kept)',
     'rename.exists': 'A file with this name already exists here.',
     'rename.fail': 'Could not rename the file. Try again.',
     'share.title': 'Share file',

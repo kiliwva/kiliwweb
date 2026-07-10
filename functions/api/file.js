@@ -62,8 +62,17 @@ export async function onRequestPut({ request, env }) {
   }
 
   const p = parsePath(body?.p);
-  const newName = cleanSegment(body?.newName);
+  let newName = cleanSegment(body?.newName);
   if (!p || !newName) return json({ success: false, error: 'bad-name' }, 400);
+
+  /* renaming must not change the file's extension */
+  const oldName = p.split('/').pop();
+  const dot = oldName.lastIndexOf('.');
+  const ext = dot > 0 ? oldName.slice(dot).toLowerCase() : '';
+  if (ext && !newName.toLowerCase().endsWith(ext)) {
+    newName = cleanSegment(newName + ext);
+    if (!newName) return json({ success: false, error: 'bad-name' }, 400);
+  }
 
   const dir = p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
   const newPath = `${dir}${newName}`;

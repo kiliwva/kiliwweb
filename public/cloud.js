@@ -621,12 +621,19 @@ drop.addEventListener('drop', (e) => {
 /* ---------- rename ---------- */
 
 async function renameFile(file) {
-  const name = prompt(t('rename.prompt'), file.name);
-  if (!name || !name.trim() || name.trim() === file.name) return;
+  /* the extension stays: only the base name is editable */
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot > 0 ? file.name.slice(dot) : '';
+  const base = dot > 0 ? file.name.slice(0, dot) : file.name;
+  const input = prompt(ext ? t('rename.promptExt', { ext }) : t('rename.prompt'), base);
+  if (!input || !input.trim()) return;
+  let name = input.trim();
+  if (ext && !name.toLowerCase().endsWith(ext.toLowerCase())) name += ext;
+  if (name === file.name) return;
   const res = await fetch('/api/file', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p: fullPath(file.name), newName: name.trim() }),
+    body: JSON.stringify({ p: fullPath(file.name), newName: name }),
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
