@@ -37,8 +37,11 @@ When creating a link you choose who can open it: **anyone with the
 link** (optionally password-protected) or **only people you choose** —
 specific registered users added by email, who must be signed in
 (`share.access` + `share.allowed` on the record; anonymous visitors get
-a sign-in prompt). Public links can optionally require a password; a
-correct password
+a sign-in prompt). A signed-in visitor without access can press
+**Request access**: the owner gets a notification (bell icon in the
+cloud header, records in `_notif/`) and can allow it in one click; the
+requester is notified back with a link. Public links can optionally
+require a password; a correct password
 unlocks the page via a short-lived signed URL (1 hour), so the file bytes
 are never reachable without it. Shares follow renames and are removed
 automatically when the file, its folder, or the account is deleted. One

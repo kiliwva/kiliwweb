@@ -45,6 +45,7 @@ async function wipeAccount(env, email) {
   } while (cursor);
   await wipePrefix(env, `_share/f/${email}/`);
   await wipePrefix(env, `_mod/${email}/`); // cached image-moderation verdicts
+  await wipePrefix(env, `_notif/${email}/`); // notifications
 
   /* folder edit grants, in both directions */
   await wipeCollabForAccount(env, email);

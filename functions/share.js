@@ -1,6 +1,6 @@
 import {
   getShare, hashPassword, timingSafeEqualHex, moderateShare, moderateStoredImage,
-  parsePath, getSession, getUser,
+  parsePath, getSession, getUser, requestShareAccess,
 } from '../lib/api.js';
 
 /* Public share pages: GET/POST /share/<token>
@@ -668,11 +668,18 @@ function folderPreviewPage(share, rel, size, proofQuery, viewer, aiSensitive = f
 }
 
 /** Restricted links: sign in, or signed in without access. */
-function restrictedPage(share, viewer) {
+function restrictedPage(share, viewer, requested = false) {
   const name = share.path.split('/').pop();
+  const ask = requested
+    ? '<p class="hint" style="color:#7FBF8E;">✓ Request sent — the owner will see it in their notifications.</p>'
+    : `<form method="POST" action="/share/${share.token}">
+        <input type="hidden" name="action" value="request-access">
+        <button class="btn" type="submit">Request access</button>
+      </form>`;
   const inner = viewer
     ? `<h1 class="card-title">No access to “${esc(name)}”.</h1>
-      <p class="hint">You are signed in as <em>${esc(viewer.email)}</em>, but this link is limited to specific people. Ask <em>${esc(share.email)}</em> to add you.</p>`
+      <p class="hint">You are signed in as <em>${esc(viewer.email)}</em>, but this link is limited to specific people.</p>
+      ${ask}`
     : `<h1 class="card-title">${esc(name)}</h1>
       <p class="hint">This link is private. Sign in with an account that has been given access.</p>
       <a class="btn" href="/">Sign in</a>`;
@@ -811,7 +818,20 @@ export async function handleShare(request, env, token) {
   if (share.access === 'restricted') {
     const ok = viewer
       && (viewer.email === share.email || (share.allowed || []).includes(viewer.email));
-    if (!ok) return restrictedPage(share, viewer);
+    if (!ok) {
+      /* a signed-in visitor may ask the owner for access */
+      let requested = false;
+      if (request.method === 'POST' && viewer) {
+        let action = '';
+        try {
+          action = String((await request.formData()).get('action') || '');
+        } catch { /* no form body */ }
+        if (action === 'request-access') {
+          requested = await requestShareAccess(env, share, viewer.email);
+        }
+      }
+      return restrictedPage(share, viewer, requested);
+    }
   }
 
   if (share.folder) return handleFolderShare(request, env, share, url, viewer);

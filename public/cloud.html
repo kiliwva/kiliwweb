@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0C0C0C">
   <title>Kiliw Cloud</title>
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body data-title-key="title.cloud">
 
@@ -28,6 +28,10 @@
         </div>
         <div class="cloud-user">
           <button type="button" class="ghost-btn" id="logout" data-i18n="cloud.logout">Log out</button>
+          <button type="button" class="icon-btn bell-btn" id="notif-open" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            <span class="bell-badge" id="notif-badge" hidden></span>
+          </button>
           <button type="button" class="avatar-btn" id="profile-open" aria-label="Profile">
             <img id="avatar-img" alt="" hidden>
             <span id="avatar-initial"></span>
@@ -285,7 +289,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-0F</button>
+        <button type="button" class="app-build" id="app-build">KW-10</button>
       </div>
     </div>
   </div>
@@ -318,11 +322,25 @@
     </div>
   </div>
 
+  <!-- Notifications -->
+  <div class="modal-overlay" id="notif-modal" hidden>
+    <div class="modal notif-modal" role="dialog" aria-modal="true" aria-labelledby="notif-title">
+      <div class="modal-head">
+        <h2 id="notif-title" data-i18n="notif.title">Notifications</h2>
+        <button type="button" class="icon-btn" id="notif-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <ul class="notif-list" id="notif-list"></ul>
+      <p class="files-empty" id="notif-empty" hidden data-i18n="notif.empty">No notifications yet.</p>
+    </div>
+  </div>
+
   <!-- floating row actions menu (⋯) -->
   <div class="row-menu" id="row-menu" hidden></div>
 
-  <script src="vendor/qrcode.min.js?v=15"></script>
-  <script src="ui.js?v=15"></script>
-  <script src="cloud.js?v=15"></script>
+  <script src="vendor/qrcode.min.js?v=16"></script>
+  <script src="ui.js?v=16"></script>
+  <script src="cloud.js?v=16"></script>
 </body>
 </html>

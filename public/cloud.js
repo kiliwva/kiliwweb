@@ -1141,6 +1141,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!rowMenu.hidden) closeRowMenu();
   else if (!previewModal.hidden) closePreview();
+  else if (!notifModal.hidden) closeNotifModal();
   else if (!shareModal.hidden) closeShareModal();
   else if (!deleteModal.hidden) closeDeleteModal();
   else if (!planModal.hidden) closePlanModal();
@@ -1324,6 +1325,113 @@ document.getElementById('delete-confirm').addEventListener('click', async () => 
   }
 });
 
+/* ---------- notifications ---------- */
+
+const notifModal = document.getElementById('notif-modal');
+const notifBadge = document.getElementById('notif-badge');
+let notifs = [];
+
+async function refreshNotifs() {
+  const res = await fetch('/api/notifications');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) return;
+  notifs = data.notifications || [];
+  notifBadge.hidden = !data.unread;
+  notifBadge.textContent = data.unread > 9 ? '9+' : String(data.unread || '');
+  if (!notifModal.hidden) renderNotifs();
+}
+
+function notifText(notif) {
+  const name = (notif.path || '').split('/').pop();
+  return t(notif.type === 'access-request' ? 'notif.request' : 'notif.granted', {
+    from: notif.from,
+    name,
+  });
+}
+
+async function notifAction(action, id) {
+  const res = await fetch('/api/notifications', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, id }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    /* stale request (link deleted): the server already dropped it */
+  }
+  await refreshNotifs();
+  renderNotifs();
+}
+
+function renderNotifs() {
+  const list = document.getElementById('notif-list');
+  list.innerHTML = '';
+  document.getElementById('notif-empty').hidden = notifs.length > 0;
+
+  notifs.forEach((notif, index) => {
+    const li = document.createElement('li');
+    li.className = `notif-row${notif.read ? '' : ' unread'}`;
+    li.style.animationDelay = `${Math.min(index * 24, 200)}ms`;
+
+    const text = document.createElement('div');
+    text.className = 'notif-text';
+    const line = document.createElement('p');
+    line.textContent = notifText(notif);
+    const time = document.createElement('span');
+    time.className = 'file-meta';
+    time.textContent = formatDate(new Date(notif.created).toISOString());
+    text.append(line, time);
+
+    const actions = document.createElement('div');
+    actions.className = 'notif-actions';
+    if (notif.type === 'access-request') {
+      const allow = document.createElement('button');
+      allow.type = 'button';
+      allow.className = 'submit small';
+      allow.textContent = t('notif.allow');
+      allow.addEventListener('click', () => notifAction('grant', notif.id));
+      actions.appendChild(allow);
+    } else if (notif.type === 'access-granted' && notif.token) {
+      const open = document.createElement('a');
+      open.className = 'submit small alt notif-open-link';
+      open.textContent = t('notif.openLink');
+      open.href = `/share/${notif.token}`;
+      actions.appendChild(open);
+    }
+    const dismiss = actionButton('delete', t('notif.dismiss'));
+    dismiss.addEventListener('click', () => notifAction('dismiss', notif.id));
+    actions.appendChild(dismiss);
+
+    li.append(text, actions);
+    list.appendChild(li);
+  });
+}
+
+function closeNotifModal() {
+  notifModal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+document.getElementById('notif-open').addEventListener('click', async () => {
+  renderNotifs();
+  notifModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  /* opening the panel marks everything read */
+  if (!notifBadge.hidden) {
+    notifBadge.hidden = true;
+    await fetch('/api/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'read' }),
+    }).catch(() => {});
+    refreshNotifs();
+  }
+});
+document.getElementById('notif-close').addEventListener('click', closeNotifModal);
+notifModal.addEventListener('click', (e) => {
+  if (e.target === notifModal) closeNotifModal();
+});
+
 /* ---------- support diagnostics ---------- */
 
 document.getElementById('app-build').addEventListener('click', async () => {
@@ -1343,4 +1451,6 @@ refreshMe().then(async (ok) => {
   await loadFiles();
   document.querySelector('.cloud').classList.add('ready');
   checkPaymentReturn();
+  refreshNotifs();
+  setInterval(refreshNotifs, 60000);
 });

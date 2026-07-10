@@ -20,6 +20,7 @@ import * as verifyEmail from '../functions/api/verify-email.js';
 import * as deleteAccount from '../functions/api/delete-account.js';
 import * as share from '../functions/api/share.js';
 import * as collab from '../functions/api/collab.js';
+import * as notifications from '../functions/api/notifications.js';
 import * as debug from '../functions/api/debug.js';
 import { handleShare } from '../functions/share.js';
 import { json } from '../lib/api.js';
@@ -41,6 +42,7 @@ const ROUTES = {
   '/api/avatar': avatar,
   '/api/share': share,
   '/api/collab': collab,
+  '/api/notifications': notifications,
   '/api/verify-email': verifyEmail,
   '/api/delete-account': deleteAccount,
   '/api/debug': debug,
