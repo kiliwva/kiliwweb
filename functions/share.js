@@ -499,13 +499,16 @@ const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const LOGO_MARK = `<svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
   <defs>
     <linearGradient id="klg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#F0A57C"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B85C3E"/>
+      <stop offset="0" stop-color="#F2A47B"/><stop offset=".5" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/>
     </linearGradient>
-    <mask id="klm"><rect width="64" height="64" fill="#fff"/><path d="M32 24 41 34.5h-5.4V44h-7.2v-9.5H23Z" fill="#000"/></mask>
+    <linearGradient id="klh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
   </defs>
-  <g mask="url(#klm)" fill="url(#klg)">
-    <circle cx="23.5" cy="33" r="12.5"/><circle cx="40" cy="29.5" r="15"/><rect x="11" y="33" width="43" height="14" rx="7"/>
-  </g>
+  <rect x="4" y="4" width="56" height="56" rx="17" fill="url(#klg)"/>
+  <rect x="4" y="4" width="56" height="56" rx="17" fill="url(#klh)"/>
+  <path d="M22 18v28" stroke="#fff" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M42 18 30 32l12 14" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>`;
 
 /** Floating top bar: brand, Sign in (or the signed-in viewer's avatar),
