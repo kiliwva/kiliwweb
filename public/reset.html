@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=55">
+  <link rel="stylesheet" href="styles.css?v=56">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
 </head>
@@ -55,7 +55,7 @@
         <div class="otp" id="reset-otp" data-otp data-otp-target="reset-code"></div>
         <input type="hidden" id="reset-code">
 
-        <div class="group" style="margin-top:14px">
+        <div class="group" style="margin-top:16px">
           <div class="field">
             <input type="password" id="reset-password" placeholder=" " autocomplete="new-password" minlength="8" required>
             <label for="reset-password" data-i18n="reset.newPassword">New password (min 8 characters)</label>
@@ -63,7 +63,7 @@
         </div>
         <p class="group-error" data-error></p>
 
-        <button type="submit" class="submit" data-i18n="reset.confirm">Set new password</button>
+        <button type="submit" class="submit" style="margin-top:18px" data-i18n="reset.confirm">Set new password</button>
 
         <p class="note"><a class="link" href="#" id="reset-again" data-i18n="reset.again">Start over</a></p>
       </form>
@@ -71,7 +71,7 @@
     </main>
   </div>
 
-  <script src="ui.js?v=55"></script>
-  <script src="reset.js?v=55"></script>
+  <script src="ui.js?v=56"></script>
+  <script src="reset.js?v=56"></script>
 </body>
 </html>
