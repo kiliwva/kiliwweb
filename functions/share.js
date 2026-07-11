@@ -2,6 +2,7 @@ import {
   getShare, hashPassword, timingSafeEqualHex, moderateShare, moderateStoredImage,
   modVerdictsAt, parsePath, getSession, getUser, requestShareAccess,
 } from '../lib/api.js';
+import { collectZipEntries, zipResponse } from '../lib/zip.js';
 
 /* Public share pages: GET/POST /share/<token>
    - open link      → full-page branded view with a file preview (no account)
@@ -610,8 +611,10 @@ function folderPage(share, rp, folders, files, proofQuery, viewer) {
   }
   for (const folder of folders) {
     const rel = rp ? `${rp}/${folder}` : folder;
-    rows.push(`<a class="f-row" href="${base}?p=${encPath(rel)}${proofQuery}">
-      ${FOLDER_ICON}<span class="f-name">${esc(folder)}</span></a>`);
+    rows.push(`<div class="f-row">
+      ${FOLDER_ICON}<a class="f-name" href="${base}?p=${encPath(rel)}${proofQuery}">${esc(folder)}</a>
+      <a class="f-dl" href="${base}?zipdir=${encPath(rel)}${proofQuery}" aria-label="Download ${esc(folder)} as ZIP">${DL_ICON}</a>
+    </div>`);
   }
   const IMG_EXT = /\.(png|jpe?g|gif|webp|avif|bmp|ico|svg)$/i;
   const THUMB_MAX = 8 * 1024 * 1024;
@@ -638,7 +641,8 @@ function folderPage(share, rp, folders, files, proofQuery, viewer) {
     : '<p class="f-empty">This folder is empty.</p>';
 
   const count = folders.length + files.length;
-  return page(title, `${topBar(null, viewer)}
+  const zipUrl = count ? `${base}?zipdir=${encPath(rp)}${proofQuery}` : null;
+  return page(title, `${topBar(zipUrl, viewer)}
   <section class="file-head">
     <h1 class="share-name">${esc(title)}</h1>
     <p class="share-meta">${count} item${count === 1 ? '' : 's'} · folder shared by <em>${esc(share.email)}</em></p>
@@ -831,6 +835,24 @@ async function handleFolderShare(request, env, share, url, viewer) {
   const proofQuery = share.hash
     ? `&k=${encodeURIComponent(url.searchParams.get('k'))}&e=${encodeURIComponent(url.searchParams.get('e'))}`
     : '';
+
+  /* ?zipdir — download the whole folder (or a subfolder) as a .zip */
+  if (url.searchParams.has('zipdir')) {
+    const relParsed = parsePath(url.searchParams.get('zipdir') || '');
+    if (relParsed === null) return notFoundPage(viewer);
+    const prefix = `${rootPrefix}${relParsed ? `${relParsed}/` : ''}`;
+    const rootName = relParsed ? relParsed.split('/').pop() : share.path.split('/').pop();
+    const { entries, error } = await collectZipEntries(env.KILIW_FILES, prefix, rootName);
+    if (error) {
+      return page('Too large', `${topBar(null, viewer)}
+      <main class="center-stage"><div class="card">
+        <h1 class="card-title">Folder is too big for a ZIP</h1>
+        <p class="hint">This folder exceeds the 4 GB archive limit. Download the files individually instead.</p>
+      </div></main>`, { status: 413 });
+    }
+    if (!entries.length) return notFoundPage(viewer);
+    return zipResponse(entries, `${rootName}.zip`);
+  }
 
   /* ?dl=<rel> download · ?raw=<rel> inline stream · ?view=<rel> preview page */
   const dl = url.searchParams.get('dl');

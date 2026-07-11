@@ -11,6 +11,7 @@ import * as twofa from '../functions/api/2fa.js';
 import * as filesIndex from '../functions/api/files/index.js';
 import * as file from '../functions/api/file.js';
 import * as folders from '../functions/api/folders.js';
+import * as folderZip from '../functions/api/folder-zip.js';
 import * as mpu from '../functions/api/mpu.js';
 import * as billing from '../functions/api/billing.js';
 import * as yookassa from '../functions/api/yookassa.js';
@@ -39,6 +40,7 @@ const ROUTES = {
   '/api/files': filesIndex,
   '/api/file': file,
   '/api/folders': folders,
+  '/api/folder-zip': folderZip,
   '/api/mpu': mpu,
   '/api/billing': billing,
   '/api/yookassa': yookassa,

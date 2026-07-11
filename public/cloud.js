@@ -434,14 +434,24 @@ function renderList(folders, files, shared = []) {
     meta.className = 'file-meta';
     meta.textContent = t('shared.byOwner', { email: grant.owner });
     info.append(name, meta);
-    info.addEventListener('click', () => {
+    const openGrant = () => {
       currentScope = grant.id;
       scopeInfo = grant;
       currentPath = [];
       loadFiles();
-    });
+    };
+    info.addEventListener('click', openGrant);
 
-    li.append(iconSvg('folder'), info, document.createElement('div'));
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+    const menu = actionButton('menu', 'More');
+    menu.addEventListener('click', () => openRowMenu(menu, [
+      { icon: 'open', label: t('menu.open'), onClick: openGrant },
+      { icon: 'download', label: t('file.download'), href: `/api/folder-zip?scope=${encodeURIComponent(grant.id)}` },
+    ]));
+    actions.appendChild(menu);
+
+    li.append(iconSvg('folder'), info, actions);
     listEl.appendChild(li);
   }
 
@@ -471,6 +481,11 @@ function renderList(folders, files, shared = []) {
       if (!currentScope) {
         items.push({ icon: 'share', label: t('file.share'), onClick: () => openFolderShare(folder) });
       }
+      items.push({
+        icon: 'download',
+        label: t('file.download'),
+        href: `/api/folder-zip?p=${encodeURIComponent(fullPath(folder))}${scopeQ()}`,
+      });
       items.push({
         icon: 'delete',
         label: t('file.delete'),
