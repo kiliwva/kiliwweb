@@ -1,5 +1,5 @@
 import {
-  json, getSession, storageReady, isOwner,
+  json, getSession, storageReady, isOwner, getUser, planLimits,
   listPromos, putPromo, deletePromo, normPromoCode, getPromo,
 } from '../../lib/api.js';
 
@@ -41,10 +41,71 @@ async function siteStats(env) {
   return { users, files, bytes };
 }
 
-/* GET /api/admin — promo list + stats */
+/** Every account with its plan, usage and file count. */
+async function listUsers(env) {
+  const prefix = '_auth/users/';
+  const emails = [];
+  let cursor;
+  do {
+    const page = await env.KILIW_FILES.list({ prefix, cursor, limit: 1000 });
+    emails.push(...page.objects.map((o) => o.key.slice(prefix.length).replace(/\.json$/, '')));
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+
+  const users = [];
+  await Promise.all(emails.map(async (email) => {
+    const user = await getUser(env, email);
+    if (!user) return;
+    const limits = planLimits(user, env);
+    let usage = 0;
+    let files = 0;
+    let fcursor;
+    do {
+      const page = await env.KILIW_FILES.list({ prefix: `u/${email}/`, cursor: fcursor, limit: 1000 });
+      for (const obj of page.objects) {
+        usage += obj.size;
+        if (!obj.key.endsWith('/.keep')) files += 1;
+      }
+      fcursor = page.truncated ? page.cursor : undefined;
+    } while (fcursor);
+    users.push({
+      email,
+      plan: limits.type,
+      gb: limits.gb || null,
+      usage,
+      files,
+      totp: Boolean(user.totp),
+      avatar: user.avatar || null,
+      created: user.created || null,
+    });
+  }));
+  users.sort((a, b) => b.usage - a.usage);
+  return users;
+}
+
+/* GET /api/admin                  — promo list + stats
+   GET /api/admin?view=users       — every user with usage details
+   GET /api/admin?avatar=<email>   — that user's avatar image */
 export async function onRequestGet({ request, env }) {
   const { error } = await requireOwner(request, env);
   if (error) return error;
+
+  const url = new URL(request.url);
+
+  const avatarOf = url.searchParams.get('avatar');
+  if (avatarOf) {
+    const object = await env.KILIW_FILES.get(`_auth/avatars/${avatarOf}`);
+    if (!object) return json({ success: false, error: 'not-found' }, 404);
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    if (!headers.get('Content-Type')) headers.set('Content-Type', 'image/jpeg');
+    headers.set('Cache-Control', 'private, max-age=3600');
+    return new Response(object.body, { headers });
+  }
+
+  if (url.searchParams.get('view') === 'users') {
+    return json({ success: true, users: await listUsers(env) });
+  }
 
   const [promos, stats] = await Promise.all([listPromos(env), siteStats(env)]);
   return json({ success: true, promos, stats });

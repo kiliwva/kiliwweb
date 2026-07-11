@@ -1146,6 +1146,46 @@ body {
   color: transparent;
 }
 
+/* admin: user list */
+.admin-users {
+  list-style: none;
+  margin: 0 0 18px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.admin-user {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  animation: row-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.admin-user:hover { background: var(--frost-soft); }
+.admin-ava {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #E08A63 0%, #C96A47 100%);
+  color: #FFF;
+  font-size: 15px;
+  font-weight: 800;
+}
+.admin-ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.admin-user-info { flex: 1; min-width: 0; }
+.admin-user-mail {
+  font-size: 13.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-user .badge { flex: none; }
+
 /* owner admin panel */
 .admin-add {
   display: grid;
