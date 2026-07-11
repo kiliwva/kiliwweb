@@ -110,6 +110,10 @@ function userRow(user, index) {
     ['Files', String(user.files)],
     ['Registered', formatDate(user.created)],
   ];
+  /* the record says paid but it resolves to free → expired or broken */
+  if (user.planRaw && user.plan === 'free') {
+    factList.push(['⚠ Record', `${user.planRaw.toUpperCase()} expired ${user.planUntilRaw ? formatDate(user.planUntilRaw) : '(no end date)'}`]);
+  }
   for (const [label, value] of factList) {
     const p = document.createElement('p');
     const b = document.createElement('b');

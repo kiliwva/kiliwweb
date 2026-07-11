@@ -76,6 +76,9 @@ async function listUsers(env) {
       quota: limits.quota,
       until: limits.type === 'free' ? null : limits.until,
       api: Boolean(limits.api),
+      /* raw record fields: spot expired/broken activations at a glance */
+      planRaw: user.plan || null,
+      planUntilRaw: user.planUntil || null,
       usage,
       files,
       totp: Boolean(user.totp),
