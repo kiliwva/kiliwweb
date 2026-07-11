@@ -118,7 +118,52 @@ function userRow(user, index) {
     facts.appendChild(p);
   }
 
-  detail.append(usage, facts);
+  /* support tool: grant / change the user's plan by hand */
+  const grant = document.createElement('div');
+  grant.className = 'adm-grant';
+  const sel = document.createElement('select');
+  sel.innerHTML = `
+    <option value="free">Free</option>
+    <option value="pro:250">Pro · 250 GB</option>
+    <option value="pro:500">Pro · 500 GB</option>
+    <option value="pro:1024">Pro · 1 TB</option>
+    <option value="dev">DEV · 500 GB + API</option>`;
+  sel.value = user.plan === 'free' ? 'free' : user.plan === 'dev' ? 'dev' : `pro:${user.gb}`;
+  if (user.plan === 'pro' && ![250, 500, 1024].includes(user.gb)) sel.value = 'pro:250';
+  const days = document.createElement('input');
+  days.type = 'number';
+  days.min = '1';
+  days.max = '3650';
+  days.value = '30';
+  days.title = 'Days';
+  const apply = document.createElement('button');
+  apply.type = 'button';
+  apply.className = 'ghost-btn';
+  apply.textContent = 'Set plan';
+  const status = document.createElement('span');
+  status.className = 'adm-grant-status';
+  apply.addEventListener('click', async () => {
+    const [plan, gb] = sel.value.split(':');
+    apply.disabled = true;
+    const res = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'set-plan',
+        email: user.email,
+        plan,
+        gb: gb ? Number(gb) : undefined,
+        days: Number(days.value) || 30,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    apply.disabled = false;
+    status.textContent = res.ok && data.success ? '✓ applied — refresh to see' : 'failed';
+    status.style.color = res.ok && data.success ? '#7FBF8E' : 'var(--error)';
+  });
+  grant.append(sel, days, apply, status);
+
+  detail.append(usage, facts, grant);
   li.append(head, detail);
   return li;
 }

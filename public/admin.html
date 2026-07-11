@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=40">
+  <link rel="stylesheet" href="styles.css?v=41">
   <style>
     .adm-wrap { max-width: 860px; margin: 0 auto; padding: 22px 18px 60px; }
     .adm-bar {
@@ -94,6 +94,28 @@
     }
     .adm-facts b { color: var(--text); font-weight: 700; }
     .adm-empty { padding: 30px; text-align: center; font-size: 14px; font-weight: 600; color: var(--muted); }
+    .adm-grant {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--hairline);
+    }
+    .adm-grant select, .adm-grant input {
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 10px;
+      outline: none;
+    }
+    .adm-grant input { width: 76px; }
+    .adm-grant-status { font-size: 12.5px; font-weight: 700; }
     @media (max-width: 560px) {
       .adm-detail { padding-left: 16px; }
     }
@@ -120,6 +142,6 @@
     <p class="adm-empty" id="adm-empty" hidden>No users match your search.</p>
   </div>
 
-  <script src="admin.js?v=40"></script>
+  <script src="admin.js?v=41"></script>
 </body>
 </html>

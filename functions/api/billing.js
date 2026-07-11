@@ -85,7 +85,8 @@ export async function onRequestPost({ request, env }) {
 
     /* a 100% promo activates the plan immediately, no payment provider */
     if (price === 0 && promo) {
-      await applyProPurchase(env, session.email, gb, `promo-${promo.code}-${randomHex(8)}`, plan);
+      const applied = await applyProPurchase(env, session.email, gb, `promo-${promo.code}-${randomHex(8)}`, plan);
+      if (!applied) return json({ success: false, error: 'activation-failed' }, 500);
       await bumpPromoUse(env, promo.code);
       return json({ success: true, activated: true });
     }

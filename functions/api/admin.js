@@ -1,6 +1,7 @@
 import {
-  json, getSession, storageReady, isOwner, getUser, planLimits,
+  json, getSession, storageReady, isOwner, getUser, putUser, planLimits,
   listPromos, putPromo, deletePromo, normPromoCode, getPromo,
+  PRO_TIERS, DEV_GB,
 } from '../../lib/api.js';
 
 /* Owner-only site management: promo codes + basic stats. */
@@ -152,6 +153,32 @@ export async function onRequestPost({ request, env }) {
   if (action === 'promo-remove') {
     await deletePromo(env, body?.code);
     return json({ success: true, promos: await listPromos(env) });
+  }
+
+  /* support tool: set a user's plan by hand (fixes botched activations) */
+  if (action === 'set-plan') {
+    const email = String(body?.email || '').trim().toLowerCase();
+    const plan = String(body?.plan || '');
+    const user = await getUser(env, email);
+    if (!user) return json({ success: false, error: 'not-found' }, 404);
+
+    if (plan === 'free') {
+      delete user.plan;
+      delete user.planGb;
+      delete user.planUntil;
+    } else if (plan === 'pro' || plan === 'dev') {
+      const days = Math.min(Math.max(Math.round(Number(body?.days)) || 30, 1), 3650);
+      const gb = plan === 'dev' ? DEV_GB : Math.round(Number(body?.gb));
+      if (plan === 'pro' && !PRO_TIERS[gb]) return json({ success: false, error: 'bad-request' }, 400);
+      user.plan = plan;
+      user.planGb = gb;
+      user.planUntil = Date.now() + days * 24 * 60 * 60 * 1000;
+      user.lastPaymentId = `admin-grant-${Date.now()}`;
+    } else {
+      return json({ success: false, error: 'bad-request' }, 400);
+    }
+    await putUser(env, user);
+    return json({ success: true, plan: planLimits(user, env) });
   }
 
   return json({ success: false, error: 'bad-request' }, 400);
