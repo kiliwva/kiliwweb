@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>Editor — Kiliw Cloud</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=39">
+</head>
+<body data-title-key="title.editor">
+
+  <div class="ed-wrap">
+    <header class="ed-bar">
+      <a class="ed-home" href="/"><span class="wordmark" style="font-size:18px">kiliw<em>cloud</em></span></a>
+      <span class="ed-name" id="ed-name">…</span>
+      <span class="ed-status" id="ed-status"></span>
+      <button type="button" class="icon-btn" id="ed-preview-toggle" title="Preview" aria-label="Toggle markdown preview" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <button type="button" class="submit small" id="ed-save" data-i18n="editor.save">Save</button>
+    </header>
+
+    <!-- docx warning -->
+    <p class="ed-warn" id="ed-warn" hidden data-i18n="editor.docxWarn">
+      Simple Word documents only: text, headings, bold/italic/underline and bullet
+      lists survive saving. Tables, images and advanced layout will be lost.
+    </p>
+
+    <!-- rich toolbar (docx mode) -->
+    <div class="ed-tools" id="ed-tools" hidden>
+      <button type="button" data-cmd="bold" title="Bold"><strong>B</strong></button>
+      <button type="button" data-cmd="italic" title="Italic"><em>I</em></button>
+      <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
+      <span class="ed-tools-sep"></span>
+      <button type="button" data-block="h1" title="Heading 1">H1</button>
+      <button type="button" data-block="h2" title="Heading 2">H2</button>
+      <button type="button" data-block="p" title="Normal text">¶</button>
+      <span class="ed-tools-sep"></span>
+      <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• list</button>
+    </div>
+
+    <main class="ed-main">
+      <textarea id="ed-text" class="ed-text" spellcheck="false" hidden></textarea>
+      <div id="ed-md-preview" class="ed-rich note-preview" hidden></div>
+      <div id="ed-rich" class="ed-rich" contenteditable="true" hidden></div>
+      <p class="ed-loading" id="ed-loading">Loading…</p>
+    </main>
+  </div>
+
+  <script src="vendor/fflate.min.js?v=39"></script>
+  <script src="ui.js?v=39"></script>
+  <script src="editor.js?v=39"></script>
+</body>
+</html>

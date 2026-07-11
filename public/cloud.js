@@ -611,8 +611,8 @@ function pathRow(file) {
   menu.addEventListener('click', () => {
     openRowMenu(menu, [
       { icon: 'preview', label: t('file.preview'), onClick: () => openPreview({ name, path: file.path, size: file.size, sensitive: file.sensitive }) },
-      ...(EDITABLE_RE.test(name) && file.size <= EDITABLE_MAX
-        ? [{ icon: 'edit', label: t('note.edit'), onClick: () => editNote({ path: file.path, name, size: file.size }) }]
+      ...(canEdit({ name, size: file.size })
+        ? [{ icon: 'edit', label: t('note.edit'), onClick: () => openEditor({ path: file.path, name, size: file.size }) }]
         : []),
       {
         icon: 'star',
@@ -796,136 +796,25 @@ document.getElementById('trash-empty').addEventListener('click', async () => {
   loadTrash();
 });
 
-/* ---------- markdown / text notes ---------- */
+/* ---------- file editor (opens on its own page) ---------- */
 
-/* plain-text formats that open in the built-in editor (≤ 2 MB) */
+/* plain-text formats that open in the editor (≤ 2 MB), plus .docx (≤ 10 MB) */
 const EDITABLE_RE = /\.(md|markdown|txt|text|log|csv|tsv|json|xml|yml|yaml|ini|conf|env|htm|html|css|js|ts|jsx|tsx|py|rb|go|rs|java|c|cpp|h|cs|php|sql|sh|bat)$/i;
 const EDITABLE_MAX = 2 * 1024 * 1024;
-const MD_RE = /\.(md|markdown)$/i;
-const noteModal = document.getElementById('note-modal');
-const noteText = document.getElementById('note-text');
-const notePreview = document.getElementById('note-preview');
-let noteState = null; // { path, isNew }
+const DOCX_RE = /\.docx$/i;
+const DOCX_MAX = 10 * 1024 * 1024;
 
-/* tiny markdown renderer: everything is HTML-escaped first */
-function mdToHtml(src) {
-  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const inline = (s) => s
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
-  const lines = esc(src).split('\n');
-  const out = [];
-  let list = null; // 'ul' | 'ol'
-  let code = false;
-  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
-
-  for (const raw of lines) {
-    if (raw.startsWith('```')) {
-      closeList();
-      out.push(code ? '</code></pre>' : '<pre><code>');
-      code = !code;
-      continue;
-    }
-    if (code) {
-      out.push(raw);
-      continue;
-    }
-    const h = raw.match(/^(#{1,6})\s+(.*)$/);
-    if (h) {
-      closeList();
-      out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`);
-      continue;
-    }
-    if (/^(-{3,}|\*{3,})$/.test(raw.trim())) {
-      closeList();
-      out.push('<hr>');
-      continue;
-    }
-    const ul = raw.match(/^\s*[-*]\s+(.*)$/);
-    const ol = raw.match(/^\s*\d+[.)]\s+(.*)$/);
-    if (ul || ol) {
-      const kind = ul ? 'ul' : 'ol';
-      if (list !== kind) { closeList(); out.push(`<${kind}>`); list = kind; }
-      out.push(`<li>${inline((ul || ol)[1])}</li>`);
-      continue;
-    }
-    closeList();
-    /* the source is already HTML-escaped, so ">" arrives as "&gt;" */
-    if (raw.match(/^&gt;\s?/)) {
-      out.push(`<blockquote>${inline(raw.replace(/^&gt;\s?/, ''))}</blockquote>`);
-      continue;
-    }
-    if (raw.trim() === '') continue;
-    out.push(`<p>${inline(raw)}</p>`);
-  }
-  closeList();
-  if (code) out.push('</code></pre>');
-  return out.join('\n');
+function canEdit(file) {
+  return (EDITABLE_RE.test(file.name) && file.size <= EDITABLE_MAX)
+    || (DOCX_RE.test(file.name) && file.size <= DOCX_MAX);
 }
 
-function openNoteEditor(path, text, isNew, scoped = true) {
-  noteState = { path, isNew, scoped };
-  document.getElementById('note-title').textContent = path.split('/').pop();
-  /* the rendered-preview toggle only makes sense for markdown */
-  document.getElementById('note-toggle').hidden = !MD_RE.test(path);
-  noteText.value = text;
-  noteText.hidden = false;
-  notePreview.hidden = true;
-  showStatus('note-status', '');
-  noteModal.hidden = false;
-  noteText.focus();
-}
-
-function closeNoteModal() {
-  noteModal.hidden = true;
-  noteState = null;
-}
-document.getElementById('note-close').addEventListener('click', closeNoteModal);
-noteModal.addEventListener('click', (e) => {
-  if (e.target === noteModal) closeNoteModal();
-});
-
-document.getElementById('note-toggle').addEventListener('click', () => {
-  const showPreview = notePreview.hidden;
-  if (showPreview) notePreview.innerHTML = mdToHtml(noteText.value);
-  notePreview.hidden = !showPreview;
-  noteText.hidden = showPreview;
-});
-
-document.getElementById('note-save').addEventListener('click', async () => {
-  if (!noteState) return;
-  const dir = noteState.path.includes('/') ? noteState.path.slice(0, noteState.path.lastIndexOf('/')) : '';
-  const name = noteState.path.split('/').pop();
-  const type = MD_RE.test(name) ? 'text/markdown' : 'text/plain';
-  const res = await fetch(`/api/files?name=${encodeURIComponent(name)}&path=${encodeURIComponent(dir)}${noteState.scoped ? scopeQ() : ''}`, {
-    method: 'POST',
-    headers: { 'Content-Type': type },
-    body: noteText.value,
-  });
-  const data = await res.json().catch(() => ({}));
-  if (res.ok && data.success) {
-    showStatus('note-status', t('note.saved'), true);
-    if (noteState.isNew) {
-      noteState.isNew = false;
-      loadFiles();
-      refreshMe();
-    }
-  } else {
-    showStatus('note-status', t('note.fail'));
-  }
-});
-
-async function editNote(file) {
-  /* rows with a full path are always in the own root; browser rows may
-     live inside a shared-folder scope */
-  const scoped = !file.path;
-  const path = file.path || fullPath(file.name);
-  const res = await fetch(fileUrlAt(path, true) + (scoped ? scopeQ() : ''));
-  const text = res.ok ? await res.text() : '';
-  openNoteEditor(path, text, false, scoped);
+/** The editor lives on its own page, in a new tab. */
+function openEditor(file) {
+  const p = file.path || fullPath(file.name);
+  /* full-path rows (search/starred) are always in the own root */
+  const q = file.path ? '' : (currentScope ? `&scope=${encodeURIComponent(currentScope)}` : '');
+  window.open(`/editor.html?p=${encodeURIComponent(p)}${q}`, '_blank');
 }
 
 /* ---------- browser ---------- */
@@ -1211,8 +1100,8 @@ function renderList(folders, files, shared = []) {
       const items = [
         { icon: 'preview', label: t('file.preview'), onClick: () => openPreview(file) },
       ];
-      if (EDITABLE_RE.test(file.name) && file.size <= EDITABLE_MAX) {
-        items.push({ icon: 'edit', label: t('note.edit'), onClick: () => editNote(file) });
+      if (canEdit(file)) {
+        items.push({ icon: 'edit', label: t('note.edit'), onClick: () => openEditor(file) });
       }
       if (!currentScope) {
         const path = fullPath(file.name);
@@ -2141,7 +2030,6 @@ modal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!rowMenu.hidden) closeRowMenu();
-  else if (!noteModal.hidden) closeNoteModal();
   else if (!moveModal.hidden) closeMoveModal();
   else if (!previewModal.hidden) closePreview();
   else if (!notifModal.hidden) closeNotifModal();
