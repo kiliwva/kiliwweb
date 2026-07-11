@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=50">
+  <link rel="stylesheet" href="styles.css?v=51">
   <style>
     .docs-wrap {
       max-width: 780px;
@@ -238,6 +238,84 @@ curl -o db.sql.gz https://cloud.kiliw.com/api/v1/files/backups/db.sql.gz \
 
     <div class="endpoint"><span class="method del">DELETE</span><code>/api/v1/folders?path=&lt;folder&gt;</code></div>
     <p>Delete a folder <strong>recursively</strong>, with every file inside. Share links and edit grants for the folder are cleaned up.</p>
+
+    <h2 id="links">Direct links (hotlink)</h2>
+    <p>
+      A direct link serves the <strong>raw file bytes</strong> at a stable URL &mdash;
+      embed images on your site, ship download URLs in your app, or pull
+      assets from scripts. Range requests are supported (video seeking works)
+      and responses are cached for 5 minutes.
+    </p>
+    <div class="endpoint"><span class="method post">POST</span><code>/api/v1/links</code></div>
+    <pre><code>curl -X POST https://cloud.kiliw.com/api/v1/links \
+  -H "Authorization: Bearer kw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"path": "photos/cat.jpg"}'
+
+&rarr; {
+  "success": true,
+  "direct": "https://cloud.kiliw.com/f/&lt;token&gt;",
+  "page":   "https://cloud.kiliw.com/share/&lt;token&gt;"
+}</code></pre>
+    <p>
+      One link per file (creating a new one replaces the previous share
+      settings). <code>GET /api/v1/links?path=&hellip;</code> returns the current
+      link, <code>DELETE /api/v1/links?path=&hellip;</code> revokes it. The same
+      direct URL also appears in the web app&rsquo;s share dialog for public,
+      non-password links. HTML/SVG are served as downloads, never rendered.
+    </p>
+
+    <h2 id="uploads">Presigned uploads</h2>
+    <p>
+      Let a browser (or any client) upload <strong>directly to your storage
+      without your API key</strong>: create a single-use upload URL
+      server-side, hand it to the client, the client PUTs the file.
+    </p>
+    <div class="endpoint"><span class="method post">POST</span><code>/api/v1/uploads</code></div>
+    <pre><code># 1. your server creates the ticket
+curl -X POST https://cloud.kiliw.com/api/v1/uploads \
+  -H "Authorization: Bearer kw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"path": "inbox/photo.jpg", "maxBytes": 10485760, "ttl": 3600}'
+
+&rarr; { "success": true, "url": "https://cloud.kiliw.com/up/&lt;token&gt;", "expires": 1786300000000 }
+
+# 2. the client uploads straight to it (no auth header needed)
+curl -X PUT "https://cloud.kiliw.com/up/&lt;token&gt;" \
+  -H "Content-Type: image/jpeg" --data-binary @photo.jpg</code></pre>
+    <p>
+      Tickets are <strong>single-use</strong> and expire after
+      <code>ttl</code> seconds (default 1&nbsp;h, max 24&nbsp;h). <code>maxBytes</code>
+      caps the upload; your plan&rsquo;s per-file and storage limits always apply.
+      CORS is open on the upload URL, so browsers can PUT to it from any site.
+    </p>
+
+    <h2 id="webhooks">Webhooks</h2>
+    <p>
+      Get an HTTPS POST whenever files change in your account &mdash; uploads
+      (web, API, presigned) and deletions. One webhook per account.
+    </p>
+    <div class="endpoint"><span class="method post">POST</span><code>/api/v1/webhook</code></div>
+    <pre><code>curl -X POST https://cloud.kiliw.com/api/v1/webhook \
+  -H "Authorization: Bearer kw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/hooks/kiliw", "events": ["upload", "delete"]}'
+
+&rarr; { "success": true, "url": "&hellip;", "events": ["upload","delete"], "secret": "whsec_&hellip;" }</code></pre>
+    <p>Deliveries are JSON bodies with two headers: <code>X-Kiliw-Event</code> and an HMAC-SHA256 signature.</p>
+    <pre><code>POST your-url
+X-Kiliw-Event: upload
+X-Kiliw-Signature: hex(hmac_sha256(secret, raw_body))
+
+{ "event": "upload", "path": "backups/db.sql.gz", "size": 10485760, "ts": 1786300000000 }
+{ "event": "delete", "paths": ["old/report.pdf"], "ts": 1786300000000 }</code></pre>
+    <p>
+      Verify by computing the HMAC of the raw body with your
+      <code>secret</code> and comparing to the header. Deliveries time out
+      after 5&nbsp;s and are <strong>not retried</strong> &mdash; treat them as
+      notifications, not a source of truth. <code>GET /api/v1/webhook</code>
+      shows the config, <code>DELETE</code> removes it.
+    </p>
 
     <h2 id="errors">Errors</h2>
     <p>Failed requests return <code>{"success": false, "error": "&lt;code&gt;"}</code> with a matching HTTP status:</p>

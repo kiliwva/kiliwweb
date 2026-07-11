@@ -164,6 +164,8 @@
     'plan.freeDesc': 'Up to 1 GB per file · 10 GB storage. Upgrade to Pro for files up to 50 GB.',
     'plan.proDesc': 'Pro: up to 50 GB per file · {gb} GB storage · active until {date}.',
     'plan.devDesc': 'DEV: up to 50 GB per file · {gb} GB storage · API access · active until {date}.',
+    'share.directLabel': 'Direct link (raw file)',
+    'share.directHint': 'Serves the file bytes directly — embed it on websites or use it in scripts.',
     'checkout.upgrade': 'Upgrade bonus',
     'checkout.upgradeDays': '+{days} days (unused {from} time)',
     'plan.upgrade': 'Choose a Pro plan',

@@ -33,6 +33,7 @@ import * as apikeys from '../functions/api/apikeys.js';
 import * as apiV1 from '../functions/api/v1.js';
 import * as debug from '../functions/api/debug.js';
 import { handleShare } from '../functions/share.js';
+import { handleDirect, handlePresignedUpload } from '../functions/direct.js';
 import { json, purgeExpiredAccounts } from '../lib/api.js';
 
 const ROUTES = {
@@ -84,6 +85,12 @@ export default {
     /* public share links: no session required, any host */
     const shared = pathname.match(/^\/share\/([0-9a-f]{32})$/);
     if (shared) return handleShare(request, env, shared[1]);
+
+    /* raw hotlinks + presigned uploads (DEV features, no session) */
+    const direct = pathname.match(/^\/f\/([0-9a-f]{32})$/);
+    if (direct) return handleDirect(request, env, direct[1]);
+    const presigned = pathname.match(/^\/up\/([0-9a-f]{32})$/);
+    if (presigned) return handlePresignedUpload(request, env, presigned[1], waitUntil);
 
     if (pathname.startsWith('/api/v1/')) {
       return apiV1.handle({ request, env, waitUntil });

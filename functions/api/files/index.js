@@ -2,6 +2,7 @@ import {
   json, getSession, storageReady, getUser,
   cleanSegment, parsePath, planLimits, storageUsage,
   resolveScope, scopedPath, moderateStoredImage, modVerdictsAt,
+  fireWebhook,
 } from '../../../lib/api.js';
 
 const IMG_EXT = /\.(jpe?g|png|webp|gif)$/i;
@@ -109,5 +110,6 @@ export async function onRequestPost({ request, env, waitUntil }) {
   if (waitUntil && IMG_EXT.test(name)) {
     waitUntil(moderateStoredImage(env, scope.email, fullPath));
   }
+  fireWebhook(env, waitUntil, scope.email, 'upload', { path: fullPath, size: length });
   return json({ success: true, name });
 }

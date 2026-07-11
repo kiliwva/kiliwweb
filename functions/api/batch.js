@@ -2,7 +2,7 @@ import {
   json, getSession, storageReady, parsePath, cleanSegment,
   deleteShareForFile, moveShare, resolveScope, scopedPath,
   moveModVerdict, deleteModVerdict, trashFile, moveStar,
-  getStars, saveStars,
+  getStars, saveStars, fireWebhook,
 } from '../../lib/api.js';
 import { zipResponse, ZIP_MAX_BYTES } from '../../lib/zip.js';
 
@@ -12,7 +12,7 @@ const CHUNK = 10; // parallel R2 operations per wave
 /* POST /api/batch[?scope=..] — bulk actions on files in one folder.
    JSON: { action: 'delete'|'move', path, items: [names], dest? }
    Form (action=zip): so the browser can save the streamed archive. */
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost({ request, env, waitUntil }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
   const session = await getSession(request, env);
   if (!session) return json({ success: false, error: 'unauthorized' }, 401);
@@ -65,6 +65,7 @@ export async function onRequestPost({ request, env }) {
     const stars = await getStars(env, scope.email);
     const kept = stars.filter((p) => !gone.has(p));
     if (kept.length !== stars.length) await saveStars(env, scope.email, kept);
+    fireWebhook(env, waitUntil, scope.email, 'delete', { paths: [...gone] });
     return json({ success: true, deleted: names.length });
   }
 

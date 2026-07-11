@@ -1,8 +1,15 @@
 import {
   json, getSession, storageReady, parsePath, getUser,
   createShare, deleteShareForFile, shareTokenForFile, getShare, shareUrl,
-  moderateShare, saveShare,
+  moderateShare, saveShare, directUrl,
 } from '../../lib/api.js';
+
+/** Raw hotlink is only possible for fully public single-file links. */
+function directFor(request, share) {
+  return !share.folder && !share.hash && share.access !== 'restricted'
+    ? directUrl(request, share.token)
+    : null;
+}
 
 const MAX_ALLOWED = 50;
 
@@ -30,6 +37,7 @@ export async function onRequestGet({ request, env }) {
     success: true,
     shared: true,
     url: shareUrl(request, share.token),
+    direct: directFor(request, share),
     protected: Boolean(share.hash),
     access: share.access === 'restricted' ? 'restricted' : 'public',
     allowed: share.allowed || [],
@@ -76,6 +84,7 @@ export async function onRequestPost({ request, env }) {
     return json({
       success: true,
       url: shareUrl(request, share.token),
+      direct: directFor(request, share),
       protected: Boolean(share.hash),
       access,
       allowed: share.allowed || [],

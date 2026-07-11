@@ -1492,6 +1492,10 @@ function renderShareState(data) {
   if (!data.shared) return;
 
   document.getElementById('share-url').value = data.url;
+  /* raw hotlink: only for fully public single-file links */
+  const directRow = document.getElementById('share-direct-row');
+  directRow.hidden = !data.direct;
+  if (data.direct) document.getElementById('share-direct').value = data.direct;
   const restricted = data.access === 'restricted';
   document.getElementById('share-protected-hint').textContent = restricted
     ? t('share.restrictedOn')
@@ -1535,19 +1539,22 @@ async function openShareModal(name, isFolder) {
   }
 }
 
-/* click the link field to copy it */
-const shareUrlField = document.getElementById('share-url');
-shareUrlField.addEventListener('click', async () => {
-  shareUrlField.select();
-  try {
-    await navigator.clipboard.writeText(shareUrlField.value);
-  } catch {
-    document.execCommand('copy');
-  }
-  shareUrlField.classList.add('copied');
-  setTimeout(() => shareUrlField.classList.remove('copied'), 900);
-  showStatus('share-status', t('share.copied'), true);
-});
+/* click a link field to copy it */
+function copyOnClick(field) {
+  field.addEventListener('click', async () => {
+    field.select();
+    try {
+      await navigator.clipboard.writeText(field.value);
+    } catch {
+      document.execCommand('copy');
+    }
+    field.classList.add('copied');
+    setTimeout(() => field.classList.remove('copied'), 900);
+    showStatus('share-status', t('share.copied'), true);
+  });
+}
+copyOnClick(document.getElementById('share-url'));
+copyOnClick(document.getElementById('share-direct'));
 
 /* --- restricted link: people with access --- */
 
@@ -1674,7 +1681,12 @@ document.getElementById('share-create').addEventListener('click', async () => {
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.success) {
     renderShareState({
-      shared: true, url: data.url, protected: data.protected, access: data.access, allowed: data.allowed,
+      shared: true,
+      url: data.url,
+      direct: data.direct,
+      protected: data.protected,
+      access: data.access,
+      allowed: data.allowed,
     });
   } else {
     showStatus('share-status', t(data.error === 'password-short' ? 'share.passwordShort' : 'share.fail'));

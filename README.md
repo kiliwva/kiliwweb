@@ -202,6 +202,21 @@ list thumbnails, share pages and shared-folder previews. Videos can't
 be frame-analyzed inside a Worker, so they rely on the name check only.
 If the model is unavailable, everything gracefully falls back to names.
 
+### Developer platform extras
+
+- **Direct links (hotlink)** — `/f/<token>` serves the raw bytes of a
+  public, unprotected file share (Range supported, CORS open, 5-minute
+  cache; HTML/SVG forced to download). Created from the share dialog
+  or `POST/GET/DELETE /api/v1/links`.
+- **Presigned uploads** — `POST /api/v1/uploads` mints a single-use
+  `PUT /up/<token>` URL (ticket in `_upload/`, default 1 h TTL, size
+  capped) so browsers can upload straight to the owner's storage
+  without the API key. CORS-enabled.
+- **Webhooks** — one per account (`_hooks/<email>.json`), managed via
+  `GET/POST/DELETE /api/v1/webhook`. Fires on `upload` (web, API,
+  multipart, presigned) and `delete` (single, bulk, folder) with an
+  `X-Kiliw-Signature` HMAC-SHA256 header; 5 s timeout, no retries.
+
 ## Developer API (DEV plan)
 
 The **DEV** plan ($12.99 / 30 days, 500 GB, files up to 50 GB) unlocks

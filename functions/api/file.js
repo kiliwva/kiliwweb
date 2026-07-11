@@ -2,7 +2,7 @@ import {
   json, getSession, storageReady, parsePath, cleanSegment,
   deleteShareForFile, moveShare, resolveScope, scopedPath,
   moveModVerdict, deleteModVerdict, trashFile, moveStar, removeStar,
-  parseRange,
+  parseRange, fireWebhook,
 } from '../../lib/api.js';
 
 /* content types that are safe to render inline without a sandbox */
@@ -129,7 +129,7 @@ export async function onRequestPut({ request, env }) {
 }
 
 /* DELETE /api/file?p=folder/name.ext[&scope=..] */
-export async function onRequestDelete({ request, env }) {
+export async function onRequestDelete({ request, env, waitUntil }) {
   const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
@@ -144,5 +144,6 @@ export async function onRequestDelete({ request, env }) {
     deleteModVerdict(env, scope.email, full),
     removeStar(env, scope.email, full),
   ]);
+  fireWebhook(env, waitUntil, scope.email, 'delete', { paths: [full] });
   return json({ success: true });
 }

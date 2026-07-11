@@ -1,7 +1,7 @@
 import {
   json, getSession, storageReady, cleanSegment, parsePath,
   deleteSharesUnder, deleteShareForFile, removeCollabsUnder,
-  resolveScope, scopedPath, trashFile, removeStarsUnder,
+  resolveScope, scopedPath, trashFile, removeStarsUnder, fireWebhook,
 } from '../../lib/api.js';
 
 async function requireAccess(request, env) {
@@ -38,7 +38,7 @@ export async function onRequestPost({ request, env }) {
 }
 
 /* DELETE /api/folders?p=a/b[&scope=..] — delete a folder with everything inside */
-export async function onRequestDelete({ request, env }) {
+export async function onRequestDelete({ request, env, waitUntil }) {
   const { scope, error } = await requireAccess(request, env);
   if (error) return error;
 
@@ -74,5 +74,6 @@ export async function onRequestDelete({ request, env }) {
       } while (modCursor);
     })(),
   ]);
+  fireWebhook(env, waitUntil, scope.email, 'delete', { paths: [`${full}/`] });
   return json({ success: true });
 }
