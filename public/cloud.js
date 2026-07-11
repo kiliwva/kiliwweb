@@ -1695,7 +1695,7 @@ function renderPromos(promos) {
     const li = document.createElement('li');
     li.className = 'collab-row';
     const span = document.createElement('span');
-    span.textContent = `${promo.code} · −${promo.percent}% · ${t('admin.used', {
+    span.textContent = `${promo.code} · ${promo.percent >= 100 ? 'FREE' : `−${promo.percent}%`} · ${t('admin.used', {
       used: promo.uses || 0,
       max: promo.maxUses ? promo.maxUses : '∞',
     })}`;

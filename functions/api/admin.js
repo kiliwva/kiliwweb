@@ -134,7 +134,8 @@ export async function onRequestPost({ request, env }) {
     const percent = Math.round(Number(body?.percent));
     const maxUses = Math.max(0, Math.round(Number(body?.maxUses) || 0)); // 0 = unlimited
     if (!code || code.length < 3) return json({ success: false, error: 'bad-code' }, 400);
-    if (!Number.isFinite(percent) || percent < 1 || percent > 90) {
+    /* up to 100: a 100% code grants the plan for free */
+    if (!Number.isFinite(percent) || percent < 1 || percent > 100) {
       return json({ success: false, error: 'bad-percent' }, 400);
     }
     const existing = await getPromo(env, code);

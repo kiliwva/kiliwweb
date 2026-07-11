@@ -83,6 +83,13 @@ export async function onRequestPost({ request, env }) {
     const price = discountedPrice(base, promo);
     const promoNote = promo ? ` (promo ${promo.code} −${promo.percent}%)` : '';
 
+    /* a 100% promo activates the plan immediately, no payment provider */
+    if (price === 0 && promo) {
+      await applyProPurchase(env, session.email, gb, `promo-${promo.code}-${randomHex(8)}`, plan);
+      await bumpPromoUse(env, promo.code);
+      return json({ success: true, activated: true });
+    }
+
     const method = String(body?.method || 'yookassa');
 
     if (method === 'yookassa') {

@@ -34,12 +34,28 @@ function render() {
   if (quote.percent) {
     document.getElementById('co-discount').textContent = `−${quote.percent}% (${quote.promo})`;
   }
-  document.getElementById('co-total').textContent = `$${quote.price}`;
+  const free = quote.price === 0;
+  document.getElementById('co-total').textContent = free ? t('checkout.free') : `$${quote.price}`;
   const rub = document.getElementById('co-rub');
-  rub.hidden = false;
-  rub.textContent = t('checkout.rub', { rub: quote.rub.toLocaleString('en-US'), rate: quote.rate });
+  rub.hidden = free;
+  if (!free) {
+    rub.textContent = t('checkout.rub', { rub: quote.rub.toLocaleString('en-US'), rate: quote.rate });
+  }
 
-  /* payment methods availability */
+  /* payment methods (hidden entirely for a free activation) */
+  const pick = document.querySelector('.pay-pick');
+  const methodLabel = document.querySelector('[data-i18n="checkout.method"]');
+  pick.hidden = free;
+  if (methodLabel) methodLabel.hidden = free;
+  const payBtn = document.getElementById('co-pay');
+  payBtn.textContent = t(free ? 'checkout.activate' : 'checkout.pay');
+
+  if (free) {
+    payBtn.disabled = false;
+    showStatus('co-status', '');
+    return;
+  }
+
   const cards = { yookassa: document.getElementById('pm-yookassa'), heleket: document.getElementById('pm-heleket') };
   for (const [name, el] of Object.entries(cards)) {
     el.classList.toggle('disabled', !quote.methods[name]);
@@ -50,7 +66,7 @@ function render() {
   for (const [name, el] of Object.entries(cards)) {
     el.classList.toggle('selected', method === name);
   }
-  document.getElementById('co-pay').disabled = !method;
+  payBtn.disabled = !method;
   if (!quote.methods.yookassa && !quote.methods.heleket) {
     showStatus('co-status', t('plan.notConfigured'));
   }
@@ -105,7 +121,8 @@ document.getElementById('promo-input').addEventListener('keydown', (e) => {
 });
 
 document.getElementById('co-pay').addEventListener('click', async () => {
-  if (!method) return;
+  const free = quote?.price === 0;
+  if (!method && !free) return;
   const btn = document.getElementById('co-pay');
   btn.classList.add('loading');
   showStatus('co-status', '');
@@ -113,9 +130,14 @@ document.getElementById('co-pay').addEventListener('click', async () => {
     const res = await fetch('/api/billing', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'create', plan, gb, method, promo }),
+      body: JSON.stringify({ action: 'create', plan, gb, method: method || 'yookassa', promo }),
     });
     const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success && data.activated) {
+      showStatus('co-status', t('checkout.activated'), true);
+      setTimeout(() => { window.location.href = '/'; }, 1200);
+      return;
+    }
     if (res.ok && data.success && data.url) {
       window.location.href = data.url;
       return;
