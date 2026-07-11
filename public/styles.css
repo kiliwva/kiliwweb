@@ -524,6 +524,110 @@ body {
 /* typed icons: neutral outline so the extension badge carries the color */
 .file-icon.typed { color: #8E8E96; }
 
+/* ---------- multi-select ---------- */
+
+.row-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid var(--panel-border);
+  background: var(--frost-soft);
+  color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.row-check svg { width: 13px; height: 13px; }
+.row-check.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.file-row.selectable { cursor: pointer; }
+.file-row.selected { background: var(--accent-soft, rgba(217, 119, 87, 0.12)); }
+.file-row.selected:hover { background: var(--accent-soft, rgba(217, 119, 87, 0.16)); }
+.ghost-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bulk-bar {
+  position: fixed;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(720px, calc(100vw - 24px));
+  padding: 10px 12px;
+  background: var(--panel, rgba(28, 28, 30, 0.92));
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  z-index: 60;
+  animation: rise 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bulk-count { font-size: 13.5px; font-weight: 800; white-space: nowrap; padding-left: 4px; }
+.bulk-link {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.bulk-spacer { flex: 1; min-width: 6px; }
+.bulk-bar .ghost-btn:disabled { opacity: 0.4; cursor: default; }
+.bulk-bar .ghost-btn.danger { color: #F28B70; border-color: rgba(242, 139, 112, 0.35); }
+@media (max-width: 560px) {
+  .bulk-bar { flex-wrap: wrap; justify-content: center; }
+  .bulk-bar .ghost-btn span { display: none; } /* icons only on tiny screens */
+}
+
+/* --- move-to-folder picker --- */
+
+.move-modal { max-width: 420px; }
+.move-list {
+  list-style: none;
+  margin: 12px 0 14px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 6px;
+}
+.move-list li button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.move-list li button:hover { background: var(--frost-soft); }
+.move-list li button svg { width: 19px; height: 19px; flex: none; color: var(--accent); }
+.move-list li button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.move-empty { padding: 20px 12px; font-size: 13px; font-weight: 600; color: var(--muted); text-align: center; }
+
 /* small image thumbnails in file rows */
 .thumb {
   position: relative;

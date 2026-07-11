@@ -16,6 +16,10 @@ let me = null; // /api/me payload: plan, usage, billing
 let currentScope = null; // grant id while browsing a folder shared with me
 let scopeInfo = null; // {id, owner, path} of that grant
 
+let selectMode = false;
+const selected = new Set(); // file names picked in the current folder
+let lastListing = { folders: [], files: [], shared: [] };
+
 const t = (key, vars) => KiliwUI.t(key, vars);
 const pathStr = () => currentPath.join('/');
 const fullPath = (name) => (pathStr() ? `${pathStr()}/${name}` : name);
@@ -325,6 +329,170 @@ document.addEventListener('click', (e) => {
 window.addEventListener('scroll', closeRowMenu, true);
 window.addEventListener('resize', closeRowMenu);
 
+/* ---------- multi-select & bulk actions ---------- */
+
+const bulkBar = document.getElementById('bulk-bar');
+const moveModal = document.getElementById('move-modal');
+
+function updateBulkBar() {
+  bulkBar.hidden = !selectMode;
+  if (!selectMode) return;
+  document.getElementById('bulk-count').textContent = t('sel.count', { n: selected.size });
+  const none = selected.size === 0;
+  ['bulk-move', 'bulk-zip', 'bulk-delete'].forEach((id) => {
+    document.getElementById(id).disabled = none;
+  });
+}
+
+function setSelectMode(on) {
+  selectMode = on;
+  selected.clear();
+  document.getElementById('select-toggle').classList.toggle('active', on);
+  updateBulkBar();
+  renderList(lastListing.folders, lastListing.files, lastListing.shared);
+}
+
+document.getElementById('select-toggle').addEventListener('click', () => setSelectMode(!selectMode));
+document.getElementById('bulk-cancel').addEventListener('click', () => setSelectMode(false));
+
+document.getElementById('bulk-all').addEventListener('click', () => {
+  const all = lastListing.files.map((f) => f.name);
+  const everything = all.every((n) => selected.has(n));
+  selected.clear();
+  if (!everything) all.forEach((n) => selected.add(n));
+  updateBulkBar();
+  renderList(lastListing.folders, lastListing.files, lastListing.shared);
+});
+
+document.getElementById('bulk-delete').addEventListener('click', async () => {
+  if (!selected.size) return;
+  if (!confirm(t('sel.deleteConfirm', { n: selected.size }))) return;
+  const res = await fetch(`/api/batch${currentScope ? `?scope=${encodeURIComponent(currentScope)}` : ''}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'delete', path: pathStr(), items: [...selected] }),
+  });
+  if (res.ok) {
+    setSelectMode(false);
+    loadFiles();
+    refreshMe();
+  }
+});
+
+/* download the picked files as one archive: a form POST lets the
+   browser stream the response straight to disk */
+document.getElementById('bulk-zip').addEventListener('click', () => {
+  if (!selected.size) return;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `/api/batch${currentScope ? `?scope=${encodeURIComponent(currentScope)}` : ''}`;
+  form.style.display = 'none';
+  const add = (name, value) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  };
+  add('action', 'zip');
+  add('path', pathStr());
+  add('items', JSON.stringify([...selected]));
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+});
+
+/* --- move-to-folder picker --- */
+
+let movePath = []; // destination the picker is currently looking at
+
+async function renderMovePicker() {
+  const listBox = document.getElementById('move-list');
+  document.getElementById('move-title').textContent = t('sel.moveTitle', { n: selected.size });
+  const rootLabel = scopeInfo ? scopeInfo.path.split('/').pop() : t('files.title');
+  document.getElementById('move-where').textContent = `${rootLabel}${movePath.length ? ' / ' + movePath.join(' / ') : ''}`;
+  showStatus('move-status', '');
+
+  const res = await fetch(`/api/files?path=${encodeURIComponent(movePath.join('/'))}${scopeQ()}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) return;
+
+  listBox.innerHTML = '';
+  if (movePath.length) {
+    const up = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><span>..</span>';
+    btn.addEventListener('click', () => {
+      movePath.pop();
+      renderMovePicker();
+    });
+    up.appendChild(btn);
+    listBox.appendChild(up);
+  }
+  for (const folder of data.folders) {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg><span></span>';
+    btn.querySelector('span').textContent = folder;
+    btn.addEventListener('click', () => {
+      movePath.push(folder);
+      renderMovePicker();
+    });
+    li.appendChild(btn);
+    listBox.appendChild(li);
+  }
+  if (!data.folders.length && !movePath.length) {
+    const li = document.createElement('li');
+    li.className = 'move-empty';
+    li.textContent = t('sel.noFolders');
+    listBox.appendChild(li);
+  }
+}
+
+document.getElementById('bulk-move').addEventListener('click', () => {
+  if (!selected.size) return;
+  movePath = [...currentPath];
+  moveModal.hidden = false;
+  renderMovePicker();
+});
+
+function closeMoveModal() {
+  moveModal.hidden = true;
+}
+document.getElementById('move-close').addEventListener('click', closeMoveModal);
+moveModal.addEventListener('click', (e) => {
+  if (e.target === moveModal) closeMoveModal();
+});
+
+document.getElementById('move-here').addEventListener('click', async () => {
+  const dest = movePath.join('/');
+  if (dest === pathStr()) {
+    showStatus('move-status', t('sel.moveSame'));
+    return;
+  }
+  const res = await fetch(`/api/batch${currentScope ? `?scope=${encodeURIComponent(currentScope)}` : ''}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'move', path: pathStr(), items: [...selected], dest }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    showStatus('move-status', t('sel.moveFail'));
+    return;
+  }
+  if (data.skipped?.length) {
+    showStatus('move-status', t('sel.moveSkipped', { names: data.skipped.join(', ') }));
+    setSelectMode(false);
+    loadFiles();
+    return; // leave the note visible until the modal is closed
+  }
+  closeMoveModal();
+  setSelectMode(false);
+  loadFiles();
+});
+
 /* ---------- browser ---------- */
 
 async function loadFiles() {
@@ -361,6 +529,10 @@ async function loadFiles() {
 
   showError('');
   renderBreadcrumb();
+  lastListing = { folders: data.folders, files: data.files, shared };
+  /* the listing changed under the selection: drop stale names */
+  selected.clear();
+  updateBulkBar();
   renderList(data.folders, data.files, shared);
 }
 
@@ -522,6 +694,30 @@ function renderList(folders, files, shared = []) {
     meta.className = 'file-meta';
     meta.textContent = `${formatSize(file.size)} · ${formatDate(file.uploaded)}`;
     info.append(name, meta);
+
+    /* selection mode: rows toggle instead of opening the preview */
+    if (selectMode) {
+      const box = document.createElement('span');
+      box.className = 'row-check';
+      box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5.5 12.5 4 4 9-9"/></svg>';
+      const sync = () => {
+        const on = selected.has(file.name);
+        li.classList.toggle('selected', on);
+        box.classList.toggle('on', on);
+      };
+      info.addEventListener('click', () => {
+        if (selected.has(file.name)) selected.delete(file.name);
+        else selected.add(file.name);
+        sync();
+        updateBulkBar();
+      });
+      sync();
+      li.append(box, fileVisual(file), info);
+      li.classList.add('selectable');
+      listEl.appendChild(li);
+      continue;
+    }
+
     info.addEventListener('click', () => openPreview(file));
 
     const actions = document.createElement('div');
@@ -1441,12 +1637,14 @@ modal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!rowMenu.hidden) closeRowMenu();
+  else if (!moveModal.hidden) closeMoveModal();
   else if (!previewModal.hidden) closePreview();
   else if (!notifModal.hidden) closeNotifModal();
   else if (!shareModal.hidden) closeShareModal();
   else if (!deleteModal.hidden) closeDeleteModal();
   else if (!planModal.hidden) closePlanModal();
   else if (!modal.hidden) closeModal();
+  else if (selectMode) setSelectMode(false);
 });
 
 /* --- change password --- */

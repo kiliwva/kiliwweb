@@ -37,6 +37,13 @@ downloads and previews (`?view=<rel>` / `?raw=<rel>` / `?dl=<rel>`) and
 whole-folder ZIP downloads (`?zipdir=<rel>`, streamed by `lib/zip.js`;
 in the cloud app the same lives at `/api/folder-zip?p=<path>` and in the
 folder ⋯ menu). Classic ZIP only: archives are capped at ~4 GB.
+
+In the cloud app a **Select** mode allows bulk actions on files:
+move them into another folder (with a folder picker; name conflicts
+are skipped and reported), delete several at once, or download the
+selection as a ZIP — all through `POST /api/batch` (`action:
+move|delete|zip`, works inside shared-folder scopes; moves carry the
+file's share link and moderation verdict along, deletes clean them up).
 When creating a link you choose who can open it: **anyone with the
 link** (optionally password-protected) or **only people you choose** —
 specific registered users added by email, who must be signed in
