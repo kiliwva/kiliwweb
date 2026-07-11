@@ -9,29 +9,24 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=48">
+  <link rel="stylesheet" href="styles.css?v=49">
   <style>
-    /* no overflow:hidden on body — it traps scrolling on iOS after
-       anchor jumps; horizontal clipping is handled by html/body.
-       No scroll-behavior/#hash navigation either: iOS Safari re-snaps
-       to the fragment on every toolbar resize, fighting the user. */
-    .lp { position: relative; }
-    .lp-wrap { max-width: 1020px; margin: 0 auto; padding: 0 22px; position: relative; z-index: 1; }
-    #plans { scroll-margin-top: 24px; }
-
-    /* soft coral glow behind the hero, nothing loud */
-    .lp-glow {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 720px;
-      height: 720px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(217, 119, 87, 0.13) 0%, transparent 62%);
-      filter: blur(40px);
-      transform: translate(25%, -30%);
+    /* Keep body completely vanilla — no position/overflow tricks and no
+       absolutely-positioned decorations attached to it: every variant of
+       that broke or hijacked scrolling on iOS Safari. All the ambience
+       lives in one fixed, non-interactive background layer instead. */
+    .lp-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
       pointer-events: none;
+      background:
+        radial-gradient(56vmax 56vmax at 88% -6%, rgba(217, 119, 87, 0.12) 0%, transparent 62%),
+        radial-gradient(48vmax 48vmax at -8% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+        radial-gradient(50vmax 50vmax at 70% 105%, rgba(255, 255, 255, 0.04) 0%, transparent 60%);
     }
+    .lp-wrap { max-width: 1020px; margin: 0 auto; padding: 0 22px; }
+    #plans { scroll-margin-top: 24px; }
 
     /* top bar */
     .lp-bar {
@@ -345,15 +340,12 @@
     @media (max-width: 800px) {
       .lp-hero { grid-template-columns: 1fr; gap: 40px; padding: 44px 0 64px; }
       .lp-mock { max-width: 440px; }
-      .lp-glow { right: -320px; }
     }
   </style>
 </head>
 <body class="lp">
 
-  <div class="orb orb-1" aria-hidden="true"></div>
-  <div class="orb orb-2" aria-hidden="true"></div>
-  <div class="lp-glow" aria-hidden="true"></div>
+  <div class="lp-bg" aria-hidden="true"></div>
 
   <div class="lp-wrap">
 
@@ -544,11 +536,8 @@
         document.getElementById('plans').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
-    /* old links that arrive with the hash: scroll once, then drop it */
-    if (location.hash === '#plans') {
-      history.replaceState(null, '', location.pathname);
-      requestAnimationFrame(() => document.getElementById('plans').scrollIntoView());
-    }
+    /* old links that arrive with the hash: just drop it, no auto-scroll */
+    if (location.hash) history.replaceState(null, '', location.pathname);
 
     /* signed-in visitors get app links instead of sign-in prompts */
     fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((me) => {
