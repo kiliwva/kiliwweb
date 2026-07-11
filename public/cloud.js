@@ -705,7 +705,8 @@ function renderList(folders, files, shared = []) {
         li.classList.toggle('selected', on);
         box.classList.toggle('on', on);
       };
-      info.addEventListener('click', () => {
+      /* the whole row toggles — checkbox, thumbnail and name alike */
+      li.addEventListener('click', () => {
         if (selected.has(file.name)) selected.delete(file.name);
         else selected.add(file.name);
         sync();

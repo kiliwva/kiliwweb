@@ -583,11 +583,21 @@ body {
   white-space: nowrap;
 }
 .bulk-spacer { flex: 1; min-width: 6px; }
+.bulk-bar .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.bulk-bar .ghost-btn svg { width: 16px; height: 16px; flex: none; }
 .bulk-bar .ghost-btn:disabled { opacity: 0.4; cursor: default; }
 .bulk-bar .ghost-btn.danger { color: #F28B70; border-color: rgba(242, 139, 112, 0.35); }
 @media (max-width: 560px) {
-  .bulk-bar { flex-wrap: wrap; justify-content: center; }
-  .bulk-bar .ghost-btn span { display: none; } /* icons only on tiny screens */
+  .bulk-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+  }
+  .bulk-bar .ghost-btn { padding: 8px 11px; font-size: 12.5px; }
 }
 
 /* --- move-to-folder picker --- */
