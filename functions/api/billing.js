@@ -1,7 +1,7 @@
 import {
   json, getSession, storageReady, getUser, putUser, randomHex,
   yookassaReady, yookassaRequest, applyPayment, applyProPurchase,
-  heleketReady, heleketRequest, heleketOutcome,
+  heleketReady, heleketRequest, heleketOutcome, heleketErrorDetail,
   proPrice, planLimits, PRO_DAYS, PRO_TIERS, DEV_GB, DEV_PRICE,
   usdRubRate, validatePromo, bumpPromoUse, discountedPrice, normPromoCode,
   upgradePreview,
@@ -121,7 +121,7 @@ export async function onRequestPost({ request, env }) {
     if (method === 'heleket') {
       if (!heleketReady(env)) return json({ success: false, error: 'billing-not-configured' }, 503);
 
-      const { ok, data } = await heleketRequest(env, '/payment', {
+      const { ok, status, data } = await heleketRequest(env, '/payment', {
         amount: price.toFixed(2),
         currency: 'USD',
         order_id: `kiliw-${randomHex(10)}`,
@@ -131,7 +131,11 @@ export async function onRequestPost({ request, env }) {
       });
 
       if (!ok || !data?.result?.url) {
-        return json({ success: false, error: 'payment-failed' }, 502);
+        return json({
+          success: false,
+          error: 'payment-failed',
+          detail: heleketErrorDetail(status, data),
+        }, 502);
       }
       user.pendingPayment = { provider: 'heleket', id: data.result.uuid, gb, plan };
       await putUser(env, user);

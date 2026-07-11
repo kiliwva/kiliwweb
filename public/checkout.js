@@ -151,7 +151,9 @@ document.getElementById('co-pay').addEventListener('click', async () => {
       window.location.href = data.url;
       return;
     }
-    showStatus('co-status', t(data.error === 'billing-not-configured' ? 'plan.notConfigured' : 'plan.fail'));
+    let msg = t(data.error === 'billing-not-configured' ? 'plan.notConfigured' : 'plan.fail');
+    if (data.detail) msg += ` [${data.detail}]`;
+    showStatus('co-status', msg);
   } catch {
     showStatus('co-status', t('plan.fail'));
   } finally {
