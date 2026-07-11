@@ -25,6 +25,11 @@
     // the site owner gets a permanent 1 TB Pro plan
     "OWNER_EMAIL": "denislybin3@gmail.com"
   },
+  "placement": {
+    // run the Worker near the origins it calls (Heleket, Resend) instead of
+    // near the visitor — payment providers often geo-block user-region IPs
+    "mode": "smart"
+  },
   "triggers": {
     // daily 03:00 UTC: purge accounts whose 7-day deletion grace expired
     "crons": ["0 3 * * *"]
