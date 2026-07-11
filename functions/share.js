@@ -679,7 +679,8 @@ function previewPage(share, size, proofQuery, viewer) {
   const sensitive = isSensitive(share, name, kind);
   const { stage, note, backdropUrl } = buildStage({ name, size, kind, sensitive, rawUrl, dlUrl });
 
-  return page(name, `${topBar(dlUrl, viewer)}
+  /* no preview → the stage already shows one big download button */
+  return page(name, `${topBar(kind ? dlUrl : null, viewer)}
   <section class="file-head">
     <h1 class="share-name">${esc(name)}</h1>
     <p class="share-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
@@ -702,7 +703,7 @@ function folderPreviewPage(share, rel, size, proofQuery, viewer, aiSensitive = f
   const parent = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
   const backUrl = `${base}?${parent ? `p=${encPath(parent)}` : 'p='}${proofQuery}`;
 
-  return page(name, `${topBar(dlUrl, viewer)}
+  return page(name, `${topBar(kind ? dlUrl : null, viewer)}
   <section class="file-head">
     <h1 class="share-name">${esc(name)}</h1>
     <p class="share-meta">${formatSize(size)} · shared by <em>${esc(share.email)}</em></p>
