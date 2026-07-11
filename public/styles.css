@@ -465,7 +465,13 @@ body {
 .files-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap; /* never clip buttons off-screen on narrow viewports */
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .files-actions { width: 100%; }
+  .files-actions .ghost-btn { padding: 8px 11px; font-size: 12.5px; }
 }
 .files-actions .ghost-btn {
   display: inline-flex;
