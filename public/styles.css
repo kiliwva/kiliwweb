@@ -913,7 +913,23 @@ body {
    ============================================================ */
 
 .plan-modal { max-width: 480px; }
-.pro-mark { color: var(--accent); }
+/* "Pro" suffix next to the wordmark: same size, same gradient */
+.pro-mark {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+#plan-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+}
+#plan-title .wordmark,
+#plan-title .pro-mark { font-size: 22px; }
+.co-brand .pro-mark { font-size: 19px; }
 
 .plan-benefits {
   list-style: none;

@@ -22,8 +22,8 @@ function showStatus(id, message, ok = false) {
 
 function render() {
   const planName = quote.plan === 'dev'
-    ? `DEV (${tierLabel(quote.gb)} + API)`
-    : `${tierLabel(quote.gb)} — Kiliw Cloud Pro`;
+    ? `DEV — ${tierLabel(quote.gb)} + API`
+    : `${tierLabel(quote.gb)} — Pro plan`;
   document.getElementById('co-title').textContent = planName;
   document.title = `${planName} — ${t('title.checkout')}`;
 
