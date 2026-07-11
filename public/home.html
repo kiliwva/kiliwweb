@@ -9,12 +9,13 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=47">
+  <link rel="stylesheet" href="styles.css?v=48">
   <style>
     /* no overflow:hidden on body — it traps scrolling on iOS after
-       anchor jumps; horizontal clipping is handled by html/body */
+       anchor jumps; horizontal clipping is handled by html/body.
+       No scroll-behavior/#hash navigation either: iOS Safari re-snaps
+       to the fragment on every toolbar resize, fighting the user. */
     .lp { position: relative; }
-    html { scroll-behavior: smooth; }
     .lp-wrap { max-width: 1020px; margin: 0 auto; padding: 0 22px; position: relative; z-index: 1; }
     #plans { scroll-margin-top: 24px; }
 
@@ -535,6 +536,20 @@
   </div>
 
   <script>
+    /* smooth-scroll to plans WITHOUT putting #plans in the URL — iOS
+       Safari keeps re-snapping to a fragment while the toolbar resizes */
+    document.querySelectorAll('a[href="#plans"]').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('plans').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+    /* old links that arrive with the hash: scroll once, then drop it */
+    if (location.hash === '#plans') {
+      history.replaceState(null, '', location.pathname);
+      requestAnimationFrame(() => document.getElementById('plans').scrollIntoView());
+    }
+
     /* signed-in visitors get app links instead of sign-in prompts */
     fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((me) => {
       if (!me || !me.success) return;
