@@ -534,7 +534,6 @@ function updateTools() {
   document.getElementById('breadcrumb').style.display = files ? '' : 'none';
   sortSel.hidden = !files;
   document.getElementById('select-toggle').hidden = !files;
-  document.getElementById('new-note').hidden = !files;
   document.getElementById('new-folder').hidden = !files;
   document.getElementById('trash-empty').hidden = currentView !== 'trash';
   document.querySelectorAll('#view-tabs .seg-btn').forEach((btn) => {
@@ -612,6 +611,9 @@ function pathRow(file) {
   menu.addEventListener('click', () => {
     openRowMenu(menu, [
       { icon: 'preview', label: t('file.preview'), onClick: () => openPreview({ name, path: file.path, size: file.size, sensitive: file.sensitive }) },
+      ...(EDITABLE_RE.test(name) && file.size <= EDITABLE_MAX
+        ? [{ icon: 'edit', label: t('note.edit'), onClick: () => editNote({ path: file.path, name, size: file.size }) }]
+        : []),
       {
         icon: 'star',
         label: starSet.has(file.path) ? t('star.remove') : t('star.add'),
@@ -796,7 +798,10 @@ document.getElementById('trash-empty').addEventListener('click', async () => {
 
 /* ---------- markdown / text notes ---------- */
 
-const EDITABLE_RE = /\.(md|markdown|txt|text|log)$/i;
+/* plain-text formats that open in the built-in editor (≤ 2 MB) */
+const EDITABLE_RE = /\.(md|markdown|txt|text|log|csv|tsv|json|xml|yml|yaml|ini|conf|env|htm|html|css|js|ts|jsx|tsx|py|rb|go|rs|java|c|cpp|h|cs|php|sql|sh|bat)$/i;
+const EDITABLE_MAX = 2 * 1024 * 1024;
+const MD_RE = /\.(md|markdown)$/i;
 const noteModal = document.getElementById('note-modal');
 const noteText = document.getElementById('note-text');
 const notePreview = document.getElementById('note-preview');
@@ -861,9 +866,11 @@ function mdToHtml(src) {
   return out.join('\n');
 }
 
-function openNoteEditor(path, text, isNew) {
-  noteState = { path, isNew };
+function openNoteEditor(path, text, isNew, scoped = true) {
+  noteState = { path, isNew, scoped };
   document.getElementById('note-title').textContent = path.split('/').pop();
+  /* the rendered-preview toggle only makes sense for markdown */
+  document.getElementById('note-toggle').hidden = !MD_RE.test(path);
   noteText.value = text;
   noteText.hidden = false;
   notePreview.hidden = true;
@@ -892,8 +899,8 @@ document.getElementById('note-save').addEventListener('click', async () => {
   if (!noteState) return;
   const dir = noteState.path.includes('/') ? noteState.path.slice(0, noteState.path.lastIndexOf('/')) : '';
   const name = noteState.path.split('/').pop();
-  const type = /\.(md|markdown)$/i.test(name) ? 'text/markdown' : 'text/plain';
-  const res = await fetch(`/api/files?name=${encodeURIComponent(name)}&path=${encodeURIComponent(dir)}${scopeQ()}`, {
+  const type = MD_RE.test(name) ? 'text/markdown' : 'text/plain';
+  const res = await fetch(`/api/files?name=${encodeURIComponent(name)}&path=${encodeURIComponent(dir)}${noteState.scoped ? scopeQ() : ''}`, {
     method: 'POST',
     headers: { 'Content-Type': type },
     body: noteText.value,
@@ -911,20 +918,14 @@ document.getElementById('note-save').addEventListener('click', async () => {
   }
 });
 
-document.getElementById('new-note').addEventListener('click', () => {
-  let name = prompt(t('note.prompt'), 'Note.md');
-  if (!name) return;
-  name = name.trim();
-  if (!name) return;
-  if (!name.includes('.')) name += '.md';
-  openNoteEditor(fullPath(name), '', true);
-});
-
 async function editNote(file) {
+  /* rows with a full path are always in the own root; browser rows may
+     live inside a shared-folder scope */
+  const scoped = !file.path;
   const path = file.path || fullPath(file.name);
-  const res = await fetch(fileUrlAt(path, true) + scopeQ());
+  const res = await fetch(fileUrlAt(path, true) + (scoped ? scopeQ() : ''));
   const text = res.ok ? await res.text() : '';
-  openNoteEditor(path, text, false);
+  openNoteEditor(path, text, false, scoped);
 }
 
 /* ---------- browser ---------- */
@@ -1210,7 +1211,7 @@ function renderList(folders, files, shared = []) {
       const items = [
         { icon: 'preview', label: t('file.preview'), onClick: () => openPreview(file) },
       ];
-      if (EDITABLE_RE.test(file.name)) {
+      if (EDITABLE_RE.test(file.name) && file.size <= EDITABLE_MAX) {
         items.push({ icon: 'edit', label: t('note.edit'), onClick: () => editNote(file) });
       }
       if (!currentScope) {

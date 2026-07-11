@@ -88,9 +88,11 @@ The file browser has four tabs plus search:
 - **Search** (`GET /api/search?q=`) — case-insensitive name search
   across all folders, results show the containing folder.
 
-Markdown/text files (`.md .markdown .txt .text .log`) get an **Edit**
-action and a **New note** button opens the same editor: a modal with a
-sanitized markdown preview, saved through the normal upload endpoint.
+Plain-text files up to 2 MB (`.txt .md .csv .json .html .css .js .py`
+and other code/config formats) get an **Edit** action in the row menu —
+a modal editor saved through the normal upload endpoint; markdown files
+additionally get a sanitized rendered preview toggle. Binary formats
+(e.g. Word `.docx`) can't be edited as text.
 
 ### Account deletion grace period
 

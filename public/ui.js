@@ -80,8 +80,6 @@
     'trash.foreverConfirm': 'Delete "{name}" forever?',
     'trash.deletedOn': 'deleted {date}',
     'trash.hint': 'Files stay here for 30 days, then disappear forever.',
-    'note.new': 'New note',
-    'note.prompt': 'Note name',
     'note.save': 'Save',
     'note.saved': 'Saved.',
     'note.fail': 'Could not save. Try again.',
