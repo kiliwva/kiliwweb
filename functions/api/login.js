@@ -1,6 +1,6 @@
 import {
   json, hashPassword, timingSafeEqualHex, createSession, verifyTurnstile, afterAuthRedirect,
-  storageReady, getUser, verifyTotp,
+  storageReady, getUser, putUser, verifyTotp, wipeAccount,
 } from '../../lib/api.js';
 
 export async function onRequestPost({ request, env }) {
@@ -39,9 +39,22 @@ export async function onRequestPost({ request, env }) {
     }
   }
 
+  /* account scheduled for deletion: expired → gone; within the grace
+     period a successful sign-in cancels the deletion */
+  let restored = false;
+  if (user.deleteAt) {
+    if (user.deleteAt <= Date.now()) {
+      await wipeAccount(env, email);
+      return json({ success: false, error: 'invalid-credentials' }, 401);
+    }
+    delete user.deleteAt;
+    await putUser(env, user);
+    restored = true;
+  }
+
   const { cookie } = await createSession(env, email, request);
   return json(
-    { success: true, redirect: afterAuthRedirect(request) },
+    { success: true, redirect: afterAuthRedirect(request), restored },
     200,
     { 'Set-Cookie': cookie },
   );

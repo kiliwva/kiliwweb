@@ -25,6 +25,10 @@
     // the site owner gets a permanent 1 TB Pro plan
     "OWNER_EMAIL": "denislybin3@gmail.com"
   },
+  "triggers": {
+    // daily 03:00 UTC: purge accounts whose 7-day deletion grace expired
+    "crons": ["0 3 * * *"]
+  },
   "observability": {
     "enabled": true
   }

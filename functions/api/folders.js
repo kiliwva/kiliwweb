@@ -1,7 +1,7 @@
 import {
   json, getSession, storageReady, cleanSegment, parsePath,
   deleteSharesUnder, deleteShareForFile, removeCollabsUnder,
-  resolveScope, scopedPath,
+  resolveScope, scopedPath, trashFile, removeStarsUnder,
 } from '../../lib/api.js';
 
 async function requireAccess(request, env) {
@@ -50,8 +50,11 @@ export async function onRequestDelete({ request, env }) {
   let cursor;
   do {
     const page = await env.KILIW_FILES.list({ prefix, cursor, limit: 1000 });
-    const keys = page.objects.map((o) => o.key);
-    if (keys.length) await env.KILIW_FILES.delete(keys);
+    /* real files go to the recycle bin; .keep markers just vanish */
+    for (const obj of page.objects) {
+      if (obj.key.endsWith('/.keep')) await env.KILIW_FILES.delete(obj.key);
+      else await trashFile(env, scope.email, obj.key.slice(`u/${scope.email}/`.length));
+    }
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 
@@ -60,6 +63,7 @@ export async function onRequestDelete({ request, env }) {
     deleteSharesUnder(env, scope.email, full),
     deleteShareForFile(env, scope.email, full),
     removeCollabsUnder(env, scope.email, full),
+    removeStarsUnder(env, scope.email, full),
     (async () => {
       let modCursor;
       do {

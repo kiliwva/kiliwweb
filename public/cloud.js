@@ -20,6 +20,10 @@ let selectMode = false;
 const selected = new Set(); // file names picked in the current folder
 let lastListing = { folders: [], files: [], shared: [] };
 
+let currentView = 'files'; // files | photos | starred | trash | search
+let starSet = new Set(); // full paths of starred files (own root only)
+let sortMode = localStorage.getItem('kw.sort') || 'date';
+
 const t = (key, vars) => KiliwUI.t(key, vars);
 const pathStr = () => currentPath.join('/');
 const fullPath = (name) => (pathStr() ? `${pathStr()}/${name}` : name);
@@ -224,7 +228,10 @@ function fileVisual(file) {
   const img = document.createElement('img');
   img.loading = 'lazy';
   img.alt = '';
-  img.src = fileUrl(file.name, true);
+  /* rows outside the browser (search/starred) carry a full path */
+  img.src = file.path
+    ? `/api/file?p=${encodeURIComponent(file.path)}&inline=1`
+    : fileUrl(file.name, true);
   img.onerror = () => wrap.replaceWith(iconSvg('file', file.name));
   wrap.appendChild(img);
 
@@ -267,6 +274,9 @@ const ACTION_ICONS = {
   preview: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
   menu: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   open: '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>',
+  star: '<path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9Z"/>',
+  restore: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
+  edit: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
 };
 
 function actionButton(kind, title) {
@@ -493,6 +503,430 @@ document.getElementById('move-here').addEventListener('click', async () => {
   loadFiles();
 });
 
+/* ---------- views: files / photos / starred / trash / search ---------- */
+
+const searchInput = document.getElementById('file-search');
+const sortSel = document.getElementById('sort-sel');
+sortSel.value = sortMode;
+
+const fileUrlAt = (path, inline) => `/api/file?p=${encodeURIComponent(path)}${inline ? '&inline=1' : ''}`;
+
+/* --- drag & drop moving --- */
+
+let dragName = null; // file being dragged (files view only)
+
+async function moveFilesTo(dest, names) {
+  if (dest === pathStr()) return;
+  const res = await fetch(`/api/batch${currentScope ? `?scope=${encodeURIComponent(currentScope)}` : ''}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'move', path: pathStr(), items: names, dest }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    if (data.skipped?.length) showError(t('sel.moveSkipped', { names: data.skipped.join(', ') }));
+    loadFiles();
+  }
+}
+
+function updateTools() {
+  const files = currentView === 'files';
+  document.getElementById('breadcrumb').style.display = files ? '' : 'none';
+  sortSel.hidden = !files;
+  document.getElementById('select-toggle').hidden = !files;
+  document.getElementById('new-note').hidden = !files;
+  document.getElementById('new-folder').hidden = !files;
+  document.getElementById('trash-empty').hidden = currentView !== 'trash';
+  document.querySelectorAll('#view-tabs .seg-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.view === currentView);
+  });
+}
+
+function switchView(view) {
+  currentView = view;
+  if (view !== 'search') searchInput.value = '';
+  if (selectMode) setSelectMode(false);
+  updateTools();
+  if (view === 'files') loadFiles();
+  else if (view === 'photos') loadPhotos();
+  else if (view === 'starred') loadStarred();
+  else if (view === 'trash') loadTrash();
+}
+
+document.querySelectorAll('#view-tabs .seg-btn').forEach((btn) => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+
+sortSel.addEventListener('change', () => {
+  sortMode = sortSel.value;
+  localStorage.setItem('kw.sort', sortMode);
+  renderList(lastListing.folders, lastListing.files, lastListing.shared);
+});
+
+/* --- starred set (own files only) --- */
+
+async function refreshStars() {
+  try {
+    const res = await fetch('/api/stars');
+    const data = await res.json();
+    if (res.ok && data.success) starSet = new Set(data.files.map((f) => f.path));
+  } catch { /* keep the old set */ }
+}
+
+async function toggleStar(path) {
+  const on = !starSet.has(path);
+  if (on) starSet.add(path);
+  else starSet.delete(path);
+  await fetch('/api/stars', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, on }),
+  });
+}
+
+/* --- rows for files identified by full path (search / starred) --- */
+
+function pathRow(file) {
+  const name = file.path.split('/').pop();
+  const dir = file.path.includes('/') ? file.path.slice(0, file.path.lastIndexOf('/')) : '';
+  const li = document.createElement('li');
+  li.className = 'file-row';
+
+  const info = document.createElement('button');
+  info.type = 'button';
+  info.className = 'file-info';
+  const nameEl = document.createElement('span');
+  nameEl.className = 'file-name';
+  nameEl.textContent = name;
+  const meta = document.createElement('span');
+  meta.className = 'file-meta';
+  meta.textContent = `${dir ? `${dir} · ` : ''}${formatSize(file.size)}`;
+  info.append(nameEl, meta);
+  info.addEventListener('click', () => openPreview({ name, path: file.path, size: file.size, sensitive: file.sensitive }));
+
+  const actions = document.createElement('div');
+  actions.className = 'file-actions';
+  const download = actionButton('download', t('file.download'));
+  download.href = fileUrlAt(file.path, false);
+  const menu = actionButton('menu', 'More');
+  menu.addEventListener('click', () => {
+    openRowMenu(menu, [
+      { icon: 'preview', label: t('file.preview'), onClick: () => openPreview({ name, path: file.path, size: file.size, sensitive: file.sensitive }) },
+      {
+        icon: 'star',
+        label: starSet.has(file.path) ? t('star.remove') : t('star.add'),
+        onClick: async () => {
+          await toggleStar(file.path);
+          if (currentView === 'starred') loadStarred();
+        },
+      },
+      { icon: 'download', label: t('file.download'), href: fileUrlAt(file.path, false) },
+      {
+        icon: 'delete',
+        label: t('file.delete'),
+        danger: true,
+        onClick: async () => {
+          if (!confirm(t('file.deleteConfirm', { name }))) return;
+          await fetch(fileUrlAt(file.path, false), { method: 'DELETE' });
+          switchView(currentView === 'starred' ? 'starred' : 'files');
+          refreshMe();
+        },
+      },
+    ]);
+  });
+  actions.append(download, menu);
+
+  li.append(fileVisual({ name, path: file.path, size: file.size, sensitive: file.sensitive }), info, actions);
+  return li;
+}
+
+function renderPathRows(files, emptyText) {
+  listEl.className = 'file-list';
+  listEl.innerHTML = '';
+  countEl.textContent = files.length ? KiliwUI.filesCount(files.length) : '';
+  emptyEl.textContent = emptyText;
+  emptyEl.hidden = files.length > 0;
+  for (const file of files) listEl.appendChild(pathRow(file));
+}
+
+async function loadStarred() {
+  const res = await fetch('/api/stars');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) return;
+  starSet = new Set(data.files.map((f) => f.path));
+  if (currentView !== 'starred') return;
+  renderPathRows(data.files, t('starred.empty'));
+}
+
+/* --- search --- */
+
+let searchTimer = null;
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if (q.length < 2) {
+    if (currentView === 'search') switchView('files');
+    return;
+  }
+  searchTimer = setTimeout(async () => {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) return;
+    if (searchInput.value.trim() !== q) return; // stale response
+    currentView = 'search';
+    updateTools();
+    renderPathRows(data.files, t('search.none', { q }));
+  }, 300);
+});
+
+/* --- photos grid --- */
+
+async function loadPhotos() {
+  const res = await fetch('/api/photos');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success || currentView !== 'photos') return;
+
+  listEl.className = 'file-list photo-grid';
+  listEl.innerHTML = '';
+  countEl.textContent = data.photos.length ? KiliwUI.filesCount(data.photos.length) : '';
+  emptyEl.textContent = t('photos.empty');
+  emptyEl.hidden = data.photos.length > 0;
+
+  for (const photo of data.photos) {
+    const name = photo.path.split('/').pop();
+    const li = document.createElement('li');
+    li.className = 'photo-tile';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.title = name;
+    const censored = photo.sensitive || SENSITIVE_RE.test(name);
+    if (photo.size <= THUMB_MAX) {
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.alt = name;
+      img.src = fileUrlAt(photo.path, true);
+      btn.appendChild(img);
+    } else {
+      btn.appendChild(iconSvg('file', name));
+    }
+    if (censored) {
+      btn.classList.add('censored');
+      const badge = document.createElement('span');
+      badge.className = 'thumb-lock';
+      badge.innerHTML = LOCK_SVG;
+      btn.appendChild(badge);
+    }
+    btn.addEventListener('click', () => openPreview({ name, path: photo.path, size: photo.size, sensitive: photo.sensitive }));
+    li.appendChild(btn);
+    listEl.appendChild(li);
+  }
+}
+
+/* --- trash --- */
+
+async function loadTrash() {
+  const res = await fetch('/api/trash');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success || currentView !== 'trash') return;
+
+  listEl.className = 'file-list';
+  listEl.innerHTML = '';
+  countEl.textContent = t('trash.hint');
+  emptyEl.textContent = t('trash.none');
+  emptyEl.hidden = data.items.length > 0;
+  document.getElementById('trash-empty').hidden = data.items.length === 0;
+
+  for (const item of data.items) {
+    const name = item.path.split('/').pop();
+    const dir = item.path.includes('/') ? item.path.slice(0, item.path.lastIndexOf('/')) : '';
+    const li = document.createElement('li');
+    li.className = 'file-row trash-row';
+
+    const info = document.createElement('div');
+    info.className = 'file-info';
+    const nameEl = document.createElement('span');
+    nameEl.className = 'file-name';
+    nameEl.textContent = name;
+    const meta = document.createElement('span');
+    meta.className = 'file-meta';
+    meta.textContent = `${dir ? `${dir} · ` : ''}${formatSize(item.size)} · ${t('trash.deletedOn', { date: formatDate(new Date(item.deleted).toISOString()) })}`;
+    info.append(nameEl, meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'file-actions';
+    const restore = actionButton('menu', t('trash.restore'));
+    restore.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ACTION_ICONS.restore}</svg>`;
+    restore.className = 'icon-btn';
+    restore.title = t('trash.restore');
+    restore.addEventListener('click', async () => {
+      await fetch('/api/trash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restore', id: item.id }),
+      });
+      loadTrash();
+      refreshMe();
+    });
+    const purge = actionButton('delete', t('trash.forever'));
+    purge.addEventListener('click', async () => {
+      if (!confirm(t('trash.foreverConfirm', { name }))) return;
+      await fetch('/api/trash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'purge', id: item.id }),
+      });
+      loadTrash();
+    });
+    actions.append(restore, purge);
+
+    li.append(iconSvg('file', name), info, actions);
+    listEl.appendChild(li);
+  }
+}
+
+document.getElementById('trash-empty').addEventListener('click', async () => {
+  if (!confirm(t('trash.emptyConfirm'))) return;
+  await fetch('/api/trash', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'empty' }),
+  });
+  loadTrash();
+});
+
+/* ---------- markdown / text notes ---------- */
+
+const EDITABLE_RE = /\.(md|markdown|txt|text|log)$/i;
+const noteModal = document.getElementById('note-modal');
+const noteText = document.getElementById('note-text');
+const notePreview = document.getElementById('note-preview');
+let noteState = null; // { path, isNew }
+
+/* tiny markdown renderer: everything is HTML-escaped first */
+function mdToHtml(src) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const inline = (s) => s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  const lines = esc(src).split('\n');
+  const out = [];
+  let list = null; // 'ul' | 'ol'
+  let code = false;
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+
+  for (const raw of lines) {
+    if (raw.startsWith('```')) {
+      closeList();
+      out.push(code ? '</code></pre>' : '<pre><code>');
+      code = !code;
+      continue;
+    }
+    if (code) {
+      out.push(raw);
+      continue;
+    }
+    const h = raw.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      closeList();
+      out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`);
+      continue;
+    }
+    if (/^(-{3,}|\*{3,})$/.test(raw.trim())) {
+      closeList();
+      out.push('<hr>');
+      continue;
+    }
+    const ul = raw.match(/^\s*[-*]\s+(.*)$/);
+    const ol = raw.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (ul || ol) {
+      const kind = ul ? 'ul' : 'ol';
+      if (list !== kind) { closeList(); out.push(`<${kind}>`); list = kind; }
+      out.push(`<li>${inline((ul || ol)[1])}</li>`);
+      continue;
+    }
+    closeList();
+    /* the source is already HTML-escaped, so ">" arrives as "&gt;" */
+    if (raw.match(/^&gt;\s?/)) {
+      out.push(`<blockquote>${inline(raw.replace(/^&gt;\s?/, ''))}</blockquote>`);
+      continue;
+    }
+    if (raw.trim() === '') continue;
+    out.push(`<p>${inline(raw)}</p>`);
+  }
+  closeList();
+  if (code) out.push('</code></pre>');
+  return out.join('\n');
+}
+
+function openNoteEditor(path, text, isNew) {
+  noteState = { path, isNew };
+  document.getElementById('note-title').textContent = path.split('/').pop();
+  noteText.value = text;
+  noteText.hidden = false;
+  notePreview.hidden = true;
+  showStatus('note-status', '');
+  noteModal.hidden = false;
+  noteText.focus();
+}
+
+function closeNoteModal() {
+  noteModal.hidden = true;
+  noteState = null;
+}
+document.getElementById('note-close').addEventListener('click', closeNoteModal);
+noteModal.addEventListener('click', (e) => {
+  if (e.target === noteModal) closeNoteModal();
+});
+
+document.getElementById('note-toggle').addEventListener('click', () => {
+  const showPreview = notePreview.hidden;
+  if (showPreview) notePreview.innerHTML = mdToHtml(noteText.value);
+  notePreview.hidden = !showPreview;
+  noteText.hidden = showPreview;
+});
+
+document.getElementById('note-save').addEventListener('click', async () => {
+  if (!noteState) return;
+  const dir = noteState.path.includes('/') ? noteState.path.slice(0, noteState.path.lastIndexOf('/')) : '';
+  const name = noteState.path.split('/').pop();
+  const type = /\.(md|markdown)$/i.test(name) ? 'text/markdown' : 'text/plain';
+  const res = await fetch(`/api/files?name=${encodeURIComponent(name)}&path=${encodeURIComponent(dir)}${scopeQ()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': type },
+    body: noteText.value,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.success) {
+    showStatus('note-status', t('note.saved'), true);
+    if (noteState.isNew) {
+      noteState.isNew = false;
+      loadFiles();
+      refreshMe();
+    }
+  } else {
+    showStatus('note-status', t('note.fail'));
+  }
+});
+
+document.getElementById('new-note').addEventListener('click', () => {
+  let name = prompt(t('note.prompt'), 'Note.md');
+  if (!name) return;
+  name = name.trim();
+  if (!name) return;
+  if (!name.includes('.')) name += '.md';
+  openNoteEditor(fullPath(name), '', true);
+});
+
+async function editNote(file) {
+  const path = file.path || fullPath(file.name);
+  const res = await fetch(fileUrlAt(path, true) + scopeQ());
+  const text = res.ok ? await res.text() : '';
+  openNoteEditor(path, text, false);
+}
+
 /* ---------- browser ---------- */
 
 async function loadFiles() {
@@ -536,6 +970,21 @@ async function loadFiles() {
   renderList(data.folders, data.files, shared);
 }
 
+/* crumbs double as drop targets: drag a file up the tree */
+function crumbDropTarget(el, destPath) {
+  el.addEventListener('dragover', (e) => {
+    if (!dragName) return;
+    e.preventDefault();
+    el.classList.add('drop-target');
+  });
+  el.addEventListener('dragleave', () => el.classList.remove('drop-target'));
+  el.addEventListener('drop', (e) => {
+    e.preventDefault();
+    el.classList.remove('drop-target');
+    if (dragName) moveFilesTo(destPath, [dragName]);
+  });
+}
+
 function renderBreadcrumb() {
   breadcrumbEl.innerHTML = '';
   const root = document.createElement('button');
@@ -548,6 +997,7 @@ function renderBreadcrumb() {
     currentPath = [];
     loadFiles();
   });
+  if (!currentScope) crumbDropTarget(root, '');
   breadcrumbEl.appendChild(root);
 
   if (scopeInfo) {
@@ -583,14 +1033,23 @@ function renderBreadcrumb() {
       currentPath = currentPath.slice(0, index + 1);
       loadFiles();
     });
+    crumbDropTarget(crumb, currentPath.slice(0, index + 1).join('/'));
     breadcrumbEl.appendChild(crumb);
   });
 }
 
 function renderList(folders, files, shared = []) {
+  listEl.className = 'file-list';
   listEl.innerHTML = '';
+  emptyEl.textContent = t('files.empty');
   emptyEl.hidden = folders.length > 0 || files.length > 0 || shared.length > 0;
   countEl.textContent = files.length ? KiliwUI.filesCount(files.length) : '';
+
+  /* remembered sort order (folders stay alphabetical) */
+  files = [...files];
+  if (sortMode === 'name') files.sort((a, b) => a.name.localeCompare(b.name));
+  else if (sortMode === 'size') files.sort((a, b) => b.size - a.size);
+  else files.sort((a, b) => new Date(b.uploaded) - new Date(a.uploaded));
 
   for (const grant of shared) {
     const li = document.createElement('li');
@@ -675,6 +1134,19 @@ function renderList(folders, files, shared = []) {
     });
     actions.appendChild(menu);
 
+    /* folders accept files dragged onto them */
+    li.addEventListener('dragover', (e) => {
+      if (!dragName) return;
+      e.preventDefault();
+      li.classList.add('drop-target');
+    });
+    li.addEventListener('dragleave', () => li.classList.remove('drop-target'));
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      li.classList.remove('drop-target');
+      if (dragName) moveFilesTo(fullPath(folder), [dragName]);
+    });
+
     li.append(iconSvg('folder'), info, actions);
     listEl.appendChild(li);
   }
@@ -721,6 +1193,14 @@ function renderList(folders, files, shared = []) {
 
     info.addEventListener('click', () => openPreview(file));
 
+    /* star marker next to the name */
+    if (!currentScope && starSet.has(fullPath(file.name))) {
+      const mark = document.createElement('span');
+      mark.className = 'star-mark';
+      mark.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none">${ACTION_ICONS.star}</svg>`;
+      name.appendChild(mark);
+    }
+
     const actions = document.createElement('div');
     actions.className = 'file-actions';
     const download = actionButton('download', t('file.download'));
@@ -730,7 +1210,19 @@ function renderList(folders, files, shared = []) {
       const items = [
         { icon: 'preview', label: t('file.preview'), onClick: () => openPreview(file) },
       ];
+      if (EDITABLE_RE.test(file.name)) {
+        items.push({ icon: 'edit', label: t('note.edit'), onClick: () => editNote(file) });
+      }
       if (!currentScope) {
+        const path = fullPath(file.name);
+        items.push({
+          icon: 'star',
+          label: starSet.has(path) ? t('star.remove') : t('star.add'),
+          onClick: async () => {
+            await toggleStar(path);
+            renderList(lastListing.folders, lastListing.files, lastListing.shared);
+          },
+        });
         /* public links can only be managed by the file's owner */
         items.push({ icon: 'share', label: t('file.share'), onClick: () => openShare(file) });
       }
@@ -754,6 +1246,15 @@ function renderList(folders, files, shared = []) {
       openRowMenu(menu, items);
     });
     actions.append(download, menu);
+
+    /* rows can be dragged onto a folder or a breadcrumb */
+    li.draggable = true;
+    li.addEventListener('dragstart', (e) => {
+      dragName = file.name;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', file.name);
+    });
+    li.addEventListener('dragend', () => { dragName = null; });
 
     li.append(fileVisual(file), info, actions);
     listEl.appendChild(li);
@@ -1326,10 +1827,11 @@ const EXT_KIND = {
 function openPreview(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   const kind = EXT_KIND[ext];
-  const url = fileUrl(file.name, true);
+  /* photos / search / starred pass the full path; the browser uses currentPath */
+  const url = file.path ? fileUrlAt(file.path, true) : fileUrl(file.name, true);
 
   document.getElementById('preview-name').textContent = file.name;
-  document.getElementById('preview-download').href = fileUrl(file.name, false);
+  document.getElementById('preview-download').href = file.path ? fileUrlAt(file.path, false) : fileUrl(file.name, false);
   previewBody.innerHTML = '';
   previewBody.classList.remove('censored');
 
@@ -1638,6 +2140,7 @@ modal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!rowMenu.hidden) closeRowMenu();
+  else if (!noteModal.hidden) closeNoteModal();
   else if (!moveModal.hidden) closeMoveModal();
   else if (!previewModal.hidden) closePreview();
   else if (!notifModal.hidden) closeNotifModal();
@@ -2016,8 +2519,9 @@ document.getElementById('app-build').addEventListener('click', async () => {
 
 /* ---------- init ---------- */
 
-/* profile, files and notifications load in parallel */
-Promise.all([refreshMe(), loadFiles(), refreshNotifs()]).then(([ok]) => {
+/* profile, files, stars and notifications load in parallel */
+updateTools();
+Promise.all([refreshMe(), refreshStars().then(loadFiles), refreshNotifs()]).then(([ok]) => {
   if (!ok) return;
   document.querySelector('.cloud').classList.add('ready');
   checkPaymentReturn();

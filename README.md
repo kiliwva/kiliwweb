@@ -68,6 +68,39 @@ storage counts against the owner's quota). Grants live in R2 under
 `_collab/` (a member record plus an owner-side index) and are cleaned up
 when the folder or either account is deleted.
 
+### Views, trash, stars, notes
+
+The file browser has four tabs plus search:
+
+- **Files** — the folder browser: sort by date/name/size (remembered in
+  `localStorage`), multi-select bulk actions, and drag & drop — drop a
+  file row onto a folder or a breadcrumb to move it.
+- **Photos** — every image across all folders as a grid
+  (`GET /api/photos`, 18+ ones blurred with a lock).
+- **Starred** — files marked with ★ from the row menu
+  (`_auth/starred/<email>`, `GET/POST /api/stars`; stars follow renames
+  and moves, dead entries self-clean).
+- **Trash** — deleting a file (single, bulk, or by deleting its folder)
+  moves it to `_trash/<email>/` for **30 days** (`GET/POST /api/trash`:
+  restore — with `name (n).ext` de-duplication — delete forever, empty;
+  expired items purge lazily on listing). Trash does not count toward
+  the storage quota.
+- **Search** (`GET /api/search?q=`) — case-insensitive name search
+  across all folders, results show the containing folder.
+
+Markdown/text files (`.md .markdown .txt .text .log`) get an **Edit**
+action and a **New note** button opens the same editor: a modal with a
+sanitized markdown preview, saved through the normal upload endpoint.
+
+### Account deletion grace period
+
+Deleting an account schedules the wipe **7 days** ahead
+(`user.deleteAt`) and signs the account out everywhere. Signing in
+within those 7 days cancels the deletion (`restored: true` in the login
+response); after the deadline the account is wiped on the next login
+attempt or by the daily cron (`triggers.crons` in `wrangler.jsonc`,
+`scheduled()` in `src/worker.js` → `purgeExpiredAccounts`).
+
 ## Files
 
 | Path | Purpose |

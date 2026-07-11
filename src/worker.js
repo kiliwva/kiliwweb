@@ -13,6 +13,10 @@ import * as file from '../functions/api/file.js';
 import * as folders from '../functions/api/folders.js';
 import * as folderZip from '../functions/api/folder-zip.js';
 import * as batch from '../functions/api/batch.js';
+import * as trash from '../functions/api/trash.js';
+import * as stars from '../functions/api/stars.js';
+import * as search from '../functions/api/search.js';
+import * as photos from '../functions/api/photos.js';
 import * as mpu from '../functions/api/mpu.js';
 import * as billing from '../functions/api/billing.js';
 import * as yookassa from '../functions/api/yookassa.js';
@@ -29,7 +33,7 @@ import * as apikeys from '../functions/api/apikeys.js';
 import * as apiV1 from '../functions/api/v1.js';
 import * as debug from '../functions/api/debug.js';
 import { handleShare } from '../functions/share.js';
-import { json } from '../lib/api.js';
+import { json, purgeExpiredAccounts } from '../lib/api.js';
 
 const ROUTES = {
   '/api/login': login,
@@ -43,6 +47,10 @@ const ROUTES = {
   '/api/folders': folders,
   '/api/folder-zip': folderZip,
   '/api/batch': batch,
+  '/api/trash': trash,
+  '/api/stars': stars,
+  '/api/search': search,
+  '/api/photos': photos,
   '/api/mpu': mpu,
   '/api/billing': billing,
   '/api/yookassa': yookassa,
@@ -103,5 +111,10 @@ export default {
       return fresh;
     }
     return response;
+  },
+
+  /* daily cron: wipe accounts whose 7-day deletion grace has passed */
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(purgeExpiredAccounts(env));
   },
 };

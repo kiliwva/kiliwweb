@@ -1,13 +1,13 @@
 import {
   json, getSession, storageReady, getUser, putUser, destroySession,
   authRedirect, verifyTotp, hashPassword, timingSafeEqualHex,
-  mailReady, sendEmail, sixDigitCode, buildCodeEmail, wipeCollabForAccount,
-  wipeApiKeys,
+  mailReady, sendEmail, sixDigitCode, buildCodeEmail, wipeSessionsFor,
 } from '../../lib/api.js';
 
 const CODE_TTL = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN = 60 * 1000;
+export const DELETE_GRACE = 7 * 24 * 60 * 60 * 1000; // sign in again to cancel
 
 function deletionEmail(code) {
   const { subject, html } = buildCodeEmail({
@@ -18,59 +18,6 @@ function deletionEmail(code) {
   });
   const text = `Your Kiliw account deletion code: ${code}\n\nEntering it will permanently delete your account and all files. If you didn't request this, change your password immediately.`;
   return { subject, text, html };
-}
-
-async function wipePrefix(env, prefix) {
-  let cursor;
-  do {
-    const page = await env.KILIW_FILES.list({ prefix, cursor, limit: 1000 });
-    const keys = page.objects.map((o) => o.key);
-    if (keys.length) await env.KILIW_FILES.delete(keys);
-    cursor = page.truncated ? page.cursor : undefined;
-  } while (cursor);
-}
-
-async function wipeAccount(env, email) {
-  await wipePrefix(env, `u/${email}/`);
-
-  /* public share links (records first, then the file index) */
-  let cursor;
-  do {
-    const page = await env.KILIW_FILES.list({ prefix: `_share/f/${email}/`, cursor, limit: 1000 });
-    for (const obj of page.objects) {
-      const rec = await env.KILIW_FILES.get(obj.key);
-      const token = rec ? (await rec.text()).trim() : '';
-      if (token) await env.KILIW_FILES.delete(`_share/t/${token}.json`);
-    }
-    cursor = page.truncated ? page.cursor : undefined;
-  } while (cursor);
-  await wipePrefix(env, `_share/f/${email}/`);
-  await wipePrefix(env, `_mod/${email}/`); // cached image-moderation verdicts
-  await wipePrefix(env, `_notif/${email}/`); // notifications
-
-  /* folder edit grants, in both directions */
-  await wipeCollabForAccount(env, email);
-  await wipeApiKeys(env, email);
-
-  /* every session of this account */
-  cursor = undefined;
-  do {
-    const page = await env.KILIW_FILES.list({ prefix: '_auth/sessions/', cursor, limit: 1000 });
-    for (const obj of page.objects) {
-      const record = await env.KILIW_FILES.get(obj.key);
-      if (!record) continue;
-      try {
-        if (JSON.parse(await record.text()).email === email) {
-          await env.KILIW_FILES.delete(obj.key);
-        }
-      } catch { /* skip unreadable */ }
-    }
-    cursor = page.truncated ? page.cursor : undefined;
-  } while (cursor);
-
-  await env.KILIW_FILES.delete(`_auth/avatars/${email}`);
-  await env.KILIW_FILES.delete(`_auth/pending/${email}.json`);
-  await env.KILIW_FILES.delete(`_auth/users/${email}.json`);
 }
 
 /* POST /api/delete-account
@@ -155,8 +102,12 @@ export async function onRequestPost({ request, env }) {
 
     if (!ok) return json({ success: false, error: 'bad-request' }, 400);
 
-    await wipeAccount(env, session.email);
-    const cookie = await destroySession(request, env); // session file is gone; clears the cookie
+    /* scheduled, not immediate: signing in again within 7 days cancels it */
+    delete user.deleteCode;
+    user.deleteAt = Date.now() + DELETE_GRACE;
+    await putUser(env, user);
+    await wipeSessionsFor(env, session.email); // signs the account out everywhere
+    const cookie = await destroySession(request, env);
     return json(
       { success: true, redirect: authRedirect(request) },
       200,

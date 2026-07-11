@@ -141,6 +141,10 @@ async function handleSubmit(form, kind) {
         showVerifyStep(payload.email);
         return;
       }
+      if (data.restored) {
+        /* the pending deletion was cancelled by this sign-in */
+        alert(KiliwUI.t('auth.restored'));
+      }
       window.location.href = data.redirect || '/';
       return;
     }

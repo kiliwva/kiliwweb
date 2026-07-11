@@ -1,7 +1,8 @@
 import {
   json, getSession, storageReady, parsePath, cleanSegment,
   deleteShareForFile, moveShare, resolveScope, scopedPath,
-  moveModVerdict, deleteModVerdict,
+  moveModVerdict, deleteModVerdict, trashFile, moveStar,
+  getStars, saveStars,
 } from '../../lib/api.js';
 import { zipResponse, ZIP_MAX_BYTES } from '../../lib/zip.js';
 
@@ -52,13 +53,18 @@ export async function onRequestPost({ request, env }) {
     for (let i = 0; i < names.length; i += CHUNK) {
       await Promise.all(names.slice(i, i + CHUNK).map(async (name) => {
         const full = fullOf(name);
-        await env.KILIW_FILES.delete(keyOf(full));
+        await trashFile(env, scope.email, full); // recycle bin, not gone
         await Promise.all([
           deleteShareForFile(env, scope.email, full),
           deleteModVerdict(env, scope.email, full),
         ]);
       }));
     }
+    /* one pass over the star list: parallel updates would race */
+    const gone = new Set(names.map(fullOf));
+    const stars = await getStars(env, scope.email);
+    const kept = stars.filter((p) => !gone.has(p));
+    if (kept.length !== stars.length) await saveStars(env, scope.email, kept);
     return json({ success: true, deleted: names.length });
   }
 
@@ -91,6 +97,7 @@ export async function onRequestPost({ request, env }) {
         moveShare(env, scope.email, fullOld, fullNew),
         moveModVerdict(env, scope.email, fullOld, fullNew),
       ]);
+      await moveStar(env, scope.email, fullOld, fullNew);
       moved++;
     }
     return json({ success: true, moved, skipped });

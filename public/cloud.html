@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=35">
+  <link rel="stylesheet" href="styles.css?v=36">
 </head>
 <body data-title-key="title.cloud">
 
@@ -52,17 +52,39 @@
 
       <!-- File browser -->
       <section class="panel files">
+        <div class="files-tools">
+          <div class="seg view-tabs" id="view-tabs">
+            <button type="button" class="seg-btn active" data-view="files" data-i18n="view.files">Files</button>
+            <button type="button" class="seg-btn" data-view="photos" data-i18n="view.photos">Photos</button>
+            <button type="button" class="seg-btn" data-view="starred" data-i18n="view.starred">Starred</button>
+            <button type="button" class="seg-btn" data-view="trash" data-i18n="view.trash">Trash</button>
+          </div>
+          <input type="search" class="file-search" id="file-search" placeholder="Search files…" autocomplete="off">
+        </div>
         <div class="files-head">
           <nav class="breadcrumb" id="breadcrumb" aria-label="Folders"></nav>
           <div class="files-actions">
             <span id="file-count"></span>
+            <select id="sort-sel" class="sort-sel" aria-label="Sort by">
+              <option value="date" data-i18n="sort.date">Newest</option>
+              <option value="name" data-i18n="sort.name">Name</option>
+              <option value="size" data-i18n="sort.size">Largest</option>
+            </select>
             <button type="button" class="ghost-btn" id="select-toggle">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="m8.5 12 2.5 2.5 5-5"/></svg>
               <span data-i18n="sel.toggle">Select</span>
             </button>
+            <button type="button" class="ghost-btn" id="new-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              <span data-i18n="note.new">New note</span>
+            </button>
             <button type="button" class="ghost-btn" id="new-folder">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><path d="M12 10v6m-3-3h6"/></svg>
               <span data-i18n="cloud.newFolder">New folder</span>
+            </button>
+            <button type="button" class="ghost-btn danger" id="trash-empty" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              <span data-i18n="trash.empty">Empty trash</span>
             </button>
           </div>
         </div>
@@ -399,7 +421,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-23</button>
+        <button type="button" class="app-build" id="app-build">KW-24</button>
       </div>
     </div>
   </div>
@@ -487,8 +509,29 @@
     </div>
   </div>
 
-  <script src="vendor/qrcode.min.js?v=35"></script>
-  <script src="ui.js?v=35"></script>
-  <script src="cloud.js?v=35"></script>
+  <!-- markdown / text editor -->
+  <div class="modal-overlay" id="note-modal" hidden>
+    <div class="modal note-modal" role="dialog" aria-modal="true" aria-labelledby="note-title">
+      <div class="modal-head">
+        <h2 id="note-title"></h2>
+        <div class="modal-head-actions">
+          <button type="button" class="icon-btn" id="note-toggle" title="Preview" aria-label="Toggle preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button type="button" class="icon-btn" id="note-close" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+      </div>
+      <textarea id="note-text" class="note-text" spellcheck="false" placeholder="Write something…"></textarea>
+      <div id="note-preview" class="note-preview" hidden></div>
+      <p class="modal-status" id="note-status" hidden></p>
+      <button type="button" class="submit small" id="note-save" data-i18n="note.save">Save</button>
+    </div>
+  </div>
+
+  <script src="vendor/qrcode.min.js?v=36"></script>
+  <script src="ui.js?v=36"></script>
+  <script src="cloud.js?v=36"></script>
 </body>
 </html>
