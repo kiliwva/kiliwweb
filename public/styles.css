@@ -521,6 +521,8 @@ body {
   color: var(--accent-press);
 }
 .file-icon.folder { color: var(--accent); }
+/* typed icons: neutral outline so the extension badge carries the color */
+.file-icon.typed { color: #8E8E96; }
 
 /* small image thumbnails in file rows */
 .thumb {

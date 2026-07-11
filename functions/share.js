@@ -394,7 +394,7 @@ const CSS = `
     }
     .f-row:hover { background: rgba(255, 255, 255, 0.05); }
     .f-row > svg { width: 20px; height: 20px; flex: none; color: #D97757; }
-    .f-row.f-file > svg { color: #B05C40; }
+    .f-row.f-file > svg { width: 24px; height: 24px; color: #B05C40; }
     .f-name {
       flex: 1;
       min-width: 0;
@@ -554,6 +554,45 @@ function notFoundPage(viewer = null) {
 const FOLDER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>';
 const FILE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/></svg>';
 
+/* per-family colors for the extension badge on file icons (mirrors cloud.js) */
+const EXT_COLORS = (() => {
+  const families = [
+    ['#E5484D', 'pdf'],
+    ['#4E86E8', 'doc docx rtf odt pages'],
+    ['#E06B2B', 'ppt pptx key odp'],
+    ['#38A169', 'xls xlsx csv ods numbers'],
+    ['#7C7C85', 'txt md log'],
+    ['#2E9FE6', 'psd'],
+    ['#E8930C', 'ai eps'],
+    ['#E5397D', 'indd'],
+    ['#C13BD6', 'xd'],
+    ['#7D7DE8', 'aep prproj'],
+    ['#9B59F5', 'fig sketch'],
+    ['#C0932B', 'zip rar 7z tar gz bz2 xz'],
+    ['#8B5CF6', 'mp3 wav flac ogg m4a aac'],
+    ['#D6409F', 'mp4 mov mkv webm avi m4v'],
+    ['#2AA189', 'js ts jsx tsx json py rb go rs java c cpp cs php sh yml yaml sql html css scss xml'],
+    ['#6C7BE0', 'ttf otf woff woff2'],
+    ['#64748B', 'exe msi apk dmg pkg deb rpm iso'],
+    ['#B0813C', 'epub mobi'],
+    ['#D97757', 'png jpg jpeg gif webp avif bmp heic svg'],
+  ];
+  const map = {};
+  for (const [color, exts] of families) for (const e of exts.split(' ')) map[e] = color;
+  return map;
+})();
+
+/** File icon with a colored extension badge; plain outline for unknown types. */
+function typedFileIcon(name) {
+  const m = /\.([a-z0-9]{1,5})$/i.exec(name);
+  const ext = m ? m[1].toLowerCase() : '';
+  const color = EXT_COLORS[ext];
+  if (!color) return FILE_ICON;
+  const badge = `<rect x="1" y="12" width="16" height="8.5" rx="2.2" fill="${color}" stroke="none"/>`
+    + `<text x="9" y="18.4" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="5.2" font-weight="800" letter-spacing="0.02em" fill="#fff" stroke="none">${ext.toUpperCase().slice(0, 4)}</text>`;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:#8E8E96" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/>${badge}</svg>`;
+}
+
 function encPath(path) {
   return encodeURIComponent(path).replace(/%2F/gi, '/');
 }
@@ -581,7 +620,7 @@ function folderPage(share, rp, folders, files, proofQuery, viewer) {
   for (const file of files) {
     const rel = rp ? `${rp}/${file.name}` : file.name;
     const sensitive = file.sensitive || SENSITIVE_RE.test(file.name);
-    let visual = FILE_ICON;
+    let visual = typedFileIcon(file.name);
     if (IMG_EXT.test(file.name) && file.size <= THUMB_MAX) {
       visual = `<span class="thumb${sensitive ? ' censored' : ''}">
         <img loading="lazy" alt="" src="${base}?raw=${encPath(rel)}${proofQuery}">
@@ -640,7 +679,7 @@ function buildStage({ name, size, kind, sensitive, rawUrl, dlUrl }) {
     stage = `<iframe class="preview-frame" src="${rawUrl}" title="${esc(name)}"></iframe>`;
   } else {
     stage = `<div class="na">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z"/><path d="M14 2v6h6"/></svg>
+      ${typedFileIcon(name)}
       <p>Preview is not available for this file type.</p>
       <a class="btn" href="${dlUrl}" download>${DL_ICON}Download — ${formatSize(size)}</a>
     </div>`;
