@@ -1,6 +1,6 @@
 import {
   getShare, hashPassword, timingSafeEqualHex, moderateShare, moderateStoredImage,
-  modVerdictsAt, parsePath, getSession, getUser, requestShareAccess,
+  modVerdictsAt, parsePath, parseRange, getSession, getUser, requestShareAccess,
 } from '../lib/api.js';
 import { collectZipEntries, zipResponse } from '../lib/zip.js';
 
@@ -446,8 +446,19 @@ const CSS = `
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.09);
     }
-    .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .thumb.censored img { filter: blur(7px) saturate(0.7); transform: scale(1.25); }
+    .thumb img, .thumb video { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .thumb.censored img, .thumb.censored video { filter: blur(7px) saturate(0.7); transform: scale(1.25); }
+    .thumb-play {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #FFF;
+      background: rgba(0, 0, 0, 0.18);
+      pointer-events: none;
+    }
+    .thumb-play svg { width: 15px; height: 15px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+    .thumb.censored .thumb-play { display: none; }
     .thumb-lock {
       position: absolute;
       inset: 0;
@@ -629,6 +640,12 @@ function folderPage(share, rp, folders, files, proofQuery, viewer) {
         <img loading="lazy" alt="" src="${base}?raw=${encPath(rel)}${proofQuery}">
         ${sensitive ? `<span class="thumb-lock">${LOCK_SVG}</span>` : ''}
       </span>`;
+    } else if (/\.(mp4|webm|m4v|mov)$/i.test(file.name)) {
+      visual = `<span class="thumb${sensitive ? ' censored' : ''}">
+        <video muted playsinline preload="metadata" src="${base}?raw=${encPath(rel)}${proofQuery}#t=0.1"></video>
+        <span class="thumb-play"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M8 5.5v13l11-6.5Z"/></svg></span>
+        ${sensitive ? `<span class="thumb-lock">${LOCK_SVG}</span>` : ''}
+      </span>`;
     }
     rows.push(`<div class="f-row f-file">
       ${visual}<a class="f-name" href="${base}?view=${encPath(rel)}${proofQuery}">${esc(file.name)}</a>
@@ -785,12 +802,37 @@ function restrictedPage(share, viewer, requested = false) {
 
 /* ---------- streaming ---------- */
 
-function streamFile(object, name, inline) {
+/** Stream an R2 object, honouring Range requests (video thumbnails and
+    player seeking fetch only the bytes they need). Returns null when
+    the key does not exist. */
+async function streamFile(env, key, name, inline, request) {
+  const head = await env.KILIW_FILES.head(key);
+  if (!head) return null;
+
+  const range = parseRange(request, head.size);
+  if (range?.invalid) {
+    return new Response(null, {
+      status: 416,
+      headers: { 'Content-Range': `bytes */${head.size}` },
+    });
+  }
+  const object = await env.KILIW_FILES.get(
+    key,
+    range ? { range: { offset: range.offset, length: range.length } } : undefined,
+  );
+  if (!object) return null;
+
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   const type = headers.get('Content-Type') || 'application/octet-stream';
   if (!headers.get('Content-Type')) headers.set('Content-Type', type);
-  headers.set('Content-Length', String(object.size));
+  headers.set('Accept-Ranges', 'bytes');
+  if (range) {
+    headers.set('Content-Range', `bytes ${range.offset}-${range.end}/${head.size}`);
+    headers.set('Content-Length', String(range.length));
+  } else {
+    headers.set('Content-Length', String(head.size));
+  }
   headers.set('Cache-Control', 'no-store');
   if (inline) {
     headers.set('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(name)}`);
@@ -799,7 +841,7 @@ function streamFile(object, name, inline) {
   } else {
     headers.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(name)}`);
   }
-  return new Response(object.body, { headers });
+  return new Response(object.body, { status: range ? 206 : 200, headers });
 }
 
 /* ---------- shared folder handler ---------- */
@@ -860,9 +902,8 @@ async function handleFolderShare(request, env, share, url, viewer) {
   if (dl || raw) {
     const rel = parsePath(dl || raw);
     if (!rel) return notFoundPage(viewer);
-    const object = await env.KILIW_FILES.get(`${rootPrefix}${rel}`);
-    if (!object) return notFoundPage(viewer);
-    return streamFile(object, rel.split('/').pop(), Boolean(raw));
+    const res = await streamFile(env, `${rootPrefix}${rel}`, rel.split('/').pop(), Boolean(raw), request);
+    return res || notFoundPage(viewer);
   }
   const view = url.searchParams.get('view');
   if (view) {
@@ -985,9 +1026,8 @@ export async function handleShare(request, env, token) {
   }
 
   if (want !== 'page') {
-    const object = await env.KILIW_FILES.get(key);
-    if (!object) return notFoundPage(viewer);
-    return streamFile(object, name, want === 'raw');
+    const res = await streamFile(env, key, name, want === 'raw', request);
+    return res || notFoundPage(viewer);
   }
 
   const head = await env.KILIW_FILES.head(key);

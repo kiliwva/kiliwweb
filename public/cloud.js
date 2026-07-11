@@ -219,21 +219,44 @@ function fileExt(name) {
   return m ? m[1].toLowerCase() : '';
 }
 
-/** Small image preview for the row; falls back to the generic icon. */
+const VID_EXT = /\.(mp4|webm|m4v|mov)$/i;
+const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M8 5.5v13l11-6.5Z"/></svg>';
+
+/** Small image/video preview for the row; falls back to the type icon. */
 function fileVisual(file) {
-  if (!IMG_EXT.test(file.name) || file.size > THUMB_MAX) return iconSvg('file', file.name);
+  const isImage = IMG_EXT.test(file.name) && file.size <= THUMB_MAX;
+  const isVideo = VID_EXT.test(file.name);
+  if (!isImage && !isVideo) return iconSvg('file', file.name);
+
+  /* rows outside the browser (search/starred) carry a full path */
+  const src = file.path
+    ? `/api/file?p=${encodeURIComponent(file.path)}&inline=1`
+    : fileUrl(file.name, true);
 
   const wrap = document.createElement('span');
   wrap.className = 'thumb';
-  const img = document.createElement('img');
-  img.loading = 'lazy';
-  img.alt = '';
-  /* rows outside the browser (search/starred) carry a full path */
-  img.src = file.path
-    ? `/api/file?p=${encodeURIComponent(file.path)}&inline=1`
-    : fileUrl(file.name, true);
-  img.onerror = () => wrap.replaceWith(iconSvg('file', file.name));
-  wrap.appendChild(img);
+
+  if (isVideo) {
+    /* first frame via a ranged metadata fetch — #t=0.1 forces a frame */
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    video.src = `${src}#t=0.1`;
+    video.onerror = () => wrap.replaceWith(iconSvg('file', file.name));
+    wrap.appendChild(video);
+    const play = document.createElement('span');
+    play.className = 'thumb-play';
+    play.innerHTML = PLAY_SVG;
+    wrap.appendChild(play);
+  } else {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.alt = '';
+    img.src = src;
+    img.onerror = () => wrap.replaceWith(iconSvg('file', file.name));
+    wrap.appendChild(img);
+  }
 
   if (file.sensitive || SENSITIVE_RE.test(file.name)) {
     wrap.classList.add('censored');
@@ -276,7 +299,6 @@ const ACTION_ICONS = {
   open: '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.2 3.9A2 2 0 0 0 7.5 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>',
   star: '<path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9Z"/>',
   restore: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
-  edit: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
 };
 
 function actionButton(kind, title) {
@@ -611,9 +633,6 @@ function pathRow(file) {
   menu.addEventListener('click', () => {
     openRowMenu(menu, [
       { icon: 'preview', label: t('file.preview'), onClick: () => openPreview({ name, path: file.path, size: file.size, sensitive: file.sensitive }) },
-      ...(canEdit({ name, size: file.size })
-        ? [{ icon: 'edit', label: t('note.edit'), onClick: () => openEditor({ path: file.path, name, size: file.size }) }]
-        : []),
       {
         icon: 'star',
         label: starSet.has(file.path) ? t('star.remove') : t('star.add'),
@@ -795,27 +814,6 @@ document.getElementById('trash-empty').addEventListener('click', async () => {
   });
   loadTrash();
 });
-
-/* ---------- file editor (opens on its own page) ---------- */
-
-/* plain-text formats that open in the editor (≤ 2 MB), plus .docx (≤ 10 MB) */
-const EDITABLE_RE = /\.(md|markdown|txt|text|log|csv|tsv|json|xml|yml|yaml|ini|conf|env|htm|html|css|js|ts|jsx|tsx|py|rb|go|rs|java|c|cpp|h|cs|php|sql|sh|bat)$/i;
-const EDITABLE_MAX = 2 * 1024 * 1024;
-const DOCX_RE = /\.docx$/i;
-const DOCX_MAX = 10 * 1024 * 1024;
-
-function canEdit(file) {
-  return (EDITABLE_RE.test(file.name) && file.size <= EDITABLE_MAX)
-    || (DOCX_RE.test(file.name) && file.size <= DOCX_MAX);
-}
-
-/** The editor lives on its own page, in a new tab. */
-function openEditor(file) {
-  const p = file.path || fullPath(file.name);
-  /* full-path rows (search/starred) are always in the own root */
-  const q = file.path ? '' : (currentScope ? `&scope=${encodeURIComponent(currentScope)}` : '');
-  window.open(`/editor.html?p=${encodeURIComponent(p)}${q}`, '_blank');
-}
 
 /* ---------- browser ---------- */
 
@@ -1100,9 +1098,6 @@ function renderList(folders, files, shared = []) {
       const items = [
         { icon: 'preview', label: t('file.preview'), onClick: () => openPreview(file) },
       ];
-      if (canEdit(file)) {
-        items.push({ icon: 'edit', label: t('note.edit'), onClick: () => openEditor(file) });
-      }
       if (!currentScope) {
         const path = fullPath(file.name);
         items.push({

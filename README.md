@@ -88,16 +88,11 @@ The file browser has four tabs plus search:
 - **Search** (`GET /api/search?q=`) — case-insensitive name search
   across all folders, results show the containing folder.
 
-Editable files get an **Edit** action in the row menu that opens a
-dedicated editor page (`/editor.html?p=<path>`, session-gated, new
-tab): plain-text formats up to 2 MB (`.txt .md .csv .json .html .css
-.js .py` and other code/config formats) in a monospace editor (markdown
-adds a sanitized rendered preview), and **Word `.docx` up to 10 MB** in
-a rich-text editor with a B/I/U + headings + bullet-list toolbar. The
-docx round-trip is implemented in `public/editor.js` with the vendored
-`fflate` zip library — simple documents (text, headings, bold/italic/
-underline, bullets) survive saving; tables, images and advanced layout
-are dropped, and the editor warns about this.
+File rows show small previews: images get a thumbnail, videos
+(`mp4 webm m4v mov`) show their first frame with a play badge — file
+streaming (`/api/file` and share-page `?raw=`) supports HTTP Range
+requests, so the browser fetches only the metadata bytes it needs and
+video players can seek. 18+ previews are blurred with a lock.
 
 ### Account deletion grace period
 

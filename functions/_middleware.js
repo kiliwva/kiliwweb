@@ -25,7 +25,7 @@ export async function onRequest(context) {
      the assets layer also serves them at extensionless clean URLs */
   const isAdminPage = url.pathname === '/admin.html' || url.pathname === '/admin';
   const isCloudPage = isAdminPage
-    || ['/cloud.html', '/cloud', '/checkout.html', '/checkout', '/editor.html', '/editor'].includes(url.pathname);
+    || ['/cloud.html', '/cloud', '/checkout.html', '/checkout'].includes(url.pathname);
 
   /* the admin page is for the site owner only */
   if (isAdminPage && session && env.OWNER_EMAIL && session.email !== env.OWNER_EMAIL) {

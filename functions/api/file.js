@@ -2,6 +2,7 @@ import {
   json, getSession, storageReady, parsePath, cleanSegment,
   deleteShareForFile, moveShare, resolveScope, scopedPath,
   moveModVerdict, deleteModVerdict, trashFile, moveStar, removeStar,
+  parseRange,
 } from '../../lib/api.js';
 
 /* content types that are safe to render inline without a sandbox */
@@ -31,7 +32,23 @@ export async function onRequestGet({ request, env }) {
   const p = relPath(request);
   if (!p) return json({ success: false, error: 'bad-name' }, 400);
 
-  const object = await env.KILIW_FILES.get(`u/${scope.email}/${scopedPath(scope, p)}`);
+  const key = `u/${scope.email}/${scopedPath(scope, p)}`;
+  const head = await env.KILIW_FILES.head(key);
+  if (!head) return json({ success: false, error: 'not-found' }, 404);
+
+  /* Range support: video row thumbnails and player seeking fetch only
+     the bytes they need instead of the whole file */
+  const range = parseRange(request, head.size);
+  if (range?.invalid) {
+    return new Response(null, {
+      status: 416,
+      headers: { 'Content-Range': `bytes */${head.size}` },
+    });
+  }
+  const object = await env.KILIW_FILES.get(
+    key,
+    range ? { range: { offset: range.offset, length: range.length } } : undefined,
+  );
   if (!object) return json({ success: false, error: 'not-found' }, 404);
 
   const name = p.split('/').pop();
@@ -40,7 +57,13 @@ export async function onRequestGet({ request, env }) {
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   const type = headers.get('Content-Type') || 'application/octet-stream';
-  headers.set('Content-Length', String(object.size));
+  headers.set('Accept-Ranges', 'bytes');
+  if (range) {
+    headers.set('Content-Range', `bytes ${range.offset}-${range.end}/${head.size}`);
+    headers.set('Content-Length', String(range.length));
+  } else {
+    headers.set('Content-Length', String(head.size));
+  }
 
   if (inline) {
     headers.set('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(name)}`);
@@ -49,7 +72,7 @@ export async function onRequestGet({ request, env }) {
   } else {
     headers.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(name)}`);
   }
-  return new Response(object.body, { headers });
+  return new Response(object.body, { status: range ? 206 : 200, headers });
 }
 
 /* PUT /api/file { p, newName } [?scope=..] — rename a file (same folder) */
