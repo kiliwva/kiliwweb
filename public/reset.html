@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>Reset password — Kiliw Cloud</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=55">
+  <!-- Cloudflare Turnstile -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
+</head>
+<body data-title-key="title.reset">
+
+  <div class="scene">
+    <!-- Ambient background -->
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+    <div class="orb orb-3" aria-hidden="true"></div>
+
+    <main class="card">
+
+      <div class="auth-brand">
+        <span class="wordmark">kiliw<em>cloud</em></span>
+      </div>
+
+      <!-- Step 1: request the code -->
+      <form class="form active" id="form-request" novalidate>
+        <h1 class="title" data-i18n="reset.title">Reset password.</h1>
+        <p class="subtitle" data-i18n="reset.sub">Enter your account email — we'll send a 6-digit code.</p>
+
+        <div class="group">
+          <div class="field">
+            <input type="email" id="reset-email" name="email" placeholder=" " autocomplete="email" required>
+            <label for="reset-email" data-i18n="label.email">Email</label>
+          </div>
+        </div>
+        <p class="group-error" data-error></p>
+
+        <div class="turnstile-slot" data-turnstile></div>
+
+        <button type="submit" class="submit" disabled data-i18n="reset.send">Send the code</button>
+
+        <p class="note"><a class="link" href="/login" data-i18n="reset.back">Back to sign in</a></p>
+      </form>
+
+      <!-- Step 2: code + new password -->
+      <form class="form" id="form-confirm" novalidate hidden>
+        <h1 class="title" data-i18n="reset.codeTitle">Check your email.</h1>
+        <p class="subtitle" id="reset-sub"></p>
+
+        <p class="otp-label" data-i18n="verify.code">Verification code</p>
+        <div class="otp" id="reset-otp" data-otp data-otp-target="reset-code"></div>
+        <input type="hidden" id="reset-code">
+
+        <div class="group" style="margin-top:14px">
+          <div class="field">
+            <input type="password" id="reset-password" placeholder=" " autocomplete="new-password" minlength="8" required>
+            <label for="reset-password" data-i18n="reset.newPassword">New password (min 8 characters)</label>
+          </div>
+        </div>
+        <p class="group-error" data-error></p>
+
+        <button type="submit" class="submit" data-i18n="reset.confirm">Set new password</button>
+
+        <p class="note"><a class="link" href="#" id="reset-again" data-i18n="reset.again">Start over</a></p>
+      </form>
+
+    </main>
+  </div>
+
+  <script src="ui.js?v=55"></script>
+  <script src="reset.js?v=55"></script>
+</body>
+</html>
