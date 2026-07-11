@@ -9,21 +9,26 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=46">
+  <link rel="stylesheet" href="styles.css?v=47">
   <style>
-    .lp { position: relative; overflow: hidden; }
+    /* no overflow:hidden on body — it traps scrolling on iOS after
+       anchor jumps; horizontal clipping is handled by html/body */
+    .lp { position: relative; }
+    html { scroll-behavior: smooth; }
     .lp-wrap { max-width: 1020px; margin: 0 auto; padding: 0 22px; position: relative; z-index: 1; }
+    #plans { scroll-margin-top: 24px; }
 
     /* soft coral glow behind the hero, nothing loud */
     .lp-glow {
       position: absolute;
-      top: -220px;
-      right: -180px;
+      top: 0;
+      right: 0;
       width: 720px;
       height: 720px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(217, 119, 87, 0.13) 0%, transparent 62%);
       filter: blur(40px);
+      transform: translate(25%, -30%);
       pointer-events: none;
     }
 
