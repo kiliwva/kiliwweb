@@ -21,22 +21,39 @@ export async function onRequest(context) {
   }
 
   const isRoot = url.pathname === '/' || url.pathname === '/index.html';
+  const isLogin = url.pathname === '/login';
+  /* legacy app URLs from before the landing page existed */
+  const isLegacyApp = ['/cloud.html', '/cloud'].includes(url.pathname);
   /* pages that require a session (the app + checkout + admin);
      the assets layer also serves them at extensionless clean URLs */
   const isAdminPage = url.pathname === '/admin.html' || url.pathname === '/admin';
   const isCloudPage = isAdminPage
-    || ['/cloud.html', '/cloud', '/checkout.html', '/checkout'].includes(url.pathname);
+    || ['/dash.html', '/dash', '/checkout.html', '/checkout'].includes(url.pathname);
 
   /* the admin page is for the site owner only */
   if (isAdminPage && session && env.OWNER_EMAIL && session.email !== env.OWNER_EMAIL) {
-    return Response.redirect(new URL('/', url).toString(), 302);
+    return Response.redirect(new URL('/dash', url).toString(), 302);
   }
+  if (isLegacyApp) {
+    return Response.redirect(new URL('/dash', url).toString(), 301);
+  }
+
+  /* the marketing landing lives at the root (except on the auth host);
+     fetching the extensionless twin avoids the assets-layer redirect */
+  const landing = () => env.ASSETS.fetch(new URL('/home', url));
+  /* the auth page content (index.html) for /login on non-auth hosts */
+  const authPage = () => env.ASSETS.fetch(new URL('/', url));
 
   /* single-host mode (workers.dev previews, local dev) */
   if (isPlainHost(host)) {
-    if (session && isRoot) return env.ASSETS.fetch(new URL('/cloud.html', url));
+    if (isRoot) return landing();
+    if (isLogin) {
+      return session
+        ? Response.redirect(new URL('/dash', url).toString(), 302)
+        : authPage();
+    }
     if (!session && isCloudPage) {
-      return Response.redirect(new URL('/', url).toString(), 302);
+      return Response.redirect(new URL('/login', url).toString(), 302);
     }
     return next();
   }
@@ -45,21 +62,27 @@ export async function onRequest(context) {
   const isCloudHost = host.startsWith('cloud.');
 
   if (isAuthHost) {
-    if (session && isRoot) return Response.redirect(afterAuthRedirect(request), 302);
+    if (session && (isRoot || isLogin)) return Response.redirect(afterAuthRedirect(request), 302);
+    if (isLogin) return authPage();
     if (isCloudPage) return Response.redirect(afterAuthRedirect(request), 302);
     return next();
   }
 
   if (isCloudHost) {
-    if (!session && (isRoot || isCloudPage)) {
+    if (isRoot) return landing();
+    if (isLogin) {
+      return session
+        ? Response.redirect(new URL('/dash', url).toString(), 302)
+        : authPage();
+    }
+    if (!session && isCloudPage) {
       return Response.redirect(authRedirect(request), 302);
     }
-    if (session && isRoot) return env.ASSETS.fetch(new URL('/cloud.html', url));
     return next();
   }
 
   /* apex / www: pure dispatcher */
-  if (isRoot || isCloudPage) {
+  if (isRoot || isLogin || isCloudPage) {
     return Response.redirect(
       session ? afterAuthRedirect(request) : authRedirect(request),
       302,

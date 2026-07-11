@@ -35,7 +35,7 @@ const fileUrl = (name, inline) => `/api/file?p=${encodeURIComponent(fullPath(nam
 async function refreshMe() {
   const res = await fetch('/api/me');
   if (!res.ok) {
-    window.location.href = '/';
+    window.location.href = '/login';
     return false;
   }
   me = await res.json();
@@ -825,7 +825,7 @@ async function loadFiles() {
     atOwnRoot ? fetch('/api/collab?shared=1') : Promise.resolve(null),
   ]);
   if (res.status === 401) {
-    window.location.href = '/';
+    window.location.href = '/login';
     return;
   }
   if (res.status === 403 && currentScope) {
@@ -1960,7 +1960,7 @@ async function loadSessions() {
       });
       const rdata = await rev.json().catch(() => ({}));
       if (rev.ok && rdata.success && rdata.loggedOut) {
-        window.location.href = '/';
+        window.location.href = '/login';
         return;
       }
       loadSessions();

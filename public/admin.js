@@ -193,7 +193,7 @@ document.getElementById('adm-search').addEventListener('input', (e) => {
   ]);
   const me = await meRes.json().catch(() => ({}));
   if (!meRes.ok || !me.owner) {
-    window.location.href = '/';
+    window.location.href = '/dash';
     return;
   }
   const stats = await statsRes.json().catch(() => ({}));

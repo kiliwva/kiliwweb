@@ -10,7 +10,10 @@ accent (`#D97757`). Runs as a **Cloudflare Worker** with static assets
 
 | URL | Behaviour |
 |---|---|
-| `kiliw.com` | Dispatcher: signed out → `auth.kiliw.com`, signed in → `cloud.kiliw.com` |
+| `cloud.kiliw.com/` | Public marketing landing (`home.html`): features, plans, CTA. Signed-in visitors get "Open my cloud" links |
+| `cloud.kiliw.com/dash` | The cloud app (`dash.html`). Signed out → sign-in. Legacy `/cloud` 301-redirects here |
+| `cloud.kiliw.com/login` | The sign-in page on the cloud host (signed in → `/dash`) |
+| `kiliw.com` | Dispatcher: signed out → `auth.kiliw.com`, signed in → `cloud.kiliw.com/dash` |
 | `cloud.kiliw.com/checkout.html?gb=<tier>` | Checkout page: live USD→RUB rate (CBR, hourly cache in `_rates/`), promo codes (`_promo/`, percent off, optional max uses, validated server-side), payment method choice (YooKassa card / Heleket crypto). The plan modal redirects here. The site owner (`OWNER_EMAIL`) gets a "Site admin" section in the profile: promo management + user/file/storage stats (`/api/admin`) |
 | `auth.kiliw.com` | Sign in / sign up. Signed in → redirect to `cloud.kiliw.com` |
 | `cloud.kiliw.com` | The cloud app. Signed out → redirect to `auth.kiliw.com` |

@@ -88,7 +88,7 @@ async function loadQuote(promoCode) {
     body: JSON.stringify({ action: 'quote', plan, gb, promo: promoCode || '' }),
   });
   if (res.status === 401) {
-    window.location.href = '/';
+    window.location.href = '/login';
     return false;
   }
   const data = await res.json().catch(() => ({}));
@@ -97,7 +97,7 @@ async function loadQuote(promoCode) {
       showStatus('promo-status', t('checkout.promoInvalid'));
       return false;
     }
-    window.location.href = '/'; // unknown tier or server trouble
+    window.location.href = '/dash'; // unknown tier or server trouble
     return false;
   }
   quote = data;
@@ -144,7 +144,7 @@ document.getElementById('co-pay').addEventListener('click', async () => {
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success && data.activated) {
       showStatus('co-status', t('checkout.activated'), true);
-      setTimeout(() => { window.location.href = '/'; }, 1200);
+      setTimeout(() => { window.location.href = '/dash'; }, 1200);
       return;
     }
     if (res.ok && data.success && data.url) {

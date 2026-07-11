@@ -104,7 +104,7 @@ export async function onRequestPost({ request, env }) {
       const { ok, data } = await yookassaRequest(env, 'POST', '/payments', {
         amount: { value: rub.toFixed(2), currency: 'RUB' },
         capture: true,
-        confirmation: { type: 'redirect', return_url: `${origin}/?payment=return` },
+        confirmation: { type: 'redirect', return_url: `${origin}/dash?payment=return` },
         description: `Kiliw Cloud ${plan === 'dev' ? 'DEV' : 'Pro'} — ${gb} GB, ${PRO_DAYS} days ($${price}${promoNote}) — ${session.email}`,
         metadata: { email: session.email, gb: String(gb), plan },
       }, randomHex(16));
@@ -125,7 +125,7 @@ export async function onRequestPost({ request, env }) {
         amount: price.toFixed(2),
         currency: 'USD',
         order_id: `kiliw-${randomHex(10)}`,
-        url_return: `${origin}/?payment=return`,
+        url_return: `${origin}/dash?payment=return`,
         url_callback: `${origin}/api/heleket`,
         additional_data: JSON.stringify({ email: session.email, gb, plan }),
       });

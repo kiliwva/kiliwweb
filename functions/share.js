@@ -506,12 +506,12 @@ const WORDMARK = '<span class="wordmark">kiliw<em>cloud</em></span>';
     and optionally the Download button. */
 function topBar(dlUrl, viewer) {
   const who = viewer
-    ? `<a class="bar-avatar" href="/" title="${esc(viewer.email)}">${
+    ? `<a class="bar-avatar" href="/dash" title="${esc(viewer.email)}">${
       viewer.avatar
         ? `<img src="/api/avatar?v=${viewer.avatar}" alt="">`
         : `<span>${esc(viewer.email[0].toUpperCase())}</span>`
     }</a>`
-    : '<a class="btn ghost" href="/"><span class="btn-label">Sign in</span></a>';
+    : '<a class="btn ghost" href="/login"><span class="btn-label">Sign in</span></a>';
   return `
   <header class="bar">
     <a class="brand" href="/">${WORDMARK}</a>
@@ -788,7 +788,7 @@ function restrictedPage(share, viewer, requested = false) {
       ${ask}`
     : `<h1 class="card-title">${esc(name)}</h1>
       <p class="hint">This link is private. Sign in with an account that has been given access.</p>
-      <a class="btn" href="/">Sign in</a>`;
+      <a class="btn" href="/login">Sign in</a>`;
   return page(name, `${topBar(null, viewer)}
   <main class="center-stage">
     <div class="card">
