@@ -175,6 +175,13 @@ Two payment methods, each enabled by its own secrets
 Either way the plan also activates when the user returns to the site
 after paying, so webhooks are a safety net rather than a requirement.
 
+Renewing the same tier stacks 30 more days on the current period.
+Buying a *different* plan mid-term is an **upgrade**: the unused value
+of the current plan converts into extra days of the new one at the
+plans' daily prices (`upgradePreview` in `lib/api.js`; e.g. 30 unused
+Pro-250 days ≈ +11.5 DEV days on top of the 30 bought). The checkout
+shows the bonus as an "Upgrade bonus" line before paying.
+
 Note: the free tier of R2 itself is 10 GB total for the whole bucket —
 storage beyond that is billed by Cloudflare to the bucket owner.
 

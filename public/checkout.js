@@ -34,6 +34,15 @@ function render() {
   if (quote.percent) {
     document.getElementById('co-discount').textContent = `−${quote.percent}% (${quote.promo})`;
   }
+  /* plan switch: unused time of the current plan becomes bonus days */
+  const up = quote.upgrade;
+  document.getElementById('co-upgrade-row').hidden = !up;
+  if (up) {
+    const fromName = up.fromPlan === 'dev' ? 'DEV' : `Pro ${tierLabel(up.fromGb)}`;
+    document.getElementById('co-upgrade').textContent =
+      t('checkout.upgradeDays', { days: Math.round(up.extraDays), from: fromName });
+  }
+
   const free = quote.price === 0;
   document.getElementById('co-total').textContent = free ? t('checkout.free') : `$${quote.price}`;
   const rub = document.getElementById('co-rub');

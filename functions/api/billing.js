@@ -4,6 +4,7 @@ import {
   heleketReady, heleketRequest, heleketOutcome,
   proPrice, planLimits, PRO_DAYS, PRO_TIERS, DEV_GB, DEV_PRICE,
   usdRubRate, validatePromo, bumpPromoUse, discountedPrice, normPromoCode,
+  upgradePreview,
 } from '../../lib/api.js';
 
 /** Tier + base price for a quote/create request: Pro by GB, or DEV. */
@@ -63,6 +64,8 @@ export async function onRequestPost({ request, env }) {
       rate: Math.round(rate * 100) / 100,
       rub: Math.ceil(price * rate),
       days: PRO_DAYS,
+      /* switching plans: unused time converts into days of the new plan */
+      upgrade: upgradePreview(user, plan, gb),
       methods: { yookassa: yookassaReady(env), heleket: heleketReady(env) },
       tiers: Object.entries(PRO_TIERS).map(([g, p]) => ({ gb: Number(g), price: p })),
     });

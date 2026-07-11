@@ -164,6 +164,8 @@
     'plan.freeDesc': 'Up to 1 GB per file · 10 GB storage. Upgrade to Pro for files up to 50 GB.',
     'plan.proDesc': 'Pro: up to 50 GB per file · {gb} GB storage · active until {date}.',
     'plan.devDesc': 'DEV: up to 50 GB per file · {gb} GB storage · API access · active until {date}.',
+    'checkout.upgrade': 'Upgrade bonus',
+    'checkout.upgradeDays': '+{days} days (unused {from} time)',
     'plan.upgrade': 'Choose a Pro plan',
     'plan.benefit1': 'Files up to 50 GB instead of 1 GB',
     'plan.benefit2': '250 GB to 1 TB of storage instead of 10 GB',
