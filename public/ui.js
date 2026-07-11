@@ -178,7 +178,7 @@
     'devices.fail': 'Could not load devices. Try again.',
     'pnav.danger': 'Danger zone',
     'admin.title': 'Site admin',
-    'admin.users': 'Users',
+    'admin.openUsers': 'Open the user directory →',
     'admin.promos': 'Promo codes',
     'admin.noPromos': 'No promo codes yet.',
     'admin.used': 'used {used}/{max}',

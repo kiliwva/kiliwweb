@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>Admin — Kiliw Cloud</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=30">
+  <style>
+    .adm-wrap { max-width: 860px; margin: 0 auto; padding: 22px 18px 60px; }
+    .adm-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0 24px;
+    }
+    .adm-bar a.home { text-decoration: none; display: inline-flex; align-items: baseline; gap: 8px; }
+    .adm-title { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 18px; }
+
+    .adm-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .adm-tile {
+      padding: 16px 18px;
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 16px;
+      animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .adm-tile b { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
+    .adm-tile span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .adm-search {
+      width: 100%;
+      padding: 13px 17px;
+      margin-bottom: 14px;
+      font: inherit;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--frost-soft);
+      border: 1.5px solid var(--panel-border);
+      border-radius: 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .adm-search:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+
+    .adm-list { list-style: none; }
+    .adm-row {
+      border: 1px solid var(--hairline);
+      border-radius: 16px;
+      margin-bottom: 8px;
+      background: var(--frost-soft);
+      overflow: hidden;
+      animation: row-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .adm-row-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 11px 14px;
+      border: 0;
+      background: none;
+      font: inherit;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .adm-row-head:hover { background: var(--frost); }
+    .adm-detail {
+      display: none;
+      padding: 4px 16px 16px 62px;
+    }
+    .adm-row.open .adm-detail { display: block; animation: rise 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+    .adm-detail .usage { margin: 10px 0 12px; }
+    .adm-facts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .adm-facts b { color: var(--text); font-weight: 700; }
+    .adm-empty { padding: 30px; text-align: center; font-size: 14px; font-weight: 600; color: var(--muted); }
+    @media (max-width: 560px) {
+      .adm-detail { padding-left: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="adm-wrap">
+    <div class="adm-bar">
+      <a class="home" href="/">
+        <span class="wordmark" style="font-size:20px">kiliw<em>cloud</em></span>
+        <span class="badge on">Admin</span>
+      </a>
+      <a class="ghost-btn" href="/">Back to cloud</a>
+    </div>
+
+    <h1 class="adm-title">Users</h1>
+
+    <div class="adm-tiles" id="adm-tiles"></div>
+
+    <input type="search" class="adm-search" id="adm-search" placeholder="Search by email…" autocomplete="off">
+
+    <ul class="adm-list" id="adm-list"></ul>
+    <p class="adm-empty" id="adm-empty" hidden>No users match your search.</p>
+  </div>
+
+  <script src="admin.js?v=30"></script>
+</body>
+</html>

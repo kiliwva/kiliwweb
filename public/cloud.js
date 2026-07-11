@@ -1706,56 +1706,8 @@ function renderPromos(promos) {
   }
 }
 
-function renderAdminUsers(users) {
-  const ul = document.getElementById('admin-user-list');
-  ul.innerHTML = '';
-  users.forEach((user, index) => {
-    const li = document.createElement('li');
-    li.className = 'admin-user';
-    li.style.animationDelay = `${Math.min(index * 24, 200)}ms`;
-
-    const ava = document.createElement('span');
-    ava.className = 'admin-ava';
-    if (user.avatar) {
-      const img = document.createElement('img');
-      img.loading = 'lazy';
-      img.alt = '';
-      img.src = `/api/admin?avatar=${encodeURIComponent(user.email)}&v=${user.avatar}`;
-      img.onerror = () => { img.remove(); ava.textContent = user.email[0].toUpperCase(); };
-      ava.appendChild(img);
-    } else {
-      ava.textContent = user.email[0].toUpperCase();
-    }
-
-    const info = document.createElement('div');
-    info.className = 'admin-user-info';
-    const mail = document.createElement('p');
-    mail.className = 'admin-user-mail';
-    mail.textContent = user.email;
-    const meta = document.createElement('p');
-    meta.className = 'file-meta';
-    const bits = [
-      `${formatSize(user.usage)} · ${KiliwUI.filesCount(user.files)}`,
-      user.totp ? '2FA ✓' : null,
-      user.created ? formatDate(new Date(user.created).toISOString()) : null,
-    ].filter(Boolean);
-    meta.textContent = bits.join(' · ');
-    info.append(mail, meta);
-
-    const badge = document.createElement('span');
-    badge.className = `badge${user.plan !== 'free' ? ' on' : ''}`;
-    badge.textContent = user.plan === 'free' ? t('plan.free') : user.plan.toUpperCase();
-
-    li.append(ava, info, badge);
-    ul.appendChild(li);
-  });
-}
-
 async function loadAdmin() {
-  const [res, uRes] = await Promise.all([
-    fetch('/api/admin'),
-    fetch('/api/admin?view=users'),
-  ]);
+  const res = await fetch('/api/admin');
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) return;
   adminLoaded = true;
@@ -1765,8 +1717,6 @@ async function loadAdmin() {
     size: formatSize(data.stats.bytes),
   });
   renderPromos(data.promos || []);
-  const uData = await uRes.json().catch(() => ({}));
-  if (uRes.ok && uData.success) renderAdminUsers(uData.users || []);
 }
 
 async function adminAction(action, extra) {

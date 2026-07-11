@@ -21,10 +21,16 @@ export async function onRequest(context) {
   }
 
   const isRoot = url.pathname === '/' || url.pathname === '/index.html';
-  /* pages that require a session (the app + the checkout page);
+  /* pages that require a session (the app + checkout + admin);
      the assets layer also serves them at extensionless clean URLs */
-  const isCloudPage = ['/cloud.html', '/cloud', '/checkout.html', '/checkout']
-    .includes(url.pathname);
+  const isAdminPage = url.pathname === '/admin.html' || url.pathname === '/admin';
+  const isCloudPage = isAdminPage
+    || ['/cloud.html', '/cloud', '/checkout.html', '/checkout'].includes(url.pathname);
+
+  /* the admin page is for the site owner only */
+  if (isAdminPage && session && env.OWNER_EMAIL && session.email !== env.OWNER_EMAIL) {
+    return Response.redirect(new URL('/', url).toString(), 302);
+  }
 
   /* single-host mode (workers.dev previews, local dev) */
   if (isPlainHost(host)) {
