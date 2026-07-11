@@ -1182,13 +1182,14 @@ function renderUsage() {
 function renderPlan() {
   if (!me) return;
   const badge = document.getElementById('plan-badge');
-  const isPro = me.plan.type === 'pro';
-  badge.textContent = isPro ? 'Pro' : t('plan.free');
-  badge.classList.toggle('on', isPro);
+  const type = me.plan.type; // 'free' | 'pro' | 'dev'
+  const paid = type === 'pro' || type === 'dev';
+  badge.textContent = type === 'dev' ? 'DEV' : type === 'pro' ? 'Pro' : t('plan.free');
+  badge.classList.toggle('on', paid);
 
   const desc = document.getElementById('plan-desc');
-  if (isPro) {
-    desc.textContent = t('plan.proDesc', {
+  if (paid) {
+    desc.textContent = t(type === 'dev' ? 'plan.devDesc' : 'plan.proDesc', {
       gb: me.plan.gb,
       date: new Date(me.plan.until).toLocaleDateString('en-GB'),
     });
