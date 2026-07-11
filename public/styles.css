@@ -1808,3 +1808,27 @@ body {
 /* the hidden attribute must always win, whatever display the class sets
    (this bit us three times: modals, tabs, and the avatar letter) */
 [hidden] { display: none !important; }
+
+/* ---------- passkey sign-in button (auth page) ---------- */
+
+.passkey-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--frost-soft);
+  border: 1.5px solid var(--panel-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.passkey-btn:hover { background: var(--frost); border-color: var(--accent); }
+.passkey-btn svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+#passkey-login-status { margin-top: 8px; }

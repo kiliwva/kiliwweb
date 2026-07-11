@@ -17,6 +17,7 @@ import * as trash from '../functions/api/trash.js';
 import * as stars from '../functions/api/stars.js';
 import * as search from '../functions/api/search.js';
 import * as photos from '../functions/api/photos.js';
+import * as passkeys from '../functions/api/passkeys.js';
 import * as mpu from '../functions/api/mpu.js';
 import * as billing from '../functions/api/billing.js';
 import * as yookassa from '../functions/api/yookassa.js';
@@ -52,6 +53,7 @@ const ROUTES = {
   '/api/stars': stars,
   '/api/search': search,
   '/api/photos': photos,
+  '/api/passkeys': passkeys,
   '/api/mpu': mpu,
   '/api/billing': billing,
   '/api/yookassa': yookassa,

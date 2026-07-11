@@ -274,3 +274,69 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
   e.preventDefault();
   hideVerifyStep();
 });
+
+/* ---------- passkey sign-in (WebAuthn) ---------- */
+
+(() => {
+  const btn = document.getElementById('passkey-login');
+  if (!btn || !window.PublicKeyCredential) return;
+  btn.hidden = false;
+
+  const b64uToBuf = (s) => Uint8Array.from(
+    atob(String(s).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0),
+  ).buffer;
+  const bufToB64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const status = (msg) => {
+    const el = document.getElementById('passkey-login-status');
+    el.textContent = msg;
+    el.hidden = !msg;
+  };
+
+  btn.addEventListener('click', async () => {
+    status('');
+    try {
+      const optRes = await fetch('/api/passkeys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login-options' }),
+      });
+      const optData = await optRes.json();
+      if (!optRes.ok || !optData.success) {
+        status(KiliwUI.t('pk.loginFail'));
+        return;
+      }
+      const options = optData.options;
+      options.challenge = b64uToBuf(options.challenge);
+
+      const cred = await navigator.credentials.get({ publicKey: options });
+      const res = await fetch('/api/passkeys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'login-verify',
+          ctx: optData.ctx,
+          credential: {
+            id: cred.id,
+            response: {
+              clientDataJSON: bufToB64u(cred.response.clientDataJSON),
+              authenticatorData: bufToB64u(cred.response.authenticatorData),
+              signature: bufToB64u(cred.response.signature),
+              userHandle: cred.response.userHandle ? bufToB64u(cred.response.userHandle) : null,
+            },
+          },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        if (data.restored) alert(KiliwUI.t('auth.restored'));
+        window.location.href = data.redirect || '/dash';
+      } else {
+        status(KiliwUI.t('pk.loginFail'));
+      }
+    } catch (err) {
+      /* the user closed the passkey prompt: stay quiet */
+      if (err?.name !== 'NotAllowedError') status(KiliwUI.t('pk.loginFail'));
+    }
+  });
+})();

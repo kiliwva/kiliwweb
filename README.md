@@ -97,6 +97,20 @@ streaming (`/api/file` and share-page `?raw=`) supports HTTP Range
 requests, so the browser fetches only the metadata bytes it needs and
 video players can seek. 18+ previews are blurred with a lock.
 
+### Passkeys (WebAuthn)
+
+Accounts can add up to 5 **passkeys** (Face ID / Touch ID / Windows
+Hello / hardware keys) in *Profile → Security* and sign in with them
+from the auth page — no password, no Turnstile, no TOTP (a passkey is
+already possession + biometrics). Implementation is dependency-free in
+`lib/webauthn.js`: ES256/RS256, attestation `none`, single-use
+challenges in `_webauthn/` (5-minute TTL), discoverable credentials
+(the user handle carries the account email), RP id = registrable base
+domain so `auth.` and `cloud.` subdomains share credentials, and a
+signature counter check against cloned authenticators. Credentials
+live on the user record (`user.passkeys`); passkey sign-in honours the
+7-day deletion grace the same way password sign-in does.
+
 ### Account deletion grace period
 
 Deleting an account schedules the wipe **7 days** ahead

@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=52">
+  <link rel="stylesheet" href="styles.css?v=53">
 </head>
 <body data-title-key="title.cloud">
 
@@ -350,6 +350,15 @@
         </div>
       </section>
 
+            <!-- Passkeys -->
+            <section class="modal-section">
+              <h3 data-i18n="pk.title">Passkeys</h3>
+              <p class="modal-hint" data-i18n="pk.hint">Sign in with Face ID, Touch ID or your device PIN — no password needed. A passkey never leaves your device.</p>
+              <ul class="collab-list" id="passkey-list"></ul>
+              <p class="modal-status" id="passkey-status" hidden></p>
+              <button type="button" class="submit small" id="passkey-add" data-i18n="pk.add">Add a passkey</button>
+            </section>
+
           </div>
 
           <!-- Devices -->
@@ -426,7 +435,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-34</button>
+        <button type="button" class="app-build" id="app-build">KW-35</button>
       </div>
     </div>
   </div>
@@ -515,8 +524,8 @@
   </div>
 
 
-  <script src="vendor/qrcode.min.js?v=52"></script>
-  <script src="ui.js?v=52"></script>
-  <script src="cloud.js?v=52"></script>
+  <script src="vendor/qrcode.min.js?v=53"></script>
+  <script src="ui.js?v=53"></script>
+  <script src="cloud.js?v=53"></script>
 </body>
 </html>

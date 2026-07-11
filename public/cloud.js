@@ -1835,7 +1835,103 @@ function showPane(name) {
   if (name === 'admin' && me?.owner && !adminLoaded) loadAdmin();
   if (name === 'devices') loadSessions();
   if (name === 'api') openApiPane();
+  if (name === 'security') loadPasskeys();
 }
+
+/* --- passkeys (WebAuthn) --- */
+
+const b64uToBuf = (s) => Uint8Array.from(
+  atob(String(s).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0),
+).buffer;
+const bufToB64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+async function loadPasskeys() {
+  const list = document.getElementById('passkey-list');
+  const res = await fetch('/api/passkeys');
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) return;
+  list.innerHTML = '';
+  for (const pk of data.passkeys) {
+    const li = document.createElement('li');
+    const label = document.createElement('span');
+    label.textContent = `${pk.name} · ${formatDate(new Date(pk.created).toISOString())}`;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'collab-remove';
+    remove.textContent = '×';
+    remove.title = t('pk.remove');
+    remove.addEventListener('click', async () => {
+      if (!confirm(t('pk.removeConfirm', { name: pk.name }))) return;
+      await fetch('/api/passkeys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'remove', id: pk.id }),
+      });
+      loadPasskeys();
+    });
+    li.append(label, remove);
+    list.appendChild(li);
+  }
+  if (!data.passkeys.length) {
+    const li = document.createElement('li');
+    li.className = 'collab-empty';
+    li.textContent = t('pk.none');
+    list.appendChild(li);
+  }
+}
+
+document.getElementById('passkey-add').addEventListener('click', async () => {
+  showStatus('passkey-status', '');
+  if (!window.PublicKeyCredential) {
+    showStatus('passkey-status', t('pk.unsupported'));
+    return;
+  }
+  try {
+    const optRes = await fetch('/api/passkeys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reg-options' }),
+    });
+    const optData = await optRes.json();
+    if (!optRes.ok || !optData.success) {
+      showStatus('passkey-status', t(optData.error === 'too-many' ? 'pk.tooMany' : 'pk.fail'));
+      return;
+    }
+    const options = optData.options;
+    options.challenge = b64uToBuf(options.challenge);
+    options.user.id = b64uToBuf(options.user.id);
+    options.excludeCredentials = (options.excludeCredentials || [])
+      .map((c) => ({ ...c, id: b64uToBuf(c.id) }));
+
+    const cred = await navigator.credentials.create({ publicKey: options });
+    const res = await fetch('/api/passkeys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'reg-verify',
+        ctx: optData.ctx,
+        credential: {
+          id: cred.id,
+          response: {
+            clientDataJSON: bufToB64u(cred.response.clientDataJSON),
+            attestationObject: bufToB64u(cred.response.attestationObject),
+          },
+        },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      showStatus('passkey-status', t('pk.added'), true);
+      loadPasskeys();
+    } else {
+      showStatus('passkey-status', t('pk.fail'));
+    }
+  } catch (err) {
+    /* the user closed the browser prompt — not an error worth shouting about */
+    if (err?.name !== 'NotAllowedError') showStatus('passkey-status', t('pk.fail'));
+  }
+});
 
 /* --- developer API keys --- */
 

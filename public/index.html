@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=52">
+  <link rel="stylesheet" href="styles.css?v=53">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
 </head>
@@ -64,6 +64,12 @@
 
         <button type="submit" class="submit" disabled data-i18n="btn.signin">Sign In</button>
 
+        <button type="button" class="passkey-btn" id="passkey-login" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="4.5"/><path d="M2.5 21v-1.5a6 6 0 0 1 6-6h.5"/><path d="M21.5 11.5a3 3 0 1 0-4.5 2.6V20l1.5 1.5L20 20l-1-1 1-1-1-1 1.5-1.5v-1.4a3 3 0 0 0 1-2.6Z"/></svg>
+          <span data-i18n="pk.signin">Sign in with a passkey</span>
+        </button>
+        <p class="modal-status" id="passkey-login-status" hidden></p>
+
         <p class="note"><a class="link" href="#" data-i18n="auth.forgot">Forgot password?</a></p>
       </form>
 
@@ -111,7 +117,7 @@
     </main>
   </div>
 
-  <script src="ui.js?v=52"></script>
-  <script src="auth.js?v=52"></script>
+  <script src="ui.js?v=53"></script>
+  <script src="auth.js?v=53"></script>
 </body>
 </html>
