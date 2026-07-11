@@ -2,6 +2,7 @@ import {
   json, storageReady, getUser, putUser, randomHex, hashPassword,
   mailReady, sendEmail, sixDigitCode, buildCodeEmail, timingSafeEqualHex,
   verifyTurnstile, wipeSessionsFor, createSession, afterAuthRedirect,
+  notifyAccountEvent,
 } from '../../lib/api.js';
 
 const CODE_TTL = 15 * 60 * 1000;
@@ -100,6 +101,7 @@ export async function onRequestPost({ request, env }) {
     delete user.deleteAt;
     await putUser(env, user);
     await wipeSessionsFor(env, email);
+    await notifyAccountEvent(env, email, 'password-reset');
 
     const { cookie } = await createSession(env, email, request);
     return json(

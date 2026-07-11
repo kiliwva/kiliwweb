@@ -1866,6 +1866,7 @@ async function loadPasskeys() {
         body: JSON.stringify({ action: 'remove', id: pk.id }),
       });
       loadPasskeys();
+      refreshNotifs();
     });
     li.append(label, remove);
     list.appendChild(li);
@@ -1921,6 +1922,7 @@ document.getElementById('passkey-add').addEventListener('click', async () => {
     if (res.ok && data.success) {
       showStatus('passkey-status', t('pk.added'), true);
       loadPasskeys();
+      refreshNotifs();
     } else {
       showStatus('passkey-status', t('pk.fail'));
     }
@@ -2160,6 +2162,7 @@ document.getElementById('password-form').addEventListener('submit', async (e) =>
   if (res.ok && data.success) {
     showStatus('password-status', t('profile.pw.ok'), true);
     e.target.reset();
+    refreshNotifs();
   } else {
     showStatus('password-status', t(data.error === 'wrong-password' ? 'profile.pw.wrong' : 'profile.pw.fail'));
   }
@@ -2210,6 +2213,7 @@ document.getElementById('totp-enable-form').addEventListener('submit', async (e)
   if (res.ok && data.success) {
     renderTotpState(true);
     KiliwUI.otpClear('totp-enable-otp');
+    refreshNotifs();
   } else {
     showStatus('totp-enable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.enableFail'));
   }
@@ -2227,6 +2231,7 @@ document.getElementById('totp-disable-form').addEventListener('submit', async (e
   if (res.ok && data.success) {
     renderTotpState(false);
     KiliwUI.otpClear('totp-disable-otp');
+    refreshNotifs();
   } else {
     showStatus('totp-disable-status', t(data.error === 'totp-invalid' ? 'profile.2fa.wrongCode' : 'profile.2fa.disableFail'));
   }
@@ -2323,6 +2328,7 @@ document.getElementById('delete-confirm').addEventListener('click', async () => 
 const notifModal = document.getElementById('notif-modal');
 const notifBadge = document.getElementById('notif-badge');
 let notifs = [];
+let notifSeen = null; // ids already shown — null until the first load
 
 async function refreshNotifs() {
   const res = await fetch('/api/notifications');
@@ -2332,14 +2338,59 @@ async function refreshNotifs() {
   notifBadge.hidden = !data.unread;
   notifBadge.textContent = data.unread > 9 ? '9+' : String(data.unread || '');
   if (!notifModal.hidden) renderNotifs();
+
+  /* anything new since the last poll pops up as a toast (but not the
+     backlog present when the page first loads) */
+  if (notifSeen === null) {
+    notifSeen = new Set(notifs.map((n) => n.id));
+  } else {
+    for (const n of notifs) {
+      if (!notifSeen.has(n.id)) {
+        notifSeen.add(n.id);
+        if (!n.read) showToast(notifText(n));
+      }
+    }
+  }
 }
 
 function notifText(notif) {
+  if (notif.type === 'event') {
+    return t(`notif.ev.${notif.event}`, {
+      name: notif.name || '',
+      plan: (notif.plan || '').toUpperCase(),
+      gb: notif.gb || '',
+    });
+  }
   const name = (notif.path || '').split('/').pop();
   return t(notif.type === 'access-request' ? 'notif.request' : 'notif.granted', {
     from: notif.from,
     name,
   });
+}
+
+/* --- toast pop-ups --- */
+
+const toastStack = document.createElement('div');
+toastStack.className = 'toast-stack';
+document.body.appendChild(toastStack);
+
+function showToast(text) {
+  const toast = document.createElement('button');
+  toast.type = 'button';
+  toast.className = 'toast';
+  toast.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span></span>';
+  toast.querySelector('span').textContent = text;
+  toast.addEventListener('click', () => {
+    toast.remove();
+    document.getElementById('notif-open').click();
+  });
+  toastStack.appendChild(toast);
+  /* keep at most 3 on screen */
+  while (toastStack.children.length > 3) toastStack.firstChild.remove();
+  setTimeout(() => {
+    toast.classList.add('leaving');
+    setTimeout(() => toast.remove(), 350);
+  }, 6000);
 }
 
 async function notifAction(action, id) {

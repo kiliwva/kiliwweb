@@ -1832,3 +1832,46 @@ body {
 .passkey-btn:hover { background: var(--frost); border-color: var(--accent); }
 .passkey-btn svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
 #passkey-login-status { margin-top: 8px; }
+
+/* ---------- notification toasts ---------- */
+
+.toast-stack {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 0px));
+  right: 14px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(360px, calc(100vw - 28px));
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 16px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  color: var(--text);
+  background: var(--frost-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 0.3s, transform 0.3s;
+}
+.toast svg { width: 17px; height: 17px; flex: none; color: var(--accent); margin-top: 1px; }
+.toast span { min-width: 0; }
+.toast.leaving { opacity: 0; transform: translateX(16px); }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: none; }
+}

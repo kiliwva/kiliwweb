@@ -1,6 +1,6 @@
 import {
   json, getSession, storageReady, getUser, putUser,
-  generateTotpSecret, verifyTotp, otpauthUri,
+  generateTotpSecret, verifyTotp, otpauthUri, notifyAccountEvent,
 } from '../../lib/api.js';
 
 /* POST /api/2fa — manage two-factor auth.
@@ -45,6 +45,7 @@ export async function onRequestPost({ request, env }) {
     user.totp = user.totpPending;
     delete user.totpPending;
     await putUser(env, user);
+    await notifyAccountEvent(env, user.email, '2fa-enabled');
     return json({ success: true });
   }
 
@@ -56,6 +57,7 @@ export async function onRequestPost({ request, env }) {
     delete user.totp;
     delete user.totpPending;
     await putUser(env, user);
+    await notifyAccountEvent(env, user.email, '2fa-disabled');
     return json({ success: true });
   }
 

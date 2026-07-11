@@ -1,6 +1,6 @@
 import {
   json, getSession, storageReady, getUser, putUser, createSession,
-  afterAuthRedirect, deviceLabel, wipeAccount,
+  afterAuthRedirect, deviceLabel, wipeAccount, notifyAccountEvent,
 } from '../../lib/api.js';
 import {
   createChallenge, takeChallenge, rpIdFor, b64uEncode,
@@ -86,15 +86,18 @@ export async function onRequestPost({ request, env }) {
       const name = String(body?.name || '').slice(0, 60) || deviceLabel(request);
       user.passkeys.push({ ...result, name, created: Date.now() });
       await putUser(env, user);
+      await notifyAccountEvent(env, session.email, 'passkey-added', { name });
       return json({ success: true, id: result.id, name });
     }
 
     if (action === 'remove') {
       const id = String(body?.id || '');
       const before = (user.passkeys || []).length;
+      const removed = (user.passkeys || []).find((pk) => pk.id === id);
       user.passkeys = (user.passkeys || []).filter((pk) => pk.id !== id);
       if (user.passkeys.length === before) return json({ success: false, error: 'not-found' }, 404);
       await putUser(env, user);
+      await notifyAccountEvent(env, session.email, 'passkey-removed', { name: removed?.name || '' });
       return json({ success: true });
     }
   }

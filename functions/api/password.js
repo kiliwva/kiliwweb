@@ -1,6 +1,6 @@
 import {
   json, getSession, storageReady, getUser, putUser,
-  hashPassword, timingSafeEqualHex, randomHex,
+  hashPassword, timingSafeEqualHex, randomHex, notifyAccountEvent,
 } from '../../lib/api.js';
 
 /* POST /api/password — change password { current, next } */
@@ -52,5 +52,6 @@ export async function onRequestPost({ request, env }) {
     cursor = page.truncated ? page.cursor : undefined;
   } while (cursor);
 
+  await notifyAccountEvent(env, session.email, 'password-changed');
   return json({ success: true });
 }
