@@ -209,7 +209,7 @@
     'api.tooMany': 'You already have 5 keys. Revoke one first.',
     'api.fail': 'Could not update API keys. Try again.',
     'api.docsLink': 'Read the API documentation →',
-    'plan.devSub': '500 GB + API',
+    'plan.devSub': '500 GB · API · hotlinks · webhooks',
     'devices.title': 'Devices',
     'devices.hint': 'Everywhere your account is signed in. Sessions expire after 30 days.',
     'devices.current': 'This device',
