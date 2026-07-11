@@ -1854,13 +1854,10 @@ async function loadPasskeys() {
   list.innerHTML = '';
   for (const pk of data.passkeys) {
     const li = document.createElement('li');
+    li.className = 'collab-row';
     const label = document.createElement('span');
     label.textContent = `${pk.name} · ${formatDate(new Date(pk.created).toISOString())}`;
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'collab-remove';
-    remove.textContent = '×';
-    remove.title = t('pk.remove');
+    const remove = actionButton('delete', t('pk.remove'));
     remove.addEventListener('click', async () => {
       if (!confirm(t('pk.removeConfirm', { name: pk.name }))) return;
       await fetch('/api/passkeys', {
