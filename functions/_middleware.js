@@ -39,8 +39,29 @@ export async function onRequest(context) {
   }
 
   /* the marketing landing lives at the root (except on the auth host);
-     fetching the extensionless twin avoids the assets-layer redirect */
-  const landing = () => env.ASSETS.fetch(new URL('/home', url));
+     fetching the extensionless twin avoids the assets-layer redirect.
+     Signed-in visitors get their buttons rewritten on the server, so
+     nothing flashes from "Sign in" to "Open my cloud" after load. */
+  const landing = async () => {
+    const res = await env.ASSETS.fetch(new URL('/home', url));
+    if (!session) return res;
+    const appLink = {
+      element(el) {
+        el.setAttribute('href', '/dash');
+        el.setInnerContent('Open my cloud');
+      },
+    };
+    return new HTMLRewriter()
+      .on('a#lp-auth', appLink)
+      .on('a#lp-start', appLink)
+      .on('a[data-plan]', {
+        element(el) {
+          const q = el.getAttribute('data-plan');
+          el.setAttribute('href', q === 'free' ? '/dash' : `/checkout.html?${q}`);
+        },
+      })
+      .transform(res);
+  };
   /* the auth page content (index.html) for /login on non-auth hosts */
   const authPage = () => env.ASSETS.fetch(new URL('/', url));
 

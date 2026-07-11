@@ -9,7 +9,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=49">
+  <link rel="stylesheet" href="styles.css?v=50">
   <style>
     /* Keep body completely vanilla — no position/overflow tricks and no
        absolutely-positioned decorations attached to it: every variant of
@@ -538,21 +538,8 @@
     });
     /* old links that arrive with the hash: just drop it, no auto-scroll */
     if (location.hash) history.replaceState(null, '', location.pathname);
-
-    /* signed-in visitors get app links instead of sign-in prompts */
-    fetch('/api/me').then((r) => (r.ok ? r.json() : null)).then((me) => {
-      if (!me || !me.success) return;
-      const auth = document.getElementById('lp-auth');
-      auth.textContent = 'Open my cloud';
-      auth.href = '/dash';
-      const start = document.getElementById('lp-start');
-      start.textContent = 'Open my cloud';
-      start.href = '/dash';
-      document.querySelectorAll('.lp-plan a[data-plan]').forEach((a) => {
-        const q = a.dataset.plan;
-        a.href = q === 'free' ? '/dash' : `/checkout.html?${q}`;
-      });
-    }).catch(() => {});
+    /* signed-in button labels are rewritten SERVER-side (middleware +
+       HTMLRewriter) — no client-side swap, so nothing flashes on load */
   </script>
 </body>
 </html>
