@@ -345,7 +345,7 @@ body {
 .cloud-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -390,7 +390,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   margin-bottom: 20px;
 }
 .auth-brand .wordmark { font-size: 26px; }
