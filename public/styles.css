@@ -354,6 +354,23 @@ body {
 
 /* ---- typographic wordmark logo ---- */
 .logo-mark { display: block; flex: none; }
+.logo-word {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  color: var(--text);
+}
+.logo-word em {
+  font-style: normal;
+  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.cloud-brand .logo-word { font-size: 21px; }
+.auth-brand .logo-word { font-size: 24px; }
+#plan-title .logo-word { font-size: 22px; }
+.co-brand .logo-word { font-size: 19px; }
 .wordmark {
   font-weight: 800;
   letter-spacing: -0.05em;
@@ -372,6 +389,8 @@ body {
 .auth-brand {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
 }
 .auth-brand .wordmark { font-size: 26px; }
