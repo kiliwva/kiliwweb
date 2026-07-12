@@ -350,27 +350,35 @@ body {
   font-weight: 800;
   letter-spacing: -0.02em;
 }
-.cloud-brand svg { width: 28px; height: 28px; color: var(--accent-press); }
+.cloud-brand .brand-lock { font-size: 22px; }
 
 /* ---- typographic wordmark logo ---- */
-.logo-mark { display: block; flex: none; }
-.logo-word {
+.brand-lock {
+  display: inline-flex;
+  align-items: baseline;
   font-weight: 800;
   letter-spacing: -0.04em;
+  line-height: 1;
   white-space: nowrap;
-  color: var(--text);
 }
-.logo-word em {
-  font-style: normal;
+.brand-lock .bl-mark { height: 0.8em; width: auto; flex: none; }
+.brand-lock .bl-word {
+  margin-left: 0.14em;
   background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-.cloud-brand .logo-word { font-size: 21px; }
-.auth-brand .logo-word { font-size: 24px; }
-#plan-title .logo-word { font-size: 22px; }
-.co-brand .logo-word { font-size: 19px; }
+.brand-lock .bl-dash {
+  flex: none;
+  width: 0.17em;
+  height: 0.17em;
+  border-radius: 26%;
+  background: #F2F2F2;
+  margin-left: 0.17em;
+  transform: translateY(-0.25em);
+}
+.brand-lock .bl-dash + .bl-word { margin-left: 0.17em; }
 .wordmark {
   font-weight: 800;
   letter-spacing: -0.05em;
@@ -389,10 +397,9 @@ body {
 .auth-brand {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 5px;
   margin-bottom: 20px;
 }
+.auth-brand .brand-lock { font-size: 27px; }
 .auth-brand .wordmark { font-size: 26px; }
 .co-brand {
   display: inline-flex;
@@ -1749,7 +1756,7 @@ body {
 @media (max-width: 700px) {
   .cloud-head { flex-wrap: nowrap; gap: 8px; }
   .cloud-brand { font-size: 17px; min-width: 0; }
-  .cloud-brand svg { width: 24px; height: 24px; }
+  .cloud-brand .brand-lock { font-size: 18px; }
   .cloud-user { gap: 8px; }
 }
 

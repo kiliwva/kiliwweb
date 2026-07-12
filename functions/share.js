@@ -132,37 +132,32 @@ const CSS = `
       animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .brand { color: inherit; text-decoration: none; }
-    .logo-mark { display: block; }
-    .brand { display: inline-flex; align-items: center; gap: 7px; }
-    .logo-word {
-      font-size: 19px;
+    .brand-lock {
+      display: inline-flex;
+      align-items: baseline;
       font-weight: 800;
       letter-spacing: -0.04em;
+      line-height: 1;
       white-space: nowrap;
-      color: #F2F2F2;
     }
-    .logo-word em {
-      font-style: normal;
+    .brand-lock .bl-mark { height: 0.8em; width: auto; flex: none; }
+    .brand-lock .bl-word {
+      margin-left: 0.14em;
       background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
-    .wordmark {
-      font-size: 19px;
-      font-weight: 800;
-      letter-spacing: -0.05em;
-      text-transform: lowercase;
-      white-space: nowrap;
-      color: #F2F2F2;
+    .brand-lock .bl-dash {
+      flex: none;
+      width: 0.17em;
+      height: 0.17em;
+      border-radius: 26%;
+      background: #F2F2F2;
+      margin-left: 0.17em;
+      transform: translateY(-0.25em);
     }
-    .wordmark em {
-      font-style: normal;
-      background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
+    .brand-lock .bl-dash + .bl-word { margin-left: 0.17em; }
     .bar-actions { display: flex; align-items: center; gap: 8px; }
     .bar-avatar {
       display: grid;
@@ -516,7 +511,7 @@ const CSS = `
 
 const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
 
-const WORDMARK = '<svg class="logo-mark" viewBox="0 0 24 24" width="26" height="26" role="img" aria-label="Kiliw Cloud"><defs><linearGradient id="kwg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs><rect x="5.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="7.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="12.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="10.2" y="7.95" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="14.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="10.2" y="12.45" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="14.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/></svg><span class="logo-word"><em>cloud</em></span>';
+const WORDMARK = '<span class="brand-lock" style="font-size:19px" role="img" aria-label="k cloud"><svg class="bl-mark" viewBox="5.7 3.45 12.6 17.1" aria-hidden="true"><defs><linearGradient id="kwg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs><rect x="5.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="7.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="12.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="10.2" y="7.95" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="14.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="10.2" y="12.45" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="14.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/></svg><span class="bl-word">cloud</span></span>';
 
 /** Floating top bar: brand, Sign in (or the signed-in viewer's avatar),
     and optionally the Download button. */
