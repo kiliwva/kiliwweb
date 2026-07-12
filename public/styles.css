@@ -1873,11 +1873,12 @@ body {
 }
 
 /* ============================================================
-   Brand intro: the mosaic K assembles, collapses into a single
-   pixel, and the pixel bursts into "ID" (auth pages) or simply
-   fades into the app (dash "solo" variant). No CSS variables in
-   the animations: iOS Safari silently drops animation shorthands
-   that carry var().
+   Brand intro: the pixel K assembles, collapses into one pixel,
+   and it bursts into the K-ID wordmark. Everything, including
+   the final fade-out, is plain CSS animation: no JS timers (iOS
+   system sheets freeze them) and no CSS variables (iOS Safari
+   drops animations that carry var()). The overlay never captures
+   taps.
    ============================================================ */
 .brand-intro {
   position: fixed;
@@ -1885,19 +1886,21 @@ body {
   z-index: 300;
   display: grid;
   place-items: center;
+  pointer-events: none;
   background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%);
+  animation: bi-out 0.4s ease 2.1s forwards;
 }
-.brand-intro.done {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.35s ease, visibility 0s 0.35s;
+.brand-intro.solo { animation-delay: 1.15s; }
+.brand-intro.done { opacity: 0; visibility: hidden; }
+@keyframes bi-out {
+  to { opacity: 0; visibility: hidden; }
 }
-.bi-stage { position: relative; width: 126px; height: 171px; }
+.bi-stage { position: relative; width: 78px; height: 106px; }
 .bi-cell {
   position: absolute;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   background: #F2F2F2;
   opacity: 0;
   animation-duration: 0.5s, 0.36s;
@@ -1921,16 +1924,16 @@ body {
   animation-delay: 0.0s;
 }
 @keyframes bi-in-1 {
-  from { opacity: 0; transform: translate(-80px, -90px) scale(0.3); }
+  from { opacity: 0; transform: translate(-50px, -56px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-1 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(45px, 68px) scale(0.5); }
+  to { opacity: 0; transform: translate(28px, 42px) scale(0.5); }
 }
 .bi-cell.c2 {
   left: 0px;
-  top: 45px;
+  top: 28px;
   animation-name: bi-in-2, bi-merge-2;
   animation-delay: 0.05s, 0.78s;
 }
@@ -1939,16 +1942,16 @@ body {
   animation-delay: 0.05s;
 }
 @keyframes bi-in-2 {
-  from { opacity: 0; transform: translate(-110px, -30px) scale(0.3); }
+  from { opacity: 0; transform: translate(-68px, -19px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-2 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(45px, 23px) scale(0.5); }
+  to { opacity: 0; transform: translate(28px, 14px) scale(0.5); }
 }
 .bi-cell.c3 {
   left: 0px;
-  top: 90px;
+  top: 56px;
   animation-name: bi-in-3, bi-merge-3;
   animation-delay: 0.1s, 0.78s;
 }
@@ -1957,16 +1960,16 @@ body {
   animation-delay: 0.1s;
 }
 @keyframes bi-in-3 {
-  from { opacity: 0; transform: translate(-90px, 40px) scale(0.3); }
+  from { opacity: 0; transform: translate(-56px, 25px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-3 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(45px, -22px) scale(0.5); }
+  to { opacity: 0; transform: translate(28px, -14px) scale(0.5); }
 }
 .bi-cell.c4 {
   left: 0px;
-  top: 135px;
+  top: 84px;
   animation-name: bi-in-4, bi-merge-4;
   animation-delay: 0.15s, 0.78s;
 }
@@ -1975,16 +1978,16 @@ body {
   animation-delay: 0.15s;
 }
 @keyframes bi-in-4 {
-  from { opacity: 0; transform: translate(-70px, 110px) scale(0.3); }
+  from { opacity: 0; transform: translate(-43px, 68px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-4 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(45px, -67px) scale(0.5); }
+  to { opacity: 0; transform: translate(28px, -42px) scale(0.5); }
 }
 .bi-cell.c5 {
-  left: 45px;
-  top: 45px;
+  left: 28px;
+  top: 28px;
   animation-name: bi-in-5, bi-merge-5;
   animation-delay: 0.08s, 0.78s;
 }
@@ -1993,15 +1996,15 @@ body {
   animation-delay: 0.08s;
 }
 @keyframes bi-in-5 {
-  from { opacity: 0; transform: translate(30px, -110px) scale(0.3); }
+  from { opacity: 0; transform: translate(19px, -68px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-5 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(0px, 23px) scale(0.5); }
+  to { opacity: 0; transform: translate(0px, 14px) scale(0.5); }
 }
 .bi-cell.c6 {
-  left: 90px;
+  left: 56px;
   top: 0px;
   animation-name: bi-in-6, bi-merge-6;
   animation-delay: 0.12s, 0.78s;
@@ -2011,16 +2014,16 @@ body {
   animation-delay: 0.12s;
 }
 @keyframes bi-in-6 {
-  from { opacity: 0; transform: translate(90px, -80px) scale(0.3); }
+  from { opacity: 0; transform: translate(56px, -50px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-6 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(-45px, 68px) scale(0.5); }
+  to { opacity: 0; transform: translate(-28px, 42px) scale(0.5); }
 }
 .bi-cell.c7 {
-  left: 45px;
-  top: 90px;
+  left: 28px;
+  top: 56px;
   animation-name: bi-in-7, bi-merge-7;
   animation-delay: 0.16s, 0.78s;
 }
@@ -2029,16 +2032,16 @@ body {
   animation-delay: 0.16s;
 }
 @keyframes bi-in-7 {
-  from { opacity: 0; transform: translate(40px, 120px) scale(0.3); }
+  from { opacity: 0; transform: translate(25px, 74px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-7 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(0px, -22px) scale(0.5); }
+  to { opacity: 0; transform: translate(0px, -14px) scale(0.5); }
 }
 .bi-cell.c8 {
-  left: 90px;
-  top: 135px;
+  left: 56px;
+  top: 84px;
   animation-name: bi-in-8, bi-merge-8;
   animation-delay: 0.2s, 0.78s;
 }
@@ -2047,20 +2050,20 @@ body {
   animation-delay: 0.2s;
 }
 @keyframes bi-in-8 {
-  from { opacity: 0; transform: translate(100px, 90px) scale(0.3); }
+  from { opacity: 0; transform: translate(62px, 56px) scale(0.3); }
   to { opacity: 1; transform: translate(0, 0) scale(1); }
 }
 @keyframes bi-merge-8 {
   from { opacity: 1; transform: none; }
-  to { opacity: 0; transform: translate(-45px, -67px) scale(0.5); }
+  to { opacity: 0; transform: translate(-28px, -42px) scale(0.5); }
 }
 .bi-pixel {
   position: absolute;
-  left: 45px;
-  top: 68px;
-  width: 36px;
-  height: 36px;
-  border-radius: 11px;
+  left: 28px;
+  top: 42px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   background: linear-gradient(135deg, #F2A47B 0%, #D97757 60%, #B4552F 100%);
   opacity: 0;
   animation: bi-pixel 0.85s cubic-bezier(0.3, 0.7, 0.4, 1) 1.02s forwards;
@@ -2071,16 +2074,28 @@ body {
   52% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(3); }
 }
-.bi-id {
+.bi-word {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 152px;
-  height: 120px;
-  transform: translate(-50%, -50%) scale(0.35);
+  transform: translate(-50%, -50%) scale(0.4);
   opacity: 0;
-  animation: bi-id 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--text);
+  animation: bi-word 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards;
 }
-@keyframes bi-id {
+.bi-word em {
+  font-style: normal;
+  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@keyframes bi-word {
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
+.wordmark.kid { text-transform: none; }
