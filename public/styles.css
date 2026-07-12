@@ -403,8 +403,8 @@ body {
 .auth-brand .wordmark { font-size: 26px; }
 .co-brand {
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  align-items: baseline;
+  gap: 5px;
 }
 .co-brand .wordmark { font-size: 19px; }
 .cloud-user {
@@ -1193,8 +1193,8 @@ body {
 }
 #plan-title {
   display: inline-flex;
-  align-items: center;
-  gap: 7px;
+  align-items: baseline;
+  gap: 6px;
 }
 #plan-title .wordmark,
 #plan-title .pro-mark { font-size: 22px; }
@@ -1901,4 +1901,83 @@ body {
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(24px); }
   to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   Brand intro (auth pages): the mosaic K assembles, collapses
+   into a single pixel, and the pixel bursts into "ID"
+   ============================================================ */
+.brand-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%);
+}
+.brand-intro.done {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0s 0.35s;
+}
+.bi-stage { position: relative; width: 126px; height: 171px; }
+.bi-cell {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: #F2F2F2;
+  opacity: 0;
+  animation:
+    bi-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) var(--d) forwards,
+    bi-merge 0.36s cubic-bezier(0.55, 0, 0.8, 0.4) 0.78s forwards;
+}
+.bi-cell.g { background: linear-gradient(135deg, #F2A47B 0%, #D97757 60%, #B4552F 100%); }
+@keyframes bi-in {
+  from { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(0.3); }
+  to { opacity: 1; transform: translate(0, 0) scale(1); }
+}
+@keyframes bi-merge {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate(var(--cx), var(--cy)) scale(0.5); }
+}
+.bi-pixel {
+  position: absolute;
+  left: 45px;
+  top: 68px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #F2A47B 0%, #D97757 60%, #B4552F 100%);
+  opacity: 0;
+  animation: bi-pixel 0.85s cubic-bezier(0.3, 0.7, 0.4, 1) 1.02s forwards;
+}
+@keyframes bi-pixel {
+  0% { opacity: 0; transform: scale(0.4); }
+  32% { opacity: 1; transform: scale(1.18); }
+  52% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(3); }
+}
+.bi-id {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.35);
+  opacity: 0;
+  font-weight: 800;
+  font-size: 108px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: bi-id 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards;
+}
+@keyframes bi-id {
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brand-intro { display: none; }
 }
