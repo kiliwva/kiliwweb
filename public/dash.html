@@ -8,20 +8,20 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=68">
+  <link rel="stylesheet" href="styles.css?v=69">
 </head>
 <body data-title-key="title.cloud">
 
-  <div class="brand-intro solo" id="brand-intro" aria-hidden="true" hidden>
+  <div class="brand-intro solo" id="brand-intro" aria-hidden="true">
     <div class="bi-stage">
-      <i class="bi-cell" style="left:0px;top:0px;--fx:-80px;--fy:-90px;--d:0s"></i>
-      <i class="bi-cell" style="left:0px;top:45px;--fx:-110px;--fy:-30px;--d:.05s"></i>
-      <i class="bi-cell" style="left:0px;top:90px;--fx:-90px;--fy:40px;--d:.1s"></i>
-      <i class="bi-cell" style="left:0px;top:135px;--fx:-70px;--fy:110px;--d:.15s"></i>
-      <i class="bi-cell g" style="left:45px;top:45px;--fx:30px;--fy:-110px;--d:.08s"></i>
-      <i class="bi-cell g" style="left:90px;top:0px;--fx:90px;--fy:-80px;--d:.12s"></i>
-      <i class="bi-cell g" style="left:45px;top:90px;--fx:40px;--fy:120px;--d:.16s"></i>
-      <i class="bi-cell g" style="left:90px;top:135px;--fx:100px;--fy:90px;--d:.2s"></i>
+      <i class="bi-cell c1"></i>
+      <i class="bi-cell c2"></i>
+      <i class="bi-cell c3"></i>
+      <i class="bi-cell c4"></i>
+      <i class="bi-cell g c5"></i>
+      <i class="bi-cell g c6"></i>
+      <i class="bi-cell g c7"></i>
+      <i class="bi-cell g c8"></i>
     </div>
   </div>
 
@@ -449,7 +449,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-44</button>
+        <button type="button" class="app-build" id="app-build">KW-45</button>
       </div>
     </div>
   </div>
@@ -538,14 +538,13 @@
   </div>
 
 
-  <script src="vendor/qrcode.min.js?v=68"></script>
-  <script src="ui.js?v=68"></script>
-  <script src="cloud.js?v=68"></script>
+  <script src="vendor/qrcode.min.js?v=69"></script>
+  <script src="ui.js?v=69"></script>
+  <script src="cloud.js?v=69"></script>
   <script>
     (function () {
       var el = document.getElementById('brand-intro');
       if (!el) return;
-      el.hidden = false;
       setTimeout(function () { el.classList.add('done'); }, 1100);
       setTimeout(function () { el.remove(); }, 1550);
     })();
