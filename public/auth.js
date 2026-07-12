@@ -108,11 +108,13 @@ document.querySelectorAll('.form input').forEach((input) => {
 
 /* ---------- Submit ---------- */
 
+let captchaCtx = null; /* 2FA ticket: code retries skip the captcha */
+
 async function handleSubmit(form, kind) {
   if (!validateForm(form)) return;
 
   const token = window.turnstile ? turnstile.getResponse(widgets.get(form)) : '';
-  if (!token) {
+  if (!token && !captchaCtx) {
     setSubmitEnabled(form, false);
     return;
   }
@@ -126,6 +128,7 @@ async function handleSubmit(form, kind) {
       password: form.querySelector('input[type="password"]').value,
       token,
     };
+    if (kind === 'login' && captchaCtx) payload.ctx = captchaCtx;
     const totpInput = form.querySelector('#login-totp');
     if (totpInput && totpInput.value.trim()) payload.code = totpInput.value.trim();
 
@@ -154,13 +157,23 @@ async function handleSubmit(form, kind) {
       return;
     }
     if (data.error === 'totp-required') {
-      /* account has 2FA: reveal the code field and ask for it */
+      /* account has 2FA: reveal the code field and ask for it; the
+         server ticket lets code attempts skip the captcha */
+      captchaCtx = data.ctx || null;
       document.getElementById('login-totp-group').hidden = false;
       showFormError(form, KiliwUI.t('auth.totpPrompt'));
       KiliwUI.otpClear('login-totp-otp');
       KiliwUI.otpFocus('login-totp-otp');
       return;
     }
+    if (data.error === 'totp-invalid' && captchaCtx) {
+      /* wrong code: the ticket still stands, no captcha round-trip */
+      showFormError(form, KiliwUI.t('api.totp-invalid'));
+      KiliwUI.otpClear('login-totp-otp');
+      KiliwUI.otpFocus('login-totp-otp');
+      return;
+    }
+    if (data.error === 'captcha') captchaCtx = null;
     let message = API_ERROR_KEYS.includes(data.error)
       ? KiliwUI.t(`api.${data.error}`)
       : KiliwUI.t('auth.generic');
@@ -172,7 +185,8 @@ async function handleSubmit(form, kind) {
     showFormError(form, KiliwUI.t('auth.network'));
   } finally {
     submitBtn.classList.remove('loading');
-    resetTurnstile(form);
+    /* mid-2FA the ticket replaces the captcha: leave the widget alone */
+    if (!captchaCtx) resetTurnstile(form);
   }
 }
 
