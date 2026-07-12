@@ -132,32 +132,21 @@ const CSS = `
       animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .brand { color: inherit; text-decoration: none; }
-    .brand-lock {
-      display: inline-flex;
-      align-items: baseline;
+    .wordmark {
+      font-size: 19px;
       font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1;
+      letter-spacing: -0.05em;
+      text-transform: lowercase;
       white-space: nowrap;
+      color: #F2F2F2;
     }
-    .brand-lock .bl-mark { height: 0.8em; width: auto; flex: none; }
-    .brand-lock .bl-word {
-      margin-left: 0.14em;
+    .wordmark em {
+      font-style: normal;
       background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
-    .brand-lock .bl-dash {
-      flex: none;
-      width: 0.17em;
-      height: 0.17em;
-      border-radius: 26%;
-      background: #F2F2F2;
-      margin-left: 0.17em;
-      transform: translateY(-0.25em);
-    }
-    .brand-lock .bl-dash + .bl-word { margin-left: 0.17em; }
     .bar-actions { display: flex; align-items: center; gap: 8px; }
     .bar-avatar {
       display: grid;
@@ -511,7 +500,7 @@ const CSS = `
 
 const DL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>';
 
-const WORDMARK = '<svg class="brand-lock" style="height:15px;width:93.95px" viewBox="0 0 107.1 17.1" role="img" aria-label="k cloud"><defs><linearGradient id="kwg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs><rect x="0" y="0" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="0" y="4.5" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="0" y="9" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="0" y="13.5" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="4.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="9" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="4.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="9" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="22.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="27" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="31.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="22.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="22.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="22.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="27" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="31.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="40.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="40.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="40.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="40.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="45" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="49.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="58.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="63" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="67.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="58.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="67.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="58.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="67.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="58.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="63" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="67.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="76.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="85.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="76.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="85.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="76.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="85.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="76.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="81" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="85.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="94.5" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="99" y="0" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="94.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="103.5" y="4.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="94.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="103.5" y="9" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="94.5" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/><rect x="99" y="13.5" width="3.6" height="3.6" rx="1.1" fill="url(#kwg)"/></svg>';
+const WORDMARK = '<span class="wordmark">kiliw<em>cloud</em></span>';
 
 /** Floating top bar: brand, Sign in (or the signed-in viewer's avatar),
     and optionally the Download button. */
