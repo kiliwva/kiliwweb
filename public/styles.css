@@ -350,35 +350,7 @@ body {
   font-weight: 800;
   letter-spacing: -0.02em;
 }
-.cloud-brand .brand-lock { font-size: 22px; }
-
-/* ---- typographic wordmark logo ---- */
-.brand-lock {
-  display: inline-flex;
-  align-items: baseline;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  white-space: nowrap;
-}
-.brand-lock .bl-mark { height: 0.8em; width: auto; flex: none; }
-.brand-lock .bl-word {
-  margin-left: 0.14em;
-  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.brand-lock .bl-dash {
-  flex: none;
-  width: 0.17em;
-  height: 0.17em;
-  border-radius: 26%;
-  background: #F2F2F2;
-  margin-left: 0.17em;
-  transform: translateY(-0.25em);
-}
-.brand-lock .bl-dash + .bl-word { margin-left: 0.17em; }
+.cloud-brand .brand-lock { display: inline-block; flex: none; }
 .wordmark {
   font-weight: 800;
   letter-spacing: -0.05em;
@@ -399,7 +371,6 @@ body {
   justify-content: center;
   margin-bottom: 20px;
 }
-.auth-brand .brand-lock { font-size: 27px; }
 .auth-brand .wordmark { font-size: 26px; }
 .co-brand {
   display: inline-flex;
@@ -1756,7 +1727,6 @@ body {
 @media (max-width: 700px) {
   .cloud-head { flex-wrap: nowrap; gap: 8px; }
   .cloud-brand { font-size: 17px; min-width: 0; }
-  .cloud-brand .brand-lock { font-size: 18px; }
   .cloud-user { gap: 8px; }
 }
 
@@ -1962,21 +1932,17 @@ body {
   position: absolute;
   left: 50%;
   top: 50%;
+  width: 152px;
+  height: 120px;
   transform: translate(-50%, -50%) scale(0.35);
   opacity: 0;
-  font-weight: 800;
-  font-size: 108px;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  white-space: nowrap;
-  background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
   animation: bi-id 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards;
 }
 @keyframes bi-id {
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.brand-intro.solo .bi-cell {
+  animation: bi-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) var(--d) forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .brand-intro { display: none; }
