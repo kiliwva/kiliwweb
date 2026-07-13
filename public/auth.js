@@ -289,6 +289,17 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
   hideVerifyStep();
 });
 
+/* ---------- social sign-in feedback ---------- */
+
+{
+  const reason = new URLSearchParams(window.location.search).get('oauth');
+  if (reason) {
+    const keys = { unavailable: 'auth.oauthUnavailable', failed: 'auth.oauthFailed', banned: 'api.banned' };
+    showFormError(formLogin, KiliwUI.t(keys[reason] || 'auth.oauthFailed'));
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+}
+
 /* ---------- passkey sign-in (WebAuthn) ---------- */
 
 (() => {

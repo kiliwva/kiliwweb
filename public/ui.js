@@ -33,6 +33,8 @@
     'reset.linkSub': 'The link from your email signs you in once — just choose a new password.',
     'profile.openKid': 'Open full profile (K-ID)',
     'profile.kidHint': 'Password, 2FA, passkeys, devices and all Kiliw products live in your K-ID account.',
+    'auth.oauthUnavailable': 'This sign-in method is not enabled yet. Use your email and password.',
+    'auth.oauthFailed': 'Could not sign you in with that provider. Try again or use your password.',
     'api.captcha': 'Captcha verification failed. Please try again.',
     'api.not-configured': 'Server storage is not configured yet. Contact the site owner.',
     'auth.totpPrompt': 'Enter the 6-digit code from your authenticator app.',

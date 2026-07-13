@@ -34,6 +34,7 @@ import * as sessions from '../functions/api/sessions.js';
 import * as apikeys from '../functions/api/apikeys.js';
 import * as apiV1 from '../functions/api/v1.js';
 import * as debug from '../functions/api/debug.js';
+import * as oauth from '../functions/api/oauth.js';
 import { handleShare } from '../functions/share.js';
 import { handleDirect, handlePresignedUpload } from '../functions/direct.js';
 import { json, purgeExpiredAccounts } from '../lib/api.js';
@@ -70,6 +71,8 @@ const ROUTES = {
   '/api/verify-email': verifyEmail,
   '/api/delete-account': deleteAccount,
   '/api/debug': debug,
+  '/api/oauth': oauth,
+  '/api/oauth/callback': oauth,
 };
 
 function dispatch(mod, context) {

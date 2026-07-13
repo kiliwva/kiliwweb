@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=81">
+  <link rel="stylesheet" href="styles.css?v=82">
   <style>
     body { background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%) fixed; }
     .id-wrap { max-width: 640px; margin: 0 auto; padding: 22px 16px 60px; }
@@ -32,7 +32,7 @@
       flex: none;
       border-radius: 50%;
       overflow: hidden;
-      display: grid; place-items: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 22px; font-weight: 800; color: #fff;
       background: linear-gradient(135deg, #E08A63 0%, #C96A47 100%);
     }
@@ -74,7 +74,7 @@
     .id-x {
       flex: none;
       width: 30px; height: 30px;
-      display: grid; place-items: center;
+      display: flex; align-items: center; justify-content: center;
       border: 1px solid var(--hairline);
       border-radius: 9px;
       background: none;
@@ -134,14 +134,14 @@
     .id-prod:active { transform: scale(0.985); }
     .id-prod-ico {
       width: 40px; height: 40px;
-      display: grid; place-items: center;
+      display: flex; align-items: center; justify-content: center;
       margin-bottom: 12px;
       border-radius: 12px;
       color: #E8A38B;
       background: rgba(217, 119, 87, 0.10);
       border: 1px solid rgba(217, 119, 87, 0.18);
     }
-    .id-prod-ico svg { width: 20px; height: 20px; }
+    .id-prod-ico svg { width: 20px; height: 20px; flex: none; }
     .id-prod b { display: block; font-size: 14.5px; font-weight: 800; letter-spacing: -0.01em; }
     .id-prod span {
       display: block;
@@ -152,6 +152,30 @@
       color: var(--muted);
     }
     .id-foot { margin-top: 26px; }
+    .id-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 3px;
+      margin-bottom: 14px;
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+    }
+    .id-tab {
+      flex: 1;
+      padding: 10px 0;
+      border: 0;
+      border-radius: 11px;
+      background: none;
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+    }
+    .id-tab.active { color: var(--text); background: var(--frost-strong); }
+    .id-pane[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -263,14 +287,20 @@
       </div>
     </section>
 
+    <nav class="id-tabs" id="id-tabs" aria-label="Profile sections">
+      <button type="button" class="id-tab active" data-tab="products">Products</button>
+      <button type="button" class="id-tab" data-tab="security">Security</button>
+      <button type="button" class="id-tab" data-tab="devices">Devices</button>
+    </nav>
+
     <!-- products, Google-style -->
-    <section class="card id-card">
+    <section class="card id-card id-pane" data-pane="products">
       <h2 class="id-h">Your products</h2>
       <div class="id-products" id="id-products"></div>
     </section>
 
     <!-- security -->
-    <section class="card id-card">
+    <section class="card id-card id-pane" data-pane="security" hidden>
       <h2 class="id-h">Security</h2>
 
       <div class="id-block">
@@ -323,7 +353,7 @@
     </section>
 
     <!-- devices -->
-    <section class="card id-card">
+    <section class="card id-card id-pane" data-pane="devices" hidden>
       <h2 class="id-h">Devices</h2>
       <p class="id-sec-note">Everywhere this account is signed in right now.</p>
       <ul class="id-list" id="ses-list"></ul>
@@ -335,13 +365,13 @@
 
     <footer class="auth-foot id-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-51</p>
+      <p class="auth-build">KW-52</p>
     </footer>
 
   </div>
 
-  <script src="vendor/qrcode.min.js?v=81"></script>
-  <script src="ui.js?v=81"></script>
-  <script src="id.js?v=81"></script>
+  <script src="vendor/qrcode.min.js?v=82"></script>
+  <script src="ui.js?v=82"></script>
+  <script src="id.js?v=82"></script>
 </body>
 </html>

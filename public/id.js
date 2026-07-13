@@ -331,6 +331,30 @@ $('logout').addEventListener('click', async () => {
   window.location.href = '/login';
 });
 
+/* ---------- tabs ---------- */
+
+function showTab(name) {
+  document.querySelectorAll('.id-tab').forEach((b) => {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+  document.querySelectorAll('.id-pane').forEach((p) => {
+    p.hidden = p.dataset.pane !== name;
+  });
+  if (window.history.replaceState) {
+    window.history.replaceState(null, '', name === 'products' ? window.location.pathname : `#${name}`);
+  }
+}
+
+$('id-tabs').addEventListener('click', (e) => {
+  const btn = e.target.closest('.id-tab');
+  if (btn) showTab(btn.dataset.tab);
+});
+
+{
+  const initial = window.location.hash.slice(1);
+  if (['security', 'devices'].includes(initial)) showTab(initial);
+}
+
 /* ---------- boot ---------- */
 
 (async () => {
