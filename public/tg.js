@@ -27,6 +27,13 @@
     }
   } catch (e) { /* not supported: stay expanded */ }
 
+  /* haptic feedback (no-op where unsupported) */
+  const hf = tg.HapticFeedback;
+  const haptic = {
+    impact(style) { try { if (hf) hf.impactOccurred(style); } catch (e) { /* ignore */ } },
+    notify(type) { try { if (hf) hf.notificationOccurred(type); } catch (e) { /* ignore */ } },
+  };
+
   const api = async (payload) => {
     try {
       const res = await fetch('/api/tg', {
@@ -79,12 +86,13 @@
       $('tg-approve').disabled = true;
       const r = await api({ action: 'approve', token });
       $('tg-approve').disabled = false;
-      if (r.ok && r.data.success) show('tg-done');
-      else if (r.data.error === 'nick-taken') show('tg-taken');
-      else show('tg-bad');
+      if (r.ok && r.data.success) { haptic.notify('success'); show('tg-done'); }
+      else if (r.data.error === 'nick-taken') { haptic.notify('error'); show('tg-taken'); }
+      else { haptic.notify('error'); show('tg-bad'); }
     };
     $('tg-deny').onclick = async () => {
       await api({ action: 'deny', token });
+      haptic.notify('warning');
       show('tg-denied');
     };
   }
@@ -229,6 +237,7 @@
       scanning = false;
       frame.hidden = true;
       if (corners) drawBox(corners, true);
+      haptic.impact('medium');
       statusEl.textContent = 'Found it';
       setTimeout(() => {
         stop();
@@ -240,6 +249,7 @@
     let coolUntil = 0;
     const showInvalid = (corners) => {
       if (corners) drawBox(corners, false);
+      haptic.notify('error');
       statusEl.textContent = 'Invalid QR code';
       coolUntil = Date.now() + 1400;
       setTimeout(() => {
@@ -357,9 +367,11 @@
       statusEl.textContent = 'Scanning the image…';
       const res = await decodeImage(file);
       if (res && res.token) {
+        haptic.impact('medium');
         stop();
         openToken(res.token);
       } else if (res && res.invalid) {
+        haptic.notify('error');
         statusEl.textContent = 'Invalid QR code';
       } else {
         statusEl.textContent = 'No code found in that image — try another';
@@ -389,7 +401,7 @@
       $('tg-unlink').disabled = true;
       const r = await api({ action: 'unlink' });
       $('tg-unlink').disabled = false;
-      if (r.ok && r.data.success) setNick(null);
+      if (r.ok && r.data.success) { haptic.notify('success'); setNick(null); }
     };
     if (tg.showConfirm) {
       tg.showConfirm('Unlink this nickname? Anyone will be able to claim it again.',
