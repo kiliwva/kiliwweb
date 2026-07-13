@@ -61,6 +61,32 @@ export function joinMetaLines(data, token) {
   return joinMeta(data, token).map((m) => `${emoji[m.icon]} ${m.text}`);
 }
 
+/* keep the bot from spamming: remember the last message we sent to a
+   chat and delete it before posting a new one */
+const tgMsgKey = (chatId) => `_auth/tgmsg/${chatId}.json`;
+
+export async function tgDeletePrev(env, chatId) {
+  if (!env.TG_BOT_TOKEN) return;
+  try {
+    const prev = await env.KILIW_FILES.get(tgMsgKey(chatId));
+    if (!prev) return;
+    await env.KILIW_FILES.delete(tgMsgKey(chatId)).catch(() => {});
+    const { messageId } = await prev.json();
+    if (messageId && !env.MAIL_DEBUG) {
+      await fetch(`https://api.telegram.org/bot${env.TG_BOT_TOKEN}/deleteMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
+      }).catch(() => {});
+    }
+  } catch { /* nothing to delete */ }
+}
+
+export async function tgStoreMsg(env, chatId, messageId) {
+  if (!messageId) return;
+  await env.KILIW_FILES.put(tgMsgKey(chatId), JSON.stringify({ messageId, ts: Date.now() })).catch(() => {});
+}
+
 /* When the nick is already tied to a Telegram, ping that Telegram with
    approve/deny buttons the moment the player joins — no tapping links. */
 async function tgNotify(env, chatId, data, token, origin) {
@@ -77,6 +103,7 @@ async function tgNotify(env, chatId, data, token, origin) {
       [{ text: '🔐 Подтвердить с Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
     ] },
   };
+  await tgDeletePrev(env, chatId);
   if (env.MAIL_DEBUG) return { ok: true, debugTg: payload };
   try {
     const res = await fetch(`https://api.telegram.org/bot${env.TG_BOT_TOKEN}/sendMessage`, {
@@ -84,7 +111,9 @@ async function tgNotify(env, chatId, data, token, origin) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    return await res.json();
+    const jsonRes = await res.json();
+    await tgStoreMsg(env, chatId, jsonRes && jsonRes.result && jsonRes.result.message_id);
+    return jsonRes;
   } catch {
     return { ok: false };
   }

@@ -1,7 +1,9 @@
 import {
   json, storageReady, getSession, isOwner,
 } from '../../lib/api.js';
-import { loadJoin, decideJoin, joinMeta, joinMetaLines } from './mc.js';
+import {
+  loadJoin, decideJoin, joinMeta, joinMetaLines, tgDeletePrev, tgStoreMsg,
+} from './mc.js';
 
 /* Telegram bot: Minecraft join approvals, tied to Telegram only —
    no site account is involved anywhere in the bot.
@@ -106,6 +108,15 @@ function makeBot(env) {
 
 /* ---------- bot conversation ---------- */
 
+/* send a message, first deleting the previous one we sent to this chat
+   so the bot never piles up spam */
+async function sendTracked(env, bot, chatId, payload) {
+  await tgDeletePrev(env, chatId);
+  const sent = await bot.call('sendMessage', { chat_id: chatId, ...payload });
+  await tgStoreMsg(env, chatId, sent && sent.result && sent.result.message_id);
+  return sent;
+}
+
 async function handleStart(env, bot, origin, msg, param) {
   const chatId = msg.chat.id;
   const from = msg.from;
@@ -115,15 +126,13 @@ async function handleStart(env, bot, origin, msg, param) {
     const token = param.slice(3);
     const data = await loadJoin(env, token);
     if (!data || data.status !== 'pending') {
-      await bot.call('sendMessage', {
-        chat_id: chatId,
+      await sendTracked(env, bot, chatId, {
         text: '⏰ Код протух. Перезайди на сервер — там выдадут свежий.',
       });
       return;
     }
     const meta = joinMetaLines(data, token);
-    await bot.call('sendMessage', {
-      chat_id: chatId,
+    await sendTracked(env, bot, chatId, {
       text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?\nTelegram: ${tgName(from)}`
         + (meta.length ? `\n\n${meta.join('\n')}` : ''),
       reply_markup: { inline_keyboard: [
@@ -138,8 +147,7 @@ async function handleStart(env, bot, origin, msg, param) {
   }
 
   /* plain /start */
-  await bot.call('sendMessage', {
-    chat_id: chatId,
+  await sendTracked(env, bot, chatId, {
     text: 'Привет! 👋 Заходишь на сервер в Minecraft — подтверждение падает сюда само, настраивать ничего не надо.\n\nПервое «да» привяжет ник к твоему Telegram, и никто чужой под ним не зайдёт. ⛏️\n\nА код с экрана компа можно отсканировать:',
     reply_markup: { inline_keyboard: [[
       { text: '📷 Сканировать код', web_app: { url: `${origin}/tg` } },

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0" stop-color="#241d18"/>
+      <stop offset="60%" stop-color="#131110"/>
+      <stop offset="100%" stop-color="#0a0a0b"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="46%" r="46%">
+      <stop offset="0" stop-color="#D97757" stop-opacity=".38"/>
+      <stop offset="100%" stop-color="#D97757" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F2A47B"/>
+      <stop offset=".55" stop-color="#D97757"/>
+      <stop offset="1" stop-color="#B4552F"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="236" r="210" fill="url(#glow)"/>
+
+  <!-- mosaic K -->
+  <g>
+    <!-- left column: light blocks -->
+    <rect x="116" y="66"  width="80" height="80" rx="18" fill="#F2F2F2"/>
+    <rect x="116" y="166" width="80" height="80" rx="18" fill="#F2F2F2"/>
+    <rect x="116" y="266" width="80" height="80" rx="18" fill="#F2F2F2"/>
+    <rect x="116" y="366" width="80" height="80" rx="18" fill="#F2F2F2"/>
+    <!-- diagonal: orange blocks -->
+    <rect x="316" y="66"  width="80" height="80" rx="18" fill="url(#tile)"/>
+    <rect x="216" y="166" width="80" height="80" rx="18" fill="url(#tile)"/>
+    <rect x="216" y="266" width="80" height="80" rx="18" fill="url(#tile)"/>
+    <rect x="316" y="366" width="80" height="80" rx="18" fill="url(#tile)"/>
+  </g>
+</svg>
