@@ -1,28 +1,22 @@
 import {
-  json, storageReady, getSession, getUser, putUser, randomHex, isOwner,
+  json, storageReady, getSession, isOwner,
 } from '../../lib/api.js';
 import { loadJoin, decideJoin } from './mc.js';
 
-/* Telegram bot: K-ID account linking + Minecraft join approvals.
+/* Telegram bot: Minecraft join approvals, tied to Telegram only —
+   no site account is involved anywhere in the bot.
 
    Telegram (webhook, verified by a secret header):
      POST /api/tg                       ← bot updates (/start, buttons)
 
    The mini app inside the bot (Telegram initData instead of cookies):
      POST /api/tg { action: "auth",    initData }
+     POST /api/tg { action: "info",    initData, token }
      POST /api/tg { action: "approve" | "deny", initData, token }
 
-   The site (session cookie, /tglink confirm page):
-     POST /api/tg { action: "bind", code }
-     GET  /api/tg?link=<code>           → who is asking to be linked
-     GET  /api/tg?setup=1               → owner: register webhook + menu
-
-   Storage: _auth/tg/<telegram id> → { email } is the binding;
-   _auth/tglink/<code> holds a 10-minute link request. */
-
-const LINK_TTL = 10 * 60 * 1000;
-const tgKey = (id) => `_auth/tg/${id}.json`;
-const linkKey = (code) => `_auth/tglink/${code}.json`;
+   Owner utilities (session cookie):
+     GET  /api/tg?setup=1               → register webhook + menu button
+     GET  /api/tg?reset=1               → wipe all bindings and nicks */
 
 const botReady = (env) => Boolean(env.TG_BOT_TOKEN && env.TG_BOT_USERNAME);
 
@@ -79,22 +73,13 @@ async function checkInitData(env, initData) {
   }
 }
 
-async function getBinding(env, tgId) {
-  const obj = await env.KILIW_FILES.get(tgKey(tgId));
-  if (!obj) return null;
-  return obj.json().catch(() => null);
-}
+const whoFrom = (tgUser) => ({
+  email: null,
+  tgId: tgUser.id,
+  tgUsername: tgUser.username || '',
+});
 
-async function makeLinkCode(env, tgUser) {
-  const code = randomHex(16);
-  await env.KILIW_FILES.put(linkKey(code), JSON.stringify({
-    tgId: tgUser.id,
-    username: tgUser.username || '',
-    first: tgUser.first_name || '',
-    expires: Date.now() + LINK_TTL,
-  }));
-  return code;
-}
+const tgName = (u) => (u && u.username ? `@${u.username}` : (u && u.first_name) || 'Telegram');
 
 /* Bot API caller. With MAIL_DEBUG the calls are collected instead of
    sent, so the whole bot is testable offline. */
@@ -124,11 +109,8 @@ function makeBot(env) {
 async function handleStart(env, bot, origin, msg, param) {
   const chatId = msg.chat.id;
   const from = msg.from;
-  const binding = from ? await getBinding(env, from.id) : null;
 
-  /* deep link from the Minecraft chat / map QR: /start mc_<token>.
-     No K-ID account needed — an unlinked player binds the nick straight
-     to their Telegram. */
+  /* deep link from the Minecraft chat / map QR: /start mc_<token> */
   if (param.startsWith('mc_')) {
     const token = param.slice(3);
     const data = await loadJoin(env, token);
@@ -139,12 +121,9 @@ async function handleStart(env, bot, origin, msg, param) {
       });
       return;
     }
-    const account = binding
-      ? binding.email
-      : `Telegram ${from && from.username ? `@${from.username}` : (from && from.first_name) || 'account'}`;
     await bot.call('sendMessage', {
       chat_id: chatId,
-      text: `Minecraft sign-in\n\nLet ${data.server} log you in as ${data.nick}?\nAccount: ${account}`,
+      text: `Minecraft sign-in\n\nLet ${data.server} log you in as ${data.nick}?\nTelegram: ${tgName(from)}`,
       reply_markup: { inline_keyboard: [[
         { text: '✅ Yes, that’s me', callback_data: `mc:ok:${token}` },
         { text: '❌ Deny', callback_data: `mc:no:${token}` },
@@ -154,24 +133,11 @@ async function handleStart(env, bot, origin, msg, param) {
   }
 
   /* plain /start */
-  if (binding) {
-    const user = await getUser(env, binding.email);
-    const nick = user && user.mcNick ? `\nMinecraft nickname: ${user.mcNick}` : '';
-    await bot.call('sendMessage', {
-      chat_id: chatId,
-      text: `You are connected as ${binding.email}.${nick}\n\nWhen you join a Minecraft server, the confirmation will show up here. You can also scan a sign-in QR from the app below.`,
-      reply_markup: { inline_keyboard: [[
-        { text: 'Open K-ID', web_app: { url: `${origin}/tg` } },
-      ]] },
-    });
-    return;
-  }
-  const code = await makeLinkCode(env, from);
   await bot.call('sendMessage', {
     chat_id: chatId,
-    text: 'Hi! When you join a Minecraft server, the confirmation will show up here — nothing to set up. Your nickname ties to this Telegram on the first approval.\n\nOptional: connect a K-ID account to use one identity across Kiliw.',
+    text: 'Hi! When you join a Minecraft server, the sign-in confirmation shows up here — nothing to set up.\n\nYour nickname ties to this Telegram on the first approval, so nobody else can join under it. You can also scan a sign-in code from a computer screen:',
     reply_markup: { inline_keyboard: [[
-      { text: 'Connect K-ID (optional)', url: `${origin}/tglink#${code}` },
+      { text: 'Scan a sign-in code', web_app: { url: `${origin}/tg` } },
     ]] },
   });
 }
@@ -182,16 +148,9 @@ async function handleCallback(env, bot, cq) {
     ...(text ? { text } : {}),
   });
   const m = String(cq.data || '').match(/^mc:(ok|no):([0-9a-f]{24})$/);
-  if (!m) { await answer(); return; }
+  if (!m || !cq.from) { await answer(); return; }
 
-  if (!cq.from) { await answer(); return; }
-  const binding = await getBinding(env, cq.from.id);
-  const who = {
-    email: binding ? binding.email : null,
-    tgId: cq.from.id,
-    tgUsername: cq.from.username || '',
-  };
-  const res = await decideJoin(env, m[2], who, m[1] === 'ok');
+  const res = await decideJoin(env, m[2], whoFrom(cq.from), m[1] === 'ok');
   const edit = (text) => (cq.message ? bot.call('editMessageText', {
     chat_id: cq.message.chat.id,
     message_id: cq.message.message_id,
@@ -201,7 +160,7 @@ async function handleCallback(env, bot, cq) {
   if (res.error === 'mc-expired') {
     await edit('This sign-in link has expired. Rejoin the server to get a fresh one.');
   } else if (res.error === 'nick-taken') {
-    await edit('❌ This nickname is tied to a different account.');
+    await edit('❌ This nickname is tied to a different Telegram.');
   } else if (res.error) {
     await edit('Something went wrong. Rejoin the server and try again.');
   } else if (res.denied) {
@@ -240,6 +199,8 @@ export async function onRequestPost({ request, env }) {
     return json(env.MAIL_DEBUG ? { success: true, debugCalls: bot.calls } : { success: true });
   }
 
+  /* --- mini app (Telegram initData) --- */
+  if (!botReady(env)) return json({ success: false, error: 'not-configured' }, 503);
   let body;
   try {
     body = await request.json();
@@ -247,68 +208,15 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'bad-request' }, 400);
   }
   const action = String(body?.action || '');
-
-  /* --- site (session cookie): confirm the Telegram link --- */
-  if (action === 'bind') {
-    const session = await getSession(request, env);
-    if (!session) return json({ success: false, error: 'unauthorized' }, 401);
-    const code = String(body?.code || '');
-    if (!/^[0-9a-f]{32}$/.test(code)) return json({ success: false, error: 'bad-request' }, 400);
-    const obj = await env.KILIW_FILES.get(linkKey(code));
-    const link = obj ? await obj.json().catch(() => null) : null;
-    await env.KILIW_FILES.delete(linkKey(code)).catch(() => {});
-    if (!link || link.expires < Date.now()) {
-      return json({ success: false, error: 'link-expired' }, 410);
-    }
-    const user = await getUser(env, session.email);
-    if (!user) return json({ success: false, error: 'unauthorized' }, 401);
-    /* one Telegram per account: drop the previous binding if any */
-    if (user.tgId && user.tgId !== link.tgId) {
-      await env.KILIW_FILES.delete(tgKey(user.tgId)).catch(() => {});
-    }
-    await env.KILIW_FILES.put(tgKey(link.tgId), JSON.stringify({
-      email: session.email,
-      username: link.username,
-      created: Date.now(),
-    }));
-    user.tgId = link.tgId;
-    user.tgUsername = link.username;
-    await putUser(env, user);
-    return json({ success: true, username: link.username });
-  }
-
-  /* --- mini app (Telegram initData) --- */
-  if (!botReady(env)) return json({ success: false, error: 'not-configured' }, 503);
   const tgUser = await checkInitData(env, body?.initData);
   if (!tgUser) return json({ success: false, error: 'unauthorized' }, 401);
-  const binding = await getBinding(env, tgUser.id);
 
   if (action === 'auth') {
-    if (!binding) {
-      const code = await makeLinkCode(env, tgUser);
-      return json({
-        success: true,
-        linked: false,
-        tgName: tgUser.username ? `@${tgUser.username}` : (tgUser.first_name || 'Telegram'),
-        linkUrl: `${idOrigin(request)}/tglink#${code}`,
-      });
-    }
-    const user = await getUser(env, binding.email);
-    return json({
-      success: true,
-      linked: true,
-      email: binding.email,
-      mcNick: (user && user.mcNick) || null,
-    });
+    return json({ success: true, tgName: tgName(tgUser) });
   }
 
   if (action === 'approve' || action === 'deny') {
-    const who = {
-      email: binding ? binding.email : null,
-      tgId: tgUser.id,
-      tgUsername: tgUser.username || '',
-    };
-    const res = await decideJoin(env, String(body?.token || ''), who, action === 'approve');
+    const res = await decideJoin(env, String(body?.token || ''), whoFrom(tgUser), action === 'approve');
     if (res.error) return json({ success: false, error: res.error }, res.http);
     return json({ success: true, denied: Boolean(res.denied), nick: res.nick });
   }
@@ -325,18 +233,6 @@ export async function onRequestPost({ request, env }) {
 export async function onRequestGet({ request, env }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
   const url = new URL(request.url);
-
-  /* /tglink page: whose Telegram is asking to be connected? */
-  const code = url.searchParams.get('link');
-  if (code) {
-    if (!/^[0-9a-f]{32}$/.test(code)) return json({ success: false, error: 'bad-request' }, 400);
-    const obj = await env.KILIW_FILES.get(linkKey(code));
-    const link = obj ? await obj.json().catch(() => null) : null;
-    if (!link || link.expires < Date.now()) {
-      return json({ success: false, error: 'link-expired' }, 410);
-    }
-    return json({ success: true, username: link.username, first: link.first });
-  }
 
   /* owner: wipe every Telegram binding and Minecraft nick claim,
      so everyone starts fresh (GET /api/tg?reset=1) */
@@ -361,7 +257,7 @@ export async function onRequestGet({ request, env }) {
     const tgWiped = await wipe('_auth/tg/');
     const linksWiped = await wipe('_auth/tglink/');
     const nicksWiped = await wipe('_auth/mcnick/');
-    /* clear the mirror fields on the user records */
+    /* clear the mirror fields left on user records by older builds */
     let usersCleared = 0;
     let cursor;
     do {
@@ -410,10 +306,10 @@ export async function onRequestGet({ request, env }) {
       allowed_updates: ['message', 'callback_query'],
     });
     const menu = await bot.call('setChatMenuButton', {
-      menu_button: { type: 'web_app', text: 'K-ID', web_app: { url: `${origin}/tg` } },
+      menu_button: { type: 'web_app', text: 'Scan', web_app: { url: `${origin}/tg` } },
     });
     const commands = await bot.call('setMyCommands', {
-      commands: [{ command: 'start', description: 'Connect your K-ID account' }],
+      commands: [{ command: 'start', description: 'Minecraft sign-in' }],
     });
     return json({
       success: Boolean(webhook?.ok),

@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0C0C0C">
-  <title>K-ID — Telegram</title>
+  <title>Minecraft sign-in — kiliw</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=103">
+  <link rel="stylesheet" href="styles.css?v=104">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; }
@@ -45,7 +45,7 @@
     <div class="orb orb-2" aria-hidden="true"></div>
 
     <main class="card tg-card">
-      <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
+      <div class="auth-brand"><span class="wordmark">kiliw<em>cloud</em></span></div>
 
       <div id="tg-loading"><p class="subtitle">One moment…</p></div>
 
@@ -55,12 +55,12 @@
       </div>
 
       <div id="tg-home" hidden>
-        <h1 class="title" style="font-size:24px">K-ID sign-in</h1>
-        <p class="subtitle">Approve Minecraft sign-ins right from this chat,
+        <h1 class="title" style="font-size:24px">Minecraft sign-in</h1>
+        <p class="subtitle">Approve server joins right from this chat,
           or scan a code from a computer screen.</p>
         <div class="tg-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <div><b id="tg-mail"></b><span id="tg-mail-kind">Account</span></div>
+          <div><b id="tg-mail"></b><span>Telegram account</span></div>
         </div>
         <div class="tg-row" id="tg-nick-row" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
@@ -68,7 +68,6 @@
         </div>
         <div class="tg-actions">
           <button type="button" class="submit" id="tg-scan">Scan a sign-in code</button>
-          <button type="button" class="ghost-btn" id="tg-connect" hidden>Connect K-ID account (optional)</button>
         </div>
         <p class="tg-note" id="tg-scan-note" hidden>Scanning needs a newer Telegram.
           Point your phone camera at the code instead — it opens this bot.</p>
@@ -85,7 +84,7 @@
           <button type="button" class="submit" id="tg-approve">Yes, that&rsquo;s me</button>
           <button type="button" class="ghost-btn" id="tg-deny">Deny</button>
         </div>
-        <p class="tg-note">The first approval ties this nickname to your K-ID —
+        <p class="tg-note">The first approval ties this nickname to your Telegram —
           nobody else will be able to join under it.</p>
       </div>
 
@@ -116,6 +115,6 @@
     </main>
   </div>
 
-  <script src="tg.js?v=103"></script>
+  <script src="tg.js?v=104"></script>
 </body>
 </html>

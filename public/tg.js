@@ -1,5 +1,6 @@
-/* K-ID mini app inside the Telegram bot: connect the account and
-   approve Minecraft sign-ins (via the deep link or the QR scanner). */
+/* Mini app inside the Telegram bot: approve Minecraft sign-ins
+   (via the deep link or the QR scanner). Telegram-only — no site
+   account is involved. */
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -76,7 +77,7 @@
     tg.onEvent('qrTextReceived', (e) => onText(e && e.data));
     $('tg-scan').addEventListener('click', () => {
       try {
-        tg.showScanQrPopup({ text: 'Point at the K-ID sign-in code' }, onText);
+        tg.showScanQrPopup({ text: 'Point at the sign-in code' }, onText);
       } catch (e) {
         $('tg-scan-note').hidden = false;
       }
@@ -90,22 +91,7 @@
   (async () => {
     const { data } = await api({ action: 'auth' });
     if (!data.success) { show('tg-outside'); return; }
-
-    if (data.linked) {
-      $('tg-mail').textContent = data.email;
-      $('tg-mail-kind').textContent = 'K-ID account';
-      if (data.mcNick) {
-        $('tg-nick').textContent = data.mcNick;
-        $('tg-nick-row').hidden = false;
-      }
-    } else {
-      /* no K-ID needed — the nick binds to the Telegram account */
-      $('tg-mail').textContent = data.tgName || 'Telegram';
-      $('tg-mail-kind').textContent = 'Telegram account';
-      const btn = $('tg-connect');
-      btn.hidden = false;
-      btn.onclick = () => { if (data.linkUrl) tg.openLink(data.linkUrl); };
-    }
+    $('tg-mail').textContent = data.tgName || 'Telegram';
     wireScan();
 
     /* opened straight from a t.me/...?startapp=mc_<token> link */
