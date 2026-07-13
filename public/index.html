@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=95">
+  <link rel="stylesheet" href="styles.css?v=96">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
@@ -185,11 +185,8 @@
     .rl-alt-row { display: flex; justify-content: center; gap: 4px; margin-top: 12px; }
     .rl-alt-row .rl-pk-link { width: auto; margin-top: 0; padding: 6px 10px; }
     .rl-qr-box {
-      width: 216px;
+      width: min(300px, 76vw);
       margin: 4px auto 16px;
-      padding: 12px;
-      background: #fff;
-      border-radius: 18px;
     }
     .rl-qr-box svg { display: block; width: 100%; height: auto; }
     .rl-qr-state {
@@ -467,13 +464,13 @@
 
     <footer class="auth-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-5F</p>
+      <p class="auth-build">KW-60</p>
     </footer>
 
   </div>
 
-  <script src="vendor/qrcode.min.js?v=95"></script>
-  <script src="ui.js?v=95"></script>
-  <script src="auth.js?v=95"></script>
+  <script src="vendor/qrcode.min.js?v=96"></script>
+  <script src="ui.js?v=96"></script>
+  <script src="auth.js?v=96"></script>
 </body>
 </html>

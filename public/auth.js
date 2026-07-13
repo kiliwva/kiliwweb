@@ -374,9 +374,9 @@ function prettyQr(text) {
   const h0 = Math.floor((n - hole) / 2);
   const h1 = h0 + hole - 1;
 
-  const ink = '#181818';
+  const ink = '#F2F2F2'; /* light modules on the dark page */
   let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`;
-  out += `<rect width="${size}" height="${size}" fill="#fff"/>`;
+  out += '<defs><linearGradient id="qrg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>';
 
   const d = S - 1.6;
   const rx = d * 0.44;
@@ -399,7 +399,7 @@ function prettyQr(text) {
     return `<path fill-rule="evenodd" fill="${ink}" d="`
       + roundedRectPath(x, y, o, o, 2.4 * S)
       + roundedRectPath(x + S, y + S, i, i, 1.7 * S)
-      + `"/><rect x="${x + 2 * S}" y="${y + 2 * S}" width="${p}" height="${p}" rx="${1.1 * S}" fill="${ink}"/>`;
+      + `"/><rect x="${x + 2 * S}" y="${y + 2 * S}" width="${p}" height="${p}" rx="${1.1 * S}" fill="url(#qrg)"/>`;
   };
   out += eye(Q, Q);
   out += eye(Q + (n - 7) * S, Q);
@@ -409,7 +409,7 @@ function prettyQr(text) {
   const tile = hole * S;
   const tx = Q + h0 * S;
   const ty = Q + h0 * S;
-  out += `<rect x="${tx}" y="${ty}" width="${tile}" height="${tile}" rx="${tile * 0.26}" fill="#151515"/>`;
+  out += `<rect x="${tx}" y="${ty}" width="${tile}" height="${tile}" rx="${tile * 0.26}" fill="#151515" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/>`;
   /* mark content: x 5.7-18.3, y 3.45-20.55 in 24-units → scale into the tile */
   const mScale = (tile * 0.62) / 17.1;
   const mw = 12.6 * mScale;
@@ -422,7 +422,6 @@ function prettyQr(text) {
     const rr = (1.1 * mScale).toFixed(1);
     return `<rect x="${px}" y="${py}" width="${wl}" height="${wl}" rx="${rr}" fill="${grad ? 'url(#qrg)' : '#F2F2F2'}"/>`;
   };
-  out += '<defs><linearGradient id="qrg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>';
   out += cell(5.7, 3.45) + cell(5.7, 7.95) + cell(5.7, 12.45) + cell(5.7, 16.95);
   out += cell(10.2, 7.95, 1) + cell(14.7, 3.45, 1) + cell(10.2, 12.45, 1) + cell(14.7, 16.95, 1);
   out += '</svg>';
