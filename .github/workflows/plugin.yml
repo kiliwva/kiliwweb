@@ -21,8 +21,6 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - uses: gradle/actions/setup-gradle@v4
-
       - name: Build
         working-directory: minecraft-plugin
         run: gradle build --no-daemon
@@ -35,9 +33,14 @@ jobs:
       # a stable download link that always points at the freshest jar:
       # .../releases/download/plugin-latest/KidAuth-1.0.0.jar
       - name: Publish to the plugin-latest release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: plugin-latest
-          name: KidAuth plugin (latest build)
-          body: Automatically built from the newest minecraft-plugin sources.
-          files: minecraft-plugin/build/libs/*.jar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view plugin-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload plugin-latest minecraft-plugin/build/libs/*.jar --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create plugin-latest minecraft-plugin/build/libs/*.jar \
+              --title "KidAuth plugin (latest build)" \
+              --notes "Automatically built from the newest minecraft-plugin sources." \
+              --repo "$GITHUB_REPOSITORY"
+          fi
