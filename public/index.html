@@ -8,256 +8,92 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=73">
+  <link rel="stylesheet" href="styles.css?v=74">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
-  <style>
-    /* ============================================================
-       Brand intro: the pixel K assembles, collapses into one pixel,
-       and it bursts into the K-ID wordmark. Everything, including
-       the final fade-out, is plain CSS animation: no JS timers (iOS
-       system sheets freeze them) and no CSS variables (iOS Safari
-       drops animations that carry var()). The overlay never captures
-       taps.
-       ============================================================ */
-    .brand-intro {
-      position: fixed;
-      inset: 0;
-      z-index: 300;
-      display: grid;
-      place-items: center;
-      pointer-events: none;
-      background: linear-gradient(160deg, #262626 0%, #161616 52%, #0C0C0C 100%);
-      animation: bi-out 0.4s ease 2.1s forwards;
-    }
-    .brand-intro.solo { animation-delay: 1.15s; }
-    .brand-intro.done { opacity: 0; visibility: hidden; }
-    @keyframes bi-out {
-      to { opacity: 0; visibility: hidden; }
-    }
-    .bi-stage { position: relative; width: 78px; height: 106px; }
-    .bi-cell {
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      border-radius: 7px;
-      background: #F2F2F2;
-      opacity: 0;
-      animation-duration: 0.5s, 0.36s;
-      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1), cubic-bezier(0.55, 0, 0.8, 0.4);
-      animation-fill-mode: forwards, forwards;
-    }
-    .bi-cell.g { background: linear-gradient(135deg, #F2A47B 0%, #D97757 60%, #B4552F 100%); }
-    .brand-intro.solo .bi-cell {
-      animation-duration: 0.5s;
-      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-      animation-fill-mode: forwards;
-    }
-    .bi-cell.c1 {
-      left: 0px;
-      top: 0px;
-      animation-name: bi-in-1, bi-merge-1;
-      animation-delay: 0.0s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c1 {
-      animation-name: bi-in-1;
-      animation-delay: 0.0s;
-    }
-    @keyframes bi-in-1 {
-      from { opacity: 0; transform: translate(-50px, -56px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-1 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(28px, 42px) scale(0.5); }
-    }
-    .bi-cell.c2 {
-      left: 0px;
-      top: 28px;
-      animation-name: bi-in-2, bi-merge-2;
-      animation-delay: 0.05s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c2 {
-      animation-name: bi-in-2;
-      animation-delay: 0.05s;
-    }
-    @keyframes bi-in-2 {
-      from { opacity: 0; transform: translate(-68px, -19px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-2 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(28px, 14px) scale(0.5); }
-    }
-    .bi-cell.c3 {
-      left: 0px;
-      top: 56px;
-      animation-name: bi-in-3, bi-merge-3;
-      animation-delay: 0.1s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c3 {
-      animation-name: bi-in-3;
-      animation-delay: 0.1s;
-    }
-    @keyframes bi-in-3 {
-      from { opacity: 0; transform: translate(-56px, 25px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-3 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(28px, -14px) scale(0.5); }
-    }
-    .bi-cell.c4 {
-      left: 0px;
-      top: 84px;
-      animation-name: bi-in-4, bi-merge-4;
-      animation-delay: 0.15s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c4 {
-      animation-name: bi-in-4;
-      animation-delay: 0.15s;
-    }
-    @keyframes bi-in-4 {
-      from { opacity: 0; transform: translate(-43px, 68px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-4 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(28px, -42px) scale(0.5); }
-    }
-    .bi-cell.c5 {
-      left: 28px;
-      top: 28px;
-      animation-name: bi-in-5, bi-merge-5;
-      animation-delay: 0.08s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c5 {
-      animation-name: bi-in-5;
-      animation-delay: 0.08s;
-    }
-    @keyframes bi-in-5 {
-      from { opacity: 0; transform: translate(19px, -68px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-5 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(0px, 14px) scale(0.5); }
-    }
-    .bi-cell.c6 {
-      left: 56px;
-      top: 0px;
-      animation-name: bi-in-6, bi-merge-6;
-      animation-delay: 0.12s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c6 {
-      animation-name: bi-in-6;
-      animation-delay: 0.12s;
-    }
-    @keyframes bi-in-6 {
-      from { opacity: 0; transform: translate(56px, -50px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-6 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(-28px, 42px) scale(0.5); }
-    }
-    .bi-cell.c7 {
-      left: 28px;
-      top: 56px;
-      animation-name: bi-in-7, bi-merge-7;
-      animation-delay: 0.16s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c7 {
-      animation-name: bi-in-7;
-      animation-delay: 0.16s;
-    }
-    @keyframes bi-in-7 {
-      from { opacity: 0; transform: translate(25px, 74px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-7 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(0px, -14px) scale(0.5); }
-    }
-    .bi-cell.c8 {
-      left: 56px;
-      top: 84px;
-      animation-name: bi-in-8, bi-merge-8;
-      animation-delay: 0.2s, 0.78s;
-    }
-    .brand-intro.solo .bi-cell.c8 {
-      animation-name: bi-in-8;
-      animation-delay: 0.2s;
-    }
-    @keyframes bi-in-8 {
-      from { opacity: 0; transform: translate(62px, 56px) scale(0.3); }
-      to { opacity: 1; transform: translate(0, 0) scale(1); }
-    }
-    @keyframes bi-merge-8 {
-      from { opacity: 1; transform: none; }
-      to { opacity: 0; transform: translate(-28px, -42px) scale(0.5); }
-    }
-    .bi-pixel {
-      position: absolute;
-      left: 28px;
-      top: 42px;
-      width: 22px;
-      height: 22px;
-      border-radius: 7px;
-      background: linear-gradient(135deg, #F2A47B 0%, #D97757 60%, #B4552F 100%);
-      opacity: 0;
-      animation: bi-pixel 0.85s cubic-bezier(0.3, 0.7, 0.4, 1) 1.02s forwards;
-    }
-    @keyframes bi-pixel {
-      0% { opacity: 0; transform: scale(0.4); }
-      32% { opacity: 1; transform: scale(1.18); }
-      52% { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(3); }
-    }
-    .bi-word {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%) scale(0.4);
-      opacity: 0;
-      font-size: 34px;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1;
-      white-space: nowrap;
-      color: #F2F2F2;
-      animation: bi-word 0.5s cubic-bezier(0.22, 1, 0.36, 1) 1.3s forwards;
-    }
-    .bi-word em {
-      font-style: normal;
-      background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    @keyframes bi-word {
-      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    }
-
-  </style>
   <style>.build-tag{position:fixed;right:10px;bottom:8px;z-index:400;font-size:10px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.28);pointer-events:none}</style>
 </head>
 <body data-title-key="title.auth">
 
-  <div class="brand-intro" id="brand-intro" aria-hidden="true">
-    <div class="bi-stage">
-      <i class="bi-cell c1"></i>
-      <i class="bi-cell c2"></i>
-      <i class="bi-cell c3"></i>
-      <i class="bi-cell c4"></i>
-      <i class="bi-cell g c5"></i>
-      <i class="bi-cell g c6"></i>
-      <i class="bi-cell g c7"></i>
-      <i class="bi-cell g c8"></i>
-      <span class="bi-pixel"></span>
-      <span class="bi-word">K<em>-ID</em></span>
-    </div>
-  </div>
+  <script>
+    /* Brand intro, driven entirely by the Web Animations API: the overlay
+       is built by this script with inline styles, so it cannot be broken
+       by a stale stylesheet, cascade conflicts or reduce-motion CSS. */
+    (function () {
+      if (!window.Element || !Element.prototype.animate) return;
+      var SOLO = false;
+      var EASE_OUT = 'cubic-bezier(0.22,1,0.36,1)';
+      var GRAD = 'linear-gradient(135deg,#F2A47B 0%,#D97757 60%,#B4552F 100%)';
+      function play() {
+        if (document.getElementById('brand-intro')) return;
+        var ov = document.createElement('div');
+        ov.id = 'brand-intro';
+        ov.setAttribute('aria-hidden', 'true');
+        ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:center;justify-content:center;pointer-events:none;background:linear-gradient(160deg,#262626 0%,#161616 52%,#0C0C0C 100%)';
+        var stage = document.createElement('div');
+        stage.style.cssText = 'position:relative;width:78px;height:106px';
+        ov.appendChild(stage);
+        /* [left, top, fly-from-x, fly-from-y, delay]; first 4 cells form the
+           white stem, the rest are the gradient rays */
+        var cells = [
+          [0, 0, -50, -56, 0], [0, 28, -68, -19, 50], [0, 56, -56, 25, 100], [0, 84, -43, 68, 150],
+          [28, 28, 19, -68, 80], [56, 0, 56, -50, 120], [28, 56, 25, 74, 160], [56, 84, 62, 56, 200]
+        ];
+        cells.forEach(function (c, i) {
+          var el = document.createElement('i');
+          el.style.cssText = 'position:absolute;width:22px;height:22px;border-radius:7px;opacity:0;left:' + c[0] + 'px;top:' + c[1] + 'px;background:' + (i > 3 ? GRAD : '#F2F2F2');
+          stage.appendChild(el);
+          el.animate([
+            { opacity: 0, transform: 'translate(' + c[2] + 'px,' + c[3] + 'px) scale(0.3)' },
+            { opacity: 1, transform: 'translate(0,0) scale(1)' }
+          ], { duration: 500, delay: c[4], easing: EASE_OUT, fill: 'both' });
+          if (!SOLO) {
+            el.animate([
+              { opacity: 1, transform: 'translate(0,0)' },
+              { opacity: 0, transform: 'translate(' + (28 - c[0]) + 'px,' + (42 - c[1]) + 'px) scale(0.5)' }
+            ], { duration: 360, delay: 780, easing: 'cubic-bezier(0.55,0,0.8,0.4)', fill: 'forwards' });
+          }
+        });
+        if (!SOLO) {
+          var px = document.createElement('i');
+          px.style.cssText = 'position:absolute;left:28px;top:42px;width:22px;height:22px;border-radius:7px;opacity:0;background:' + GRAD;
+          stage.appendChild(px);
+          px.animate([
+            { opacity: 0, transform: 'scale(0.4)', offset: 0 },
+            { opacity: 1, transform: 'scale(1.18)', offset: 0.32 },
+            { opacity: 1, transform: 'scale(1)', offset: 0.52 },
+            { opacity: 0, transform: 'scale(3)', offset: 1 }
+          ], { duration: 850, delay: 1020, easing: 'cubic-bezier(0.3,0.7,0.4,1)', fill: 'both' });
+          var word = document.createElement('span');
+          word.style.cssText = 'position:absolute;left:50%;top:50%;opacity:0;font-family:Manrope,-apple-system,BlinkMacSystemFont,sans-serif;font-size:34px;font-weight:800;letter-spacing:-0.03em;line-height:1;white-space:nowrap;color:#F2F2F2;transform:translate(-50%,-50%) scale(0.4)';
+          word.appendChild(document.createTextNode('K'));
+          var em = document.createElement('em');
+          em.textContent = '-ID';
+          em.style.cssText = 'font-style:normal;background:linear-gradient(120deg,#F2A47B 0%,#D97757 55%,#C05C3E 100%);-webkit-background-clip:text;background-clip:text;color:transparent';
+          word.appendChild(em);
+          stage.appendChild(word);
+          word.animate([
+            { opacity: 0, transform: 'translate(-50%,-50%) scale(0.4)' },
+            { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }
+          ], { duration: 500, delay: 1300, easing: EASE_OUT, fill: 'both' });
+        }
+        document.body.appendChild(ov);
+        var fade = ov.animate([{ opacity: 1 }, { opacity: 0 }],
+          { duration: 400, delay: SOLO ? 1150 : 2100, fill: 'forwards' });
+        fade.onfinish = function () { try { ov.remove(); } catch (e) {} };
+        setTimeout(function () { try { ov.remove(); } catch (e) {} }, SOLO ? 3000 : 3900);
+      }
+      play();
+      var hiddenAt = 0;
+      window.addEventListener('pageshow', function (e) { if (e.persisted) play(); });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+        if (hiddenAt && Date.now() - hiddenAt > 1500) play();
+      });
+    })();
+  </script>
+
+
 
 
 
@@ -363,35 +199,8 @@
     </main>
   </div>
 
-  <script src="ui.js?v=73"></script>
-  <script src="auth.js?v=73"></script>
-  <script>
-    (function () {
-      var el = document.getElementById('brand-intro');
-      if (!el) return;
-      var saved = el.outerHTML;
-      var hiddenAt = 0;
-      function arm(node) {
-        node.addEventListener('animationend', function (e) {
-          if (e.target === node) node.remove();
-        });
-        setTimeout(function () { node.classList.add('done'); try { node.remove(); } catch (err) {} }, 3200);
-      }
-      function replay() {
-        if (document.getElementById('brand-intro')) return;
-        document.body.insertAdjacentHTML('afterbegin', saved);
-        arm(document.getElementById('brand-intro'));
-      }
-      arm(el);
-      /* iOS Safari restores tabs from memory without reloading, so the
-         intro replays on every return to the page, like a real app */
-      window.addEventListener('pageshow', function (e) { if (e.persisted) replay(); });
-      document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
-        if (hiddenAt && Date.now() - hiddenAt > 1500) replay();
-      });
-    })();
-  </script>
-  <span class="build-tag">KW-49</span>
+  <script src="ui.js?v=74"></script>
+  <script src="auth.js?v=74"></script>
+  <span class="build-tag">KW-4A</span>
 </body>
 </html>
