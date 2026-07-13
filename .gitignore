@@ -1,3 +1,5 @@
 .wrangler/
 node_modules/
 wrangler.local-test.jsonc
+minecraft-plugin/.gradle/
+minecraft-plugin/build/
