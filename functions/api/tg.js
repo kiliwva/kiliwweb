@@ -134,13 +134,10 @@ async function handleStart(env, bot, origin, msg, param) {
     const meta = joinMetaLines(data, token);
     await sendTracked(env, bot, chatId, {
       text: `Sign-in request\n\n${data.server} wants to log you in as ${data.nick}.\nTelegram: ${tgName(from)}`
-        + (meta.length ? `\n\n${meta.join('\n')}` : ''),
+        + (meta.length ? `\n\n${meta.join('\n')}` : '')
+        + '\n\nOpen to review and confirm.',
       reply_markup: { inline_keyboard: [
-        [
-          { text: 'Approve', callback_data: `mc:ok:${token}` },
-          { text: 'Deny', callback_data: `mc:no:${token}` },
-        ],
-        [{ text: 'Confirm with Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
+        [{ text: 'Review & confirm', web_app: { url: `${origin}/tg#mc_${token}` } }],
       ] },
     });
     return;
@@ -153,35 +150,6 @@ async function handleStart(env, bot, origin, msg, param) {
       { text: 'Scan a code', web_app: { url: `${origin}/tg` } },
     ]] },
   });
-}
-
-async function handleCallback(env, bot, cq) {
-  const answer = (text) => bot.call('answerCallbackQuery', {
-    callback_query_id: cq.id,
-    ...(text ? { text } : {}),
-  });
-  const m = String(cq.data || '').match(/^mc:(ok|no):([0-9a-f]{24})$/);
-  if (!m || !cq.from) { await answer(); return; }
-
-  const res = await decideJoin(env, m[2], whoFrom(cq.from), m[1] === 'ok');
-  const edit = (text) => (cq.message ? bot.call('editMessageText', {
-    chat_id: cq.message.chat.id,
-    message_id: cq.message.message_id,
-    text,
-  }) : Promise.resolve());
-
-  if (res.error === 'mc-expired') {
-    await edit('This code has expired. Rejoin the server to get a fresh one.');
-  } else if (res.error === 'nick-taken') {
-    await edit('This nickname is tied to a different Telegram. Approve from that account or pick another nickname in-game.');
-  } else if (res.error) {
-    await edit('Something went wrong. Rejoin the server and try again.');
-  } else if (res.denied) {
-    await edit(`Denied. ${res.nick} will be kicked from the server.`);
-  } else {
-    await edit(`Approved. Switch back to Minecraft — the server is letting ${res.nick} in.`);
-  }
-  await answer();
 }
 
 /* ---------- HTTP entry points ---------- */
@@ -207,7 +175,6 @@ export async function onRequestPost({ request, env }) {
           await handleStart(env, bot, origin, msg, parts[1] || '');
         }
       }
-      if (update.callback_query) await handleCallback(env, bot, update.callback_query);
     } catch { /* never make Telegram retry-storm us */ }
     return json(env.MAIL_DEBUG ? { success: true, debugCalls: bot.calls } : { success: true });
   }
@@ -323,7 +290,7 @@ export async function onRequestGet({ request, env }) {
     const webhook = await bot.call('setWebhook', {
       url: `${origin}/api/tg`,
       secret_token: await webhookSecret(env),
-      allowed_updates: ['message', 'callback_query'],
+      allowed_updates: ['message'],
     });
     const menu = await bot.call('setChatMenuButton', {
       menu_button: { type: 'web_app', text: 'Scan', web_app: { url: `${origin}/tg` } },

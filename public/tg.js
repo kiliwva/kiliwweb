@@ -36,24 +36,6 @@
 
   const home = () => show('tg-home');
 
-  /* --- Face ID / Touch ID gate (Telegram BiometricManager, 7.2+) --- */
-
-  const bio = tg.BiometricManager;
-  const bioSupported = () => Boolean(bio) && tg.isVersionAtLeast && tg.isVersionAtLeast('7.2');
-
-  function withBiometry(reason, go) {
-    if (!bioSupported()) { go(); return; }
-    const auth = () => bio.authenticate({ reason }, (ok) => { if (ok) go(); });
-    const after = () => {
-      if (!bio.isBiometricAvailable) { go(); return; }
-      if (bio.isAccessGranted) { auth(); return; }
-      bio.requestAccess({ reason: 'Minecraft sign-in confirmation' },
-        (granted) => (granted ? auth() : go()));
-    };
-    if (bio.isInited) after();
-    else bio.init(after);
-  }
-
   /* --- approving one join --- */
 
   async function openToken(token) {
@@ -85,17 +67,16 @@
     } else {
       metaEl.hidden = true;
     }
-    if (bioSupported()) $('tg-bio-note').hidden = false;
     show('tg-ask');
 
-    $('tg-approve').onclick = () => withBiometry('Confirm your Minecraft sign-in', async () => {
+    $('tg-approve').onclick = async () => {
       $('tg-approve').disabled = true;
       const r = await api({ action: 'approve', token });
       $('tg-approve').disabled = false;
       if (r.ok && r.data.success) show('tg-done');
       else if (r.data.error === 'nick-taken') show('tg-taken');
       else show('tg-bad');
-    });
+    };
     $('tg-deny').onclick = async () => {
       await api({ action: 'deny', token });
       show('tg-denied');

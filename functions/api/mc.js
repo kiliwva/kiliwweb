@@ -109,13 +109,10 @@ async function tgNotify(env, chatId, data, token, origin) {
   const payload = {
     chat_id: chatId,
     text: `Sign-in request\n\n${data.server} wants to log you in as ${data.nick}.`
-      + (meta.length ? `\n\n${meta.join('\n')}` : ''),
+      + (meta.length ? `\n\n${meta.join('\n')}` : '')
+      + '\n\nOpen to review and confirm.',
     reply_markup: { inline_keyboard: [
-      [
-        { text: 'Approve', callback_data: `mc:ok:${token}` },
-        { text: 'Deny', callback_data: `mc:no:${token}` },
-      ],
-      [{ text: 'Confirm with Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
+      [{ text: 'Review & confirm', web_app: { url: `${origin}/tg#mc_${token}` } }],
     ] },
   };
   await tgDeletePrev(env, chatId);
