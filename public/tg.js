@@ -127,30 +127,88 @@
   function wireScan() {
     const overlay = $('scan-overlay');
     const video = $('scan-video');
+    const frame = $('scan-frame');
+    const hl = $('scan-hl');
+    const hlCtx = hl.getContext('2d');
     const statusEl = $('scan-status');
+    const torchBtn = $('scan-torch');
     const input = $('tg-file');
     let stream = null;
+    let track = null;
     let scanning = false;
+    let locked = false;
+    let torchOn = false;
 
     const stop = () => {
       scanning = false;
+      locked = false;
       overlay.hidden = true;
+      torchBtn.hidden = true;
+      torchBtn.classList.remove('on');
+      torchOn = false;
+      frame.hidden = false;
+      hlCtx.clearRect(0, 0, hl.width, hl.height);
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
         stream = null;
       }
+      track = null;
       video.srcObject = null;
     };
 
-    const found = (text) => {
-      const token = tokenFrom(text);
-      if (!token) {
-        statusEl.textContent = 'Хм, это не код K-MCID 🤔';
-        return false;
-      }
-      stop();
-      openToken(token);
-      return true;
+    /* map a point from native video pixels to on-screen pixels
+       (the video is object-fit: cover) */
+    const mapPoint = (p, coverScale, dx, dy) => ({
+      x: p.x * coverScale + dx,
+      y: p.y * coverScale + dy,
+    });
+
+    /* draw the "locked on" box over the detected QR */
+    const drawBox = (corners) => {
+      const cw = overlay.clientWidth;
+      const ch = overlay.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      hl.width = cw * dpr;
+      hl.height = ch * dpr;
+      hlCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      hlCtx.clearRect(0, 0, cw, ch);
+      const vw = video.videoWidth || cw;
+      const vh = video.videoHeight || ch;
+      const coverScale = Math.max(cw / vw, ch / vh);
+      const dx = (cw - vw * coverScale) / 2;
+      const dy = (ch - vh * coverScale) / 2;
+      const pts = corners.map((p) => mapPoint(p, coverScale, dx, dy));
+      hlCtx.beginPath();
+      pts.forEach((p, i) => (i ? hlCtx.lineTo(p.x, p.y) : hlCtx.moveTo(p.x, p.y)));
+      hlCtx.closePath();
+      hlCtx.fillStyle = 'rgba(242, 164, 123, .25)';
+      hlCtx.fill();
+      hlCtx.lineWidth = 4;
+      hlCtx.strokeStyle = '#F2A47B';
+      hlCtx.lineJoin = 'round';
+      hlCtx.stroke();
+      /* corner dots */
+      hlCtx.fillStyle = '#F2A47B';
+      pts.forEach((p) => {
+        hlCtx.beginPath();
+        hlCtx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        hlCtx.fill();
+      });
+    };
+
+    /* found a code: aim at it, then open the confirmation */
+    const lockOnto = (token, corners) => {
+      locked = true;
+      scanning = false;
+      frame.hidden = true;
+      if (corners) drawBox(corners);
+      statusEl.textContent = 'Нашёл! 🎯';
+      setTimeout(() => {
+        const s = stream;
+        stop();
+        if (!s) { /* already stopped */ }
+        openToken(token);
+      }, 420);
     };
 
     async function scanLoop() {
@@ -163,9 +221,12 @@
       while (scanning) {
         if (video.readyState >= 2) {
           try {
+            let hit = null; /* { text, corners(native px) } */
             if (detector) {
               const codes = await detector.detect(video);
-              if (codes.length && found(codes[0].rawValue)) return;
+              if (codes.length) {
+                hit = { text: codes[0].rawValue, corners: codes[0].cornerPoints };
+              }
             } else if (window.jsQR) {
               const w = Math.min(video.videoWidth, 1280);
               const h = Math.round(video.videoHeight * (w / video.videoWidth));
@@ -173,17 +234,54 @@
               canvas.height = h;
               ctx2d.drawImage(video, 0, 0, w, h);
               const img = ctx2d.getImageData(0, 0, w, h);
-              const hit = window.jsQR(img.data, w, h);
-              if (hit && found(hit.data)) return;
+              const q = window.jsQR(img.data, w, h);
+              if (q) {
+                const sc = w / video.videoWidth; /* scaled / native */
+                const L = q.location;
+                hit = {
+                  text: q.data,
+                  corners: [L.topLeftCorner, L.topRightCorner, L.bottomRightCorner, L.bottomLeftCorner]
+                    .map((p) => ({ x: p.x / sc, y: p.y / sc })),
+                };
+              }
+            }
+            if (hit) {
+              const token = tokenFrom(hit.text);
+              if (token) { lockOnto(token, hit.corners); return; }
+              statusEl.textContent = 'Хм, это не код K-MCID 🤔';
             }
           } catch (e) { /* keep scanning */ }
         }
-        await new Promise((r) => setTimeout(r, 160));
+        await new Promise((r) => setTimeout(r, 140));
       }
     }
 
+    const setupTorch = async () => {
+      torchOn = false;
+      torchBtn.classList.remove('on');
+      try {
+        const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+        torchBtn.hidden = !caps.torch;
+      } catch (e) {
+        torchBtn.hidden = true;
+      }
+    };
+
+    torchBtn.addEventListener('click', async () => {
+      if (!track) return;
+      torchOn = !torchOn;
+      try {
+        await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+        torchBtn.classList.toggle('on', torchOn);
+      } catch (e) {
+        torchOn = false;
+        torchBtn.classList.remove('on');
+      }
+    });
+
     $('tg-scan').addEventListener('click', async () => {
-      statusEl.textContent = 'Наведи рамку на код 🎯';
+      statusEl.textContent = 'Наведи на код 🎯';
+      frame.hidden = false;
       overlay.hidden = false;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -194,13 +292,14 @@
           },
           audio: false,
         });
-        const [track] = stream.getVideoTracks();
+        [track] = stream.getVideoTracks();
         try {
           const caps = track.getCapabilities ? track.getCapabilities() : {};
           if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
             await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
           }
         } catch (e) { /* optional */ }
+        await setupTorch();
         video.srcObject = stream;
         await video.play();
         scanning = true;
