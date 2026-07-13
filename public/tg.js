@@ -150,8 +150,6 @@
     const overlay = $('scan-overlay');
     const video = $('scan-video');
     const frame = $('scan-frame');
-    const hl = $('scan-hl');
-    const hlCtx = hl.getContext('2d');
     const statusEl = $('scan-status');
     const torchBtn = $('scan-torch');
     const input = $('tg-file');
@@ -168,8 +166,7 @@
       torchBtn.hidden = true;
       torchBtn.classList.remove('on');
       torchOn = false;
-      frame.hidden = false;
-      hlCtx.clearRect(0, 0, hl.width, hl.height);
+      frame.classList.remove('invalid');
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
         stream = null;
@@ -178,83 +175,62 @@
       video.srcObject = null;
     };
 
-    /* map a point from native video pixels to on-screen pixels
-       (the video is object-fit: cover) */
-    const mapPoint = (p, coverScale, dx, dy) => ({
-      x: p.x * coverScale + dx,
-      y: p.y * coverScale + dy,
-    });
-
-    const clearHl = () => {
-      hlCtx.setTransform(1, 0, 0, 1, 0, 0);
-      hlCtx.clearRect(0, 0, hl.width, hl.height);
+    /* the aiming corners rest in the middle until a code is found */
+    const centerFrame = () => {
+      const s = Math.min(window.innerWidth * 0.62, 260);
+      frame.classList.remove('invalid');
+      frame.style.left = `${(window.innerWidth - s) / 2}px`;
+      frame.style.top = `${(window.innerHeight - s) / 2}px`;
+      frame.style.width = `${s}px`;
+      frame.style.height = `${s}px`;
     };
 
-    /* draw corner brackets over the detected QR (orange = valid,
-       red = not one of ours) */
-    const drawBox = (corners, valid) => {
+    /* move the orange corners to hug the detected QR (whole-screen aim) */
+    const aimAt = (corners, valid) => {
       const cw = overlay.clientWidth;
       const ch = overlay.clientHeight;
-      const dpr = window.devicePixelRatio || 1;
-      hl.width = cw * dpr;
-      hl.height = ch * dpr;
-      hlCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      hlCtx.clearRect(0, 0, cw, ch);
       const vw = video.videoWidth || cw;
       const vh = video.videoHeight || ch;
       const coverScale = Math.max(cw / vw, ch / vh);
       const dx = (cw - vw * coverScale) / 2;
       const dy = (ch - vh * coverScale) / 2;
-      const pts = corners.map((p) => mapPoint(p, coverScale, dx, dy));
-      const stroke = valid ? '#F2A47B' : '#E5484D';
-      const fill = valid ? 'rgba(242, 164, 123, .18)' : 'rgba(229, 72, 77, .18)';
-      hlCtx.beginPath();
-      pts.forEach((p, i) => (i ? hlCtx.lineTo(p.x, p.y) : hlCtx.moveTo(p.x, p.y)));
-      hlCtx.closePath();
-      hlCtx.fillStyle = fill;
-      hlCtx.fill();
-      const lerp = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-      hlCtx.strokeStyle = stroke;
-      hlCtx.lineWidth = 5;
-      hlCtx.lineCap = 'round';
-      hlCtx.lineJoin = 'round';
-      pts.forEach((p, i) => {
-        const next = pts[(i + 1) % 4];
-        const prev = pts[(i + 3) % 4];
-        const a = lerp(p, prev, 0.28);
-        const b = lerp(p, next, 0.28);
-        hlCtx.beginPath();
-        hlCtx.moveTo(a.x, a.y);
-        hlCtx.lineTo(p.x, p.y);
-        hlCtx.lineTo(b.x, b.y);
-        hlCtx.stroke();
-      });
+      const xs = corners.map((p) => p.x * coverScale + dx);
+      const ys = corners.map((p) => p.y * coverScale + dy);
+      const pad = 12;
+      const x = Math.min(...xs) - pad;
+      const y = Math.min(...ys) - pad;
+      const w = Math.max(...xs) - Math.min(...xs) + pad * 2;
+      const h = Math.max(...ys) - Math.min(...ys) + pad * 2;
+      frame.classList.toggle('invalid', !valid);
+      frame.style.left = `${x}px`;
+      frame.style.top = `${y}px`;
+      frame.style.width = `${w}px`;
+      frame.style.height = `${h}px`;
     };
 
-    /* found our code: aim at it, then open the confirmation */
+    /* found our code: the corners snap onto it, then open confirmation */
     const lockOnto = (token, corners) => {
       locked = true;
       scanning = false;
-      frame.hidden = true;
-      if (corners) drawBox(corners, true);
+      if (corners) aimAt(corners, true);
       haptic.impact('medium');
       statusEl.textContent = 'Found it';
       setTimeout(() => {
         stop();
         openToken(token);
-      }, 420);
+      }, 460);
     };
 
-    /* some other QR: aim at it in red, say invalid, then keep scanning */
+    /* some other QR: corners turn red, say invalid, then keep scanning */
     let coolUntil = 0;
     const showInvalid = (corners) => {
-      if (corners) drawBox(corners, false);
+      if (corners) aimAt(corners, false);
       haptic.notify('error');
       statusEl.textContent = 'Invalid QR code';
       coolUntil = Date.now() + 1400;
       setTimeout(() => {
         if (scanning && Date.now() >= coolUntil - 20) {
-          clearHl();
+          centerFrame();
           statusEl.textContent = 'Point at the code';
         }
       }, 1400);
@@ -330,8 +306,8 @@
 
     $('tg-scan').addEventListener('click', async () => {
       statusEl.textContent = 'Point at the code';
-      frame.hidden = false;
       overlay.hidden = false;
+      centerFrame();
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
