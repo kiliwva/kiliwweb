@@ -136,7 +136,7 @@ async function loadMe() {
   }
   renderTotp(Boolean(data.totp));
   renderProducts(data);
-  renderLinks(data.links || {});
+  renderLinks(data.links || {}, data.mcNick || null);
 }
 
 /* ---------- password ---------- */
@@ -300,7 +300,7 @@ $('pk-add').addEventListener('click', async () => {
 
 /* ---------- linked accounts ---------- */
 
-function renderLinks(links) {
+function renderLinks(links, mcNick) {
   const list = $('link-list');
   list.innerHTML = '';
   for (const provider of ['google', 'github']) {
@@ -330,13 +330,51 @@ function renderLinks(links) {
       const r = await api('/api/oauth', { action: 'unlink', provider });
       if (r.ok) {
         me.links = r.data.links || {};
-        renderLinks(me.links);
+        renderLinks(me.links, me.mcNick || null);
         setStatus($('link-status'), true, '✓ Unlinked');
       } else {
         setStatus($('link-status'), false, 'Something went wrong.');
       }
     });
     li.append(ico, info, btn);
+    list.appendChild(li);
+  }
+
+  /* Minecraft nickname (bound the first time a server join is approved) */
+  {
+    const li = document.createElement('li');
+    li.className = 'id-item';
+    const ico = document.createElement('span');
+    ico.className = 'id-link-ico';
+    ico.innerHTML = ICONS.mc;
+    const info = document.createElement('div');
+    info.className = 'id-item-info';
+    const b = document.createElement('b');
+    b.textContent = 'Minecraft';
+    const span = document.createElement('span');
+    span.textContent = mcNick
+      ? `Linked · ${mcNick}`
+      : 'Not linked — approve a server join to link your nickname';
+    info.append(b, span);
+    li.append(ico, info);
+    if (mcNick) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ghost-btn';
+      btn.textContent = 'Unlink';
+      btn.addEventListener('click', async () => {
+        if (!confirm(`Unlink the nickname ${mcNick}? Anyone will be able to claim it again.`)) return;
+        const r = await api('/api/mc', { action: 'unlink' });
+        if (r.ok) {
+          me.mcNick = null;
+          renderLinks(me.links || {}, null);
+          setStatus($('link-status'), true, '✓ Unlinked');
+        } else {
+          setStatus($('link-status'), false, 'Something went wrong.');
+        }
+      });
+      li.appendChild(btn);
+    }
     list.appendChild(li);
   }
 }
@@ -428,7 +466,7 @@ $('ses-others').addEventListener('click', async () => {
             const codes = await detector.detect(video);
             if (codes.length && found(codes[0].rawValue)) return;
           } else if (window.jsQR) {
-            const w = Math.min(video.videoWidth, 640);
+            const w = Math.min(video.videoWidth, 1280);
             const h = Math.round(video.videoHeight * (w / video.videoWidth));
             canvas.width = w;
             canvas.height = h;
@@ -439,7 +477,7 @@ $('ses-others').addEventListener('click', async () => {
           }
         } catch (e) { /* keep scanning */ }
       }
-      await new Promise((r) => setTimeout(r, 250));
+      await new Promise((r) => setTimeout(r, 160));
     }
   }
 
@@ -448,9 +486,21 @@ $('ses-others').addEventListener('click', async () => {
     overlay.hidden = false;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       });
+      const [track] = stream.getVideoTracks();
+      /* ask the camera to keep refocusing on the code (where supported) */
+      try {
+        const caps = track.getCapabilities ? track.getCapabilities() : {};
+        if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+        }
+      } catch (e) { /* optional */ }
       video.srcObject = stream;
       await video.play();
       scanning = true;

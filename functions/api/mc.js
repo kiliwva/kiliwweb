@@ -1,5 +1,5 @@
 import {
-  json, storageReady, getSession, getUser, randomHex,
+  json, storageReady, getSession, getUser, putUser, randomHex,
 } from '../../lib/api.js';
 
 /* Minecraft server auth (K-ID for offline-mode servers).
@@ -100,10 +100,32 @@ export async function onRequestPost({ request, env }) {
         created: Date.now(),
       }));
     }
+    if (user.mcNick !== data.nick) {
+      user.mcNick = data.nick;
+      await putUser(env, user);
+    }
     data.status = 'approved';
     data.email = session.email;
     await env.KILIW_FILES.put(key(body.token), JSON.stringify(data));
     return json({ success: true, nick: data.nick });
+  }
+
+  /* --- player: untie the nickname from the account --- */
+  if (action === 'unlink') {
+    const session = await getSession(request, env);
+    if (!session) return json({ success: false, error: 'unauthorized' }, 401);
+    const user = await getUser(env, session.email);
+    if (!user) return json({ success: false, error: 'unauthorized' }, 401);
+    if (user.mcNick) {
+      const bindObj = await env.KILIW_FILES.get(nickKey(user.mcNick));
+      const bind = bindObj ? await bindObj.json().catch(() => null) : null;
+      if (bind && bind.email === session.email) {
+        await env.KILIW_FILES.delete(nickKey(user.mcNick)).catch(() => {});
+      }
+      delete user.mcNick;
+      await putUser(env, user);
+    }
+    return json({ success: true });
   }
 
   return json({ success: false, error: 'bad-request' }, 400);
