@@ -175,29 +175,20 @@
       video.srcObject = null;
     };
 
-    const cornerEls = frame.querySelectorAll('.corner'); /* order TL, TR, BR, BL */
+    const BASE = 220; /* the frame's intrinsic size in CSS px */
 
-    /* place the four L-brackets on the given screen points (in TL,TR,BR,BL
-       order); each rotates to follow the code's tilt */
-    const placeCorners = (pts, valid) => {
+    /* move/rotate/scale the whole rigid frame as one unit */
+    const setFrame = (cx, cy, angleDeg, size, valid) => {
       frame.classList.toggle('invalid', !valid);
-      const ang = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x) * 180 / Math.PI;
-      pts.forEach((p, i) => {
-        const c = cornerEls[i];
-        c.style.left = `${p.x}px`;
-        c.style.top = `${p.y}px`;
-        c.style.transform = `rotate(${ang + 90 * i}deg)`;
-      });
+      const scale = size / BASE;
+      frame.style.transform =
+        `translate(${cx - BASE / 2}px, ${cy - BASE / 2}px) rotate(${angleDeg}deg) scale(${scale})`;
     };
 
-    /* the aiming corners rest as a square in the middle until a code is found */
+    /* the frame rests centered and upright until a code is found */
     const centerFrame = () => {
-      const s = Math.min(window.innerWidth * 0.5, 200);
-      const x = (window.innerWidth - s) / 2;
-      const y = (window.innerHeight - s) / 2;
-      placeCorners([
-        { x, y }, { x: x + s, y }, { x: x + s, y: y + s }, { x, y: y + s },
-      ], true);
+      const size = Math.min(window.innerWidth * 0.5, 200);
+      setFrame(window.innerWidth / 2, window.innerHeight / 2, 0, size, true);
     };
 
     /* map native video corner points to on-screen pixels (object-fit: cover) */
@@ -212,20 +203,16 @@
       return corners.map((p) => ({ x: p.x * coverScale + dx, y: p.y * coverScale + dy }));
     };
 
-    /* corners snap onto the code's real (possibly tilted) corners */
+    /* the frame flies onto the code as a whole: its centre, tilt and size */
     const aimAt = (corners, valid) => {
-      const pts = toScreen(corners);
+      const pts = toScreen(corners); /* TL, TR, BR, BL */
       const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
       const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
-      /* nudge each corner slightly outward so the brackets frame the code */
-      const out = pts.map((p) => {
-        const vx = p.x - cx;
-        const vy = p.y - cy;
-        const d = Math.hypot(vx, vy) || 1;
-        const k = (d + 10) / d;
-        return { x: cx + vx * k, y: cy + vy * k };
-      });
-      placeCorners(out, valid);
+      const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x) * 180 / Math.PI;
+      const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+      const size = (dist(pts[0], pts[1]) + dist(pts[1], pts[2])
+        + dist(pts[2], pts[3]) + dist(pts[3], pts[0])) / 4 + 26;
+      setFrame(cx, cy, angle, size, valid);
     };
 
     /* found our code: the corners snap onto it, then open confirmation */

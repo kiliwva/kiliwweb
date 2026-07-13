@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=131">
+  <link rel="stylesheet" href="styles.css?v=132">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; }
@@ -83,18 +83,24 @@
     }
     #scan-overlay[hidden] { display: none; }
     #scan-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    /* the aiming corners that move & rotate onto the detected code */
+    /* the aiming frame — one rigid square that moves, rotates and scales
+       as a whole (corners never move independently) */
     .scan-frame {
-      position: absolute; inset: 0; z-index: 2; pointer-events: none;
+      position: absolute; top: 0; left: 0; width: 220px; height: 220px;
+      z-index: 2; pointer-events: none;
+      transform-origin: 50% 50%;
+      transition: transform .24s cubic-bezier(.22, 1, .36, 1);
     }
     .scan-frame .corner {
       position: absolute; width: 30px; height: 30px;
-      border-top: 3.5px solid #F2A47B; border-left: 3.5px solid #F2A47B;
-      border-top-left-radius: 16px;
-      transform-origin: 0 0;
+      border: 0 solid #F2A47B;
       filter: drop-shadow(0 0 7px rgba(242, 164, 123, .45));
-      transition: left .2s ease-out, top .2s ease-out, transform .2s ease-out, border-color .2s ease-out, filter .2s ease-out;
+      transition: border-color .2s ease-out, filter .2s ease-out;
     }
+    .scan-frame .corner.tl { top: 0; left: 0; border-top-width: 3.5px; border-left-width: 3.5px; border-top-left-radius: 16px; }
+    .scan-frame .corner.tr { top: 0; right: 0; border-top-width: 3.5px; border-right-width: 3.5px; border-top-right-radius: 16px; }
+    .scan-frame .corner.bl { bottom: 0; left: 0; border-bottom-width: 3.5px; border-left-width: 3.5px; border-bottom-left-radius: 16px; }
+    .scan-frame .corner.br { bottom: 0; right: 0; border-bottom-width: 3.5px; border-right-width: 3.5px; border-bottom-right-radius: 16px; }
     .scan-frame.invalid .corner {
       border-color: #E5484D;
       filter: drop-shadow(0 0 7px rgba(229, 72, 77, .45));
@@ -206,8 +212,8 @@
   <div id="scan-overlay" hidden>
     <video id="scan-video" playsinline muted></video>
     <div class="scan-frame" id="scan-frame" aria-hidden="true">
-      <span class="corner"></span><span class="corner"></span>
-      <span class="corner"></span><span class="corner"></span>
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <span class="corner bl"></span><span class="corner br"></span>
     </div>
     <p id="scan-status"></p>
     <div class="scan-btns">
@@ -218,6 +224,6 @@
   </div>
 
   <script src="vendor/jsqr.min.js"></script>
-  <script src="tg.js?v=131"></script>
+  <script src="tg.js?v=132"></script>
 </body>
 </html>
