@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=114">
+  <link rel="stylesheet" href="styles.css?v=115">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; overflow: hidden; }
@@ -86,6 +86,46 @@
       font-size: 13px; font-weight: 700; color: var(--muted);
       text-align: left; white-space: pre-line; line-height: 1.7;
     }
+
+    /* the in-app scanner */
+    #scan-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      background: #000;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #scan-overlay[hidden] { display: none; }
+    #scan-video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .scan-frame {
+      position: relative; z-index: 2;
+      width: min(64vw, 280px); aspect-ratio: 1;
+      border: 3px dashed rgba(242, 164, 123, .9);
+      border-radius: 22px;
+      box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .45);
+      animation: frame-pulse 2s ease-in-out infinite;
+    }
+    @keyframes frame-pulse {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.03); }
+    }
+    #scan-status {
+      position: relative; z-index: 2;
+      margin-top: 18px; min-height: 20px;
+      padding: 0 24px;
+      font-size: 14px; font-weight: 700; color: #F2F2F2;
+      text-align: center; text-shadow: 0 1px 4px rgba(0,0,0,.8);
+    }
+    .scan-btns {
+      position: absolute; z-index: 2;
+      left: 0; right: 0; bottom: calc(24px + env(safe-area-inset-bottom));
+      display: flex; gap: 12px; justify-content: center;
+      padding: 0 20px;
+    }
+    .scan-btns .fun-btn { flex: 1; max-width: 200px; }
   </style>
 </head>
 <body>
@@ -126,12 +166,8 @@
         </div>
         <div class="fun-actions">
           <button type="button" class="fun-btn" id="tg-scan">📷 Сканировать код</button>
-          <button type="button" class="fun-btn ghost" id="tg-gallery">🖼 Код из галереи</button>
           <input type="file" id="tg-file" accept="image/*" hidden>
         </div>
-        <p class="fun-note" id="tg-file-status" hidden></p>
-        <p class="fun-note" id="tg-scan-note" hidden>Для сканера нужен Telegram посвежее.
-          Наведи обычную камеру телефона на код — она откроет этого бота.</p>
       </div>
 
       <div id="tg-ask" hidden>
@@ -179,7 +215,17 @@
     </main>
   </div>
 
+  <div id="scan-overlay" hidden>
+    <video id="scan-video" playsinline muted></video>
+    <div class="scan-frame" aria-hidden="true"></div>
+    <p id="scan-status"></p>
+    <div class="scan-btns">
+      <button type="button" class="fun-btn ghost" id="scan-file">🖼 Из файла</button>
+      <button type="button" class="fun-btn ghost" id="scan-close">✖ Закрыть</button>
+    </div>
+  </div>
+
   <script src="vendor/jsqr.min.js"></script>
-  <script src="tg.js?v=114"></script>
+  <script src="tg.js?v=115"></script>
 </body>
 </html>

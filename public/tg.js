@@ -84,33 +84,7 @@
     return m ? m[1] : null;
   };
 
-  /* --- scanner --- */
-
-  function wireScan() {
-    const canScan = tg.isVersionAtLeast && tg.isVersionAtLeast('6.4');
-    if (!canScan) {
-      $('tg-scan').hidden = true;
-      $('tg-scan-note').hidden = false;
-      return;
-    }
-    const onText = (text) => {
-      const token = tokenFrom(text);
-      if (!token) return false;
-      try { tg.closeScanQrPopup(); } catch (e) { /* older clients */ }
-      openToken(token);
-      return true;
-    };
-    tg.onEvent('qrTextReceived', (e) => onText(e && e.data));
-    $('tg-scan').addEventListener('click', () => {
-      try {
-        tg.showScanQrPopup({ text: 'Наведи на код на экране' }, onText);
-      } catch (e) {
-        $('tg-scan-note').hidden = false;
-      }
-    });
-  }
-
-  /* --- QR from a gallery picture (decoded right here with jsQR) --- */
+  /* --- QR from a picture (decoded right here with jsQR) --- */
 
   function loadImage(file) {
     return new Promise((resolve, reject) => {
@@ -148,22 +122,107 @@
     return null;
   }
 
-  function wireGallery() {
+  /* --- the in-app scanner: our own camera view + file picker --- */
+
+  function wireScan() {
+    const overlay = $('scan-overlay');
+    const video = $('scan-video');
+    const statusEl = $('scan-status');
     const input = $('tg-file');
-    const status = $('tg-file-status');
-    $('tg-gallery').addEventListener('click', () => input.click());
+    let stream = null;
+    let scanning = false;
+
+    const stop = () => {
+      scanning = false;
+      overlay.hidden = true;
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+    };
+
+    const found = (text) => {
+      const token = tokenFrom(text);
+      if (!token) {
+        statusEl.textContent = 'Хм, это не код K-MCID 🤔';
+        return false;
+      }
+      stop();
+      openToken(token);
+      return true;
+    };
+
+    async function scanLoop() {
+      const canvas = document.createElement('canvas');
+      const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+      let detector = null;
+      if ('BarcodeDetector' in window) {
+        try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { detector = null; }
+      }
+      while (scanning) {
+        if (video.readyState >= 2) {
+          try {
+            if (detector) {
+              const codes = await detector.detect(video);
+              if (codes.length && found(codes[0].rawValue)) return;
+            } else if (window.jsQR) {
+              const w = Math.min(video.videoWidth, 1280);
+              const h = Math.round(video.videoHeight * (w / video.videoWidth));
+              canvas.width = w;
+              canvas.height = h;
+              ctx2d.drawImage(video, 0, 0, w, h);
+              const img = ctx2d.getImageData(0, 0, w, h);
+              const hit = window.jsQR(img.data, w, h);
+              if (hit && found(hit.data)) return;
+            }
+          } catch (e) { /* keep scanning */ }
+        }
+        await new Promise((r) => setTimeout(r, 160));
+      }
+    }
+
+    $('tg-scan').addEventListener('click', async () => {
+      statusEl.textContent = 'Наведи рамку на код 🎯';
+      overlay.hidden = false;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: false,
+        });
+        const [track] = stream.getVideoTracks();
+        try {
+          const caps = track.getCapabilities ? track.getCapabilities() : {};
+          if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
+            await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
+          }
+        } catch (e) { /* optional */ }
+        video.srcObject = stream;
+        await video.play();
+        scanning = true;
+        scanLoop();
+      } catch (e) {
+        statusEl.textContent = 'Камера недоступна 😔 — выбери фото с кодом';
+      }
+    });
+
+    $('scan-close').addEventListener('click', stop);
+    $('scan-file').addEventListener('click', () => input.click());
     input.addEventListener('change', async () => {
       const file = input.files && input.files[0];
       input.value = '';
       if (!file) return;
-      status.hidden = false;
-      status.textContent = '🔎 Ищу код на картинке…';
+      statusEl.textContent = '🔎 Ищу код на картинке…';
       const token = await decodeImage(file);
       if (token) {
-        status.hidden = true;
+        stop();
         openToken(token);
       } else {
-        status.textContent = '😕 Не нашёл код на этой картинке — попробуй другую.';
+        statusEl.textContent = '😕 На этой картинке кода нет — попробуй другую';
       }
     });
   }
@@ -177,7 +236,6 @@
     if (!data.success) { show('tg-outside'); return; }
     $('tg-mail').textContent = data.tgName || 'Telegram';
     wireScan();
-    wireGallery();
 
     /* opened from a startapp deep link or a web_app button (#mc_<token>) */
     const startParam = (tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
