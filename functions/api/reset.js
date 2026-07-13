@@ -47,8 +47,8 @@ export async function onRequestPost({ request, env }) {
 
     const user = await getUser(env, email);
     /* unknown address → the same success reply: account existence is
-       not disclosed to strangers */
-    if (user) {
+       not disclosed to strangers; suspended accounts get no codes */
+    if (user && !user.banned) {
       const now = Date.now();
       if (!user.resetCode || now - user.resetCode.lastSent >= RESEND_COOLDOWN
         || user.resetCode.expires < now) {
@@ -73,6 +73,7 @@ export async function onRequestPost({ request, env }) {
     if (password.length < 8) return json({ success: false, error: 'invalid-password' }, 400);
 
     const user = await getUser(env, email);
+    if (user?.banned) return json({ success: false, error: 'banned' }, 403);
     const rc = user?.resetCode;
     if (!user || !rc || rc.expires < Date.now()) {
       return json({ success: false, error: 'code-expired' }, 403);

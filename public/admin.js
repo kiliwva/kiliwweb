@@ -76,8 +76,13 @@ function userRow(user, index) {
   info.append(mail, meta);
 
   const badge = document.createElement('span');
-  badge.className = `badge${user.plan !== 'free' ? ' on' : ''}`;
-  badge.textContent = user.plan === 'free' ? 'Free' : user.plan.toUpperCase();
+  if (user.banned) {
+    badge.className = 'badge ban';
+    badge.textContent = 'Banned';
+  } else {
+    badge.className = `badge${user.plan !== 'free' ? ' on' : ''}`;
+    badge.textContent = user.plan === 'free' ? 'Free' : user.plan.toUpperCase();
+  }
 
   head.append(ava, info, badge);
   head.addEventListener('click', () => li.classList.toggle('open'));
@@ -167,7 +172,55 @@ function userRow(user, index) {
   });
   grant.append(sel, days, apply, status);
 
-  detail.append(usage, facts, grant);
+  /* moderation: ban / 2FA removal / reset-link email */
+  const tools = document.createElement('div');
+  tools.className = 'adm-tools';
+  const toolStatus = document.createElement('span');
+  toolStatus.className = 'adm-grant-status';
+  const tool = (label, danger, confirmText, payload, after) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = danger ? 'ghost-btn danger' : 'ghost-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', async () => {
+      if (confirmText && !confirm(confirmText)) return;
+      btn.disabled = true;
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, ...payload() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      btn.disabled = false;
+      const ok = res.ok && data.success;
+      toolStatus.textContent = ok ? '✓ done' : `failed${data.error ? ` (${data.error})` : ''}`;
+      toolStatus.style.color = ok ? '#7FBF8E' : 'var(--error)';
+      if (ok && after) after(btn, data);
+    });
+    tools.appendChild(btn);
+    return btn;
+  };
+
+  tool(
+    user.banned ? 'Unban account' : 'Ban account',
+    true,
+    user.banned ? null : `Ban ${user.email}? Every session is signed out and sign-in is blocked.`,
+    () => ({ action: user.banned ? 'unban' : 'ban' }),
+    (btn, data) => {
+      user.banned = data.banned;
+      btn.textContent = user.banned ? 'Unban account' : 'Ban account';
+      badge.className = user.banned ? 'badge ban' : `badge${user.plan !== 'free' ? ' on' : ''}`;
+      badge.textContent = user.banned ? 'Banned' : (user.plan === 'free' ? 'Free' : user.plan.toUpperCase());
+    },
+  );
+  if (user.totp) {
+    tool('Remove 2FA', false, `Remove 2FA from ${user.email}?`, () => ({ action: 'clear-2fa' }),
+      (btn) => { user.totp = false; btn.remove(); });
+  }
+  tool('Email reset link', false, null, () => ({ action: 'send-reset' }));
+  tools.appendChild(toolStatus);
+
+  detail.append(usage, facts, grant, tools);
   li.append(head, detail);
   return li;
 }

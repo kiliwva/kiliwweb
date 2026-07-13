@@ -36,6 +36,7 @@ export async function onRequestPost({ request, env }) {
   if (!timingSafeEqualHex(hash, user.hash)) {
     return json({ success: false, error: 'invalid-credentials' }, 401);
   }
+  if (user.banned) return json({ success: false, error: 'banned' }, 403);
 
   /* second factor */
   if (user.totp) {

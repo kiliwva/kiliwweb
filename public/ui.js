@@ -27,6 +27,7 @@
     'api.invalid-email': 'Enter a valid email address.',
     'api.invalid-password': 'Password must be at least 8 characters.',
     'api.totp-invalid': 'Wrong 2FA code. Check your authenticator app and try again.',
+    'api.banned': 'This account has been suspended.',
     'api.captcha': 'Captcha verification failed. Please try again.',
     'api.not-configured': 'Server storage is not configured yet. Contact the site owner.',
     'auth.totpPrompt': 'Enter the 6-digit code from your authenticator app.',

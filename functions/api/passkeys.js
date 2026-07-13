@@ -141,6 +141,7 @@ export async function onRequestPost({ request, env }) {
 
     const result = await verifyAssertion(rpId, ch.challenge, stored, credential);
     if (result.error) return json({ success: false, error: result.error }, 401);
+    if (user.banned) return json({ success: false, error: 'banned' }, 403);
 
     /* account scheduled for deletion: same rules as password sign-in */
     let restored = false;

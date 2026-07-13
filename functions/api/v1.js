@@ -36,6 +36,7 @@ async function requireApi(request, env) {
     };
   }
   const user = await getUser(env, email);
+  if (user?.banned) return { error: json({ success: false, error: 'banned' }, 403) };
   const limits = planLimits(user, env);
   if (!limits.api) return { error: json({ success: false, error: 'plan-required' }, 403) };
   return { email, limits };

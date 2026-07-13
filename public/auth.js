@@ -67,7 +67,7 @@ tabRegister.addEventListener('click', () => switchTo('register'));
 /* ---------- Validation ---------- */
 
 const API_ERROR_KEYS = [
-  'invalid-credentials', 'user-exists', 'invalid-email', 'invalid-password',
+  'invalid-credentials', 'user-exists', 'invalid-email', 'invalid-password', 'banned',
   'totp-invalid', 'captcha', 'not-configured', 'mail-failed',
   'code-invalid', 'code-expired', 'too-many', 'too-soon', 'no-pending',
 ];
