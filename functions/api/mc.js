@@ -29,12 +29,39 @@ function serverAuthed(request, env) {
   return Boolean(env.MC_API_KEY) && auth === `Bearer ${env.MC_API_KEY}`;
 }
 
+/* where is the player connecting from? (free geo lookup, best effort) */
+async function lookupGeo(env, ip) {
+  if (!ip) return null;
+  if (env.MAIL_DEBUG) return { city: 'Тестоград', country: 'RU' };
+  try {
+    const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`);
+    const j = await res.json();
+    if (j && j.success !== false) {
+      return { city: j.city || '', country: j.country_code || j.country || '' };
+    }
+  } catch { /* geo is optional */ }
+  return null;
+}
+
+/* the "🌍 city · 📡 ip · 🎫 session" block shown in every confirmation */
+export function joinMeta(data, token) {
+  const lines = [];
+  if (data.geo && (data.geo.city || data.geo.country)) {
+    lines.push(`🌍 ${[data.geo.city, data.geo.country].filter(Boolean).join(', ')}`);
+  }
+  if (data.ip) lines.push(`📡 IP: ${data.ip}`);
+  if (token) lines.push(`🎫 Сессия #${token.slice(0, 6).toUpperCase()}`);
+  return lines;
+}
+
 /* When the nick is already tied to a Telegram, ping that Telegram with
    approve/deny buttons the moment the player joins — no tapping links. */
 async function tgNotify(env, chatId, data, token, origin) {
+  const meta = joinMeta(data, token);
   const payload = {
     chat_id: chatId,
-    text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?`,
+    text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?`
+      + (meta.length ? `\n\n${meta.join('\n')}` : ''),
     reply_markup: { inline_keyboard: [
       [
         { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
@@ -145,12 +172,16 @@ export async function onRequestPost({ request, env }) {
     const nick = String(body?.nick || '');
     const server = String(body?.server || '').slice(0, 48) || 'Minecraft server';
     if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
+    const ip = String(body?.ip || '').slice(0, 45);
+    const geo = await lookupGeo(env, ip);
     const token = randomHex(12);
     const poll = randomHex(32);
     await env.KILIW_FILES.put(key(token), JSON.stringify({
       poll,
       nick,
       server,
+      ip,
+      geo,
       status: 'pending',
       expires: Date.now() + MC_TTL,
     }));
@@ -182,7 +213,7 @@ export async function onRequestPost({ request, env }) {
       const bindObj = await env.KILIW_FILES.get(nickKey(nick));
       const bind = bindObj ? await bindObj.json().catch(() => null) : null;
       if (bind && bind.tgId) {
-        const sent = await tgNotify(env, bind.tgId, { nick, server }, token, reqUrl.origin);
+        const sent = await tgNotify(env, bind.tgId, { nick, server, ip, geo }, token, reqUrl.origin);
         notified = Boolean(sent && sent.ok);
         if (sent && sent.debugTg) debugTg = sent.debugTg;
       }

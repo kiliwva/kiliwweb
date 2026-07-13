@@ -55,6 +55,13 @@
     if (!data.success || data.status !== 'pending') { show('tg-bad'); return; }
     $('tg-server').textContent = data.server;
     $('tg-ask-nick').textContent = data.nick;
+    const metaEl = $('tg-meta');
+    if (Array.isArray(data.meta) && data.meta.length) {
+      metaEl.textContent = data.meta.join('\n');
+      metaEl.hidden = false;
+    } else {
+      metaEl.hidden = true;
+    }
     if (bioSupported()) $('tg-bio-note').hidden = false;
     show('tg-ask');
 

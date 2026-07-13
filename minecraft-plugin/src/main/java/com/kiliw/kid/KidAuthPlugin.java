@@ -130,11 +130,14 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         player.setInvulnerable(true);
         player.sendMessage(Component.text("Verifying your K-ID…", NamedTextColor.GRAY));
 
+        String joinIp = player.getAddress() != null
+            ? player.getAddress().getAddress().getHostAddress() : "";
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
             JsonObject res = api("POST", "/api/mc", gson.toJson(Map.of(
                 "action", "create",
                 "nick", player.getName(),
-                "server", serverName
+                "server", serverName,
+                "ip", joinIp
             )), null);
             if (res == null || !res.has("token")) {
                 Bukkit.getScheduler().runTask(this, () ->

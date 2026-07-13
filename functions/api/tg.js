@@ -1,7 +1,7 @@
 import {
   json, storageReady, getSession, isOwner,
 } from '../../lib/api.js';
-import { loadJoin, decideJoin } from './mc.js';
+import { loadJoin, decideJoin, joinMeta } from './mc.js';
 
 /* Telegram bot: Minecraft join approvals, tied to Telegram only —
    no site account is involved anywhere in the bot.
@@ -121,9 +121,11 @@ async function handleStart(env, bot, origin, msg, param) {
       });
       return;
     }
+    const meta = joinMeta(data, token);
     await bot.call('sendMessage', {
       chat_id: chatId,
-      text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?\nTelegram: ${tgName(from)}`,
+      text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?\nTelegram: ${tgName(from)}`
+        + (meta.length ? `\n\n${meta.join('\n')}` : ''),
       reply_markup: { inline_keyboard: [
         [
           { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
@@ -225,9 +227,16 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (action === 'info') {
-    const data = await loadJoin(env, String(body?.token || ''));
+    const token = String(body?.token || '');
+    const data = await loadJoin(env, token);
     if (!data) return json({ success: true, status: 'expired' });
-    return json({ success: true, status: data.status, nick: data.nick, server: data.server });
+    return json({
+      success: true,
+      status: data.status,
+      nick: data.nick,
+      server: data.server,
+      meta: joinMeta(data, token),
+    });
   }
 
   return json({ success: false, error: 'bad-request' }, 400);
