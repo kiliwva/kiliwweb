@@ -8,10 +8,15 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=82">
+  <link rel="stylesheet" href="styles.css?v=83">
   <style>
-    body { background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%) fixed; }
-    .id-wrap { max-width: 640px; margin: 0 auto; padding: 22px 16px 60px; }
+    html { background: var(--bg-c); }
+    body {
+      min-height: 100dvh;
+      background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%) fixed;
+    }
+    .id-wrap { max-width: 720px; margin: 0 auto; padding: 26px 18px 64px; }
+    @media (min-width: 900px) { .id-wrap { padding-top: 48px; } }
     .id-bar {
       display: flex;
       align-items: center;
@@ -365,13 +370,13 @@
 
     <footer class="auth-foot id-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-52</p>
+      <p class="auth-build">KW-53</p>
     </footer>
 
   </div>
 
-  <script src="vendor/qrcode.min.js?v=82"></script>
-  <script src="ui.js?v=82"></script>
-  <script src="id.js?v=82"></script>
+  <script src="vendor/qrcode.min.js?v=83"></script>
+  <script src="ui.js?v=83"></script>
+  <script src="id.js?v=83"></script>
 </body>
 </html>
