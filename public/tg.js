@@ -8,7 +8,12 @@
     'tg-done', 'tg-denied', 'tg-taken', 'tg-bad'];
   const show = (id) => PANES.forEach((p) => { $(p).hidden = p !== id; });
 
-  const META_ICONS = { geo: '#i-geo', ip: '#i-ip', session: '#i-ticket' };
+  const SVG_HEAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+  const META_ICONS = {
+    geo: `${SVG_HEAD}<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
+    ip: `${SVG_HEAD}<path d="M5 12.55a11 11 0 0 1 14 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg>`,
+    session: `${SVG_HEAD}<path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v14"/></svg>`,
+  };
 
   const tg = window.Telegram && window.Telegram.WebApp;
   const initData = tg && tg.initData;
@@ -63,13 +68,10 @@
       for (const m of data.meta) {
         const line = document.createElement('span');
         line.className = 'meta-line';
-        const ico = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        use.setAttribute('href', META_ICONS[m.icon] || '#i-help');
-        ico.appendChild(use);
+        line.innerHTML = META_ICONS[m.icon] || '';
         const txt = document.createElement('span');
         txt.textContent = m.text;
-        line.append(ico, txt);
+        line.appendChild(txt);
         metaEl.appendChild(line);
       }
       metaEl.hidden = false;
