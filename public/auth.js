@@ -21,6 +21,7 @@ window.onTurnstileLoad = function () {
   document.querySelectorAll('[data-turnstile]').forEach((slot) => {
     const form = slot.closest('form');
     const widgetId = turnstile.render(slot, {
+      appearance: 'interaction-only',
       sitekey: TURNSTILE_SITE_KEY,
       theme: 'dark',
       language: 'en',
@@ -334,6 +335,26 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
   e.preventDefault();
   hideVerifyStep();
 });
+
+/* ---------- progressive password field ---------- */
+
+function wirePwReveal(emailId, wrapId) {
+  const email = document.getElementById(emailId);
+  const wrap = document.getElementById(wrapId);
+  if (!email || !wrap) return;
+  const maybeReveal = () => {
+    if (!wrap.hidden) return;
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim())) {
+      wrap.hidden = false;
+    }
+  };
+  email.addEventListener('input', maybeReveal);
+  email.addEventListener('change', maybeReveal);
+  email.addEventListener('blur', maybeReveal);
+  maybeReveal();
+}
+wirePwReveal('login-email', 'login-pw-wrap');
+wirePwReveal('reg-email', 'reg-pw-wrap');
 
 /* ---------- social sign-in feedback ---------- */
 

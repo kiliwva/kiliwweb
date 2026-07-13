@@ -8,25 +8,11 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=86">
+  <link rel="stylesheet" href="styles.css?v=87">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
     /* Resend-style auth layout */
-    .rl-home {
-      position: absolute;
-      top: 20px; left: 20px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      text-decoration: none;
-      opacity: 0.9;
-      z-index: 5;
-    }
-    .rl-home svg { width: 16px; height: 16px; }
     .card.rl {
       background: none;
       border: 0;
@@ -39,28 +25,14 @@
     .rl-hidden-tabs { display: none; }
     .rl-logo { display: flex; justify-content: center; margin-bottom: 20px; }
     .rl-tile {
-      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 64px; height: 64px;
       border-radius: 17px;
       background: linear-gradient(160deg, #1B1B1B 0%, #101010 100%);
       border: 1px solid rgba(255, 255, 255, 0.14);
       box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.8);
-    }
-    .rl-tile::before {
-      content: 'k';
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding-bottom: 7px;
-      font-size: 42px;
-      font-weight: 800;
-      line-height: 1;
-      background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
     }
     .rl-title {
       text-align: center;
@@ -172,7 +144,15 @@
     .rl-eye svg { width: 18px; height: 18px; }
     .rl-eye.on { color: var(--text); }
     .card.rl .form > .rl-input:first-of-type { margin-bottom: 0; }
-    .card.rl .turnstile-slot { margin: 16px 0; }
+    .card.rl .turnstile-slot { min-height: 0; margin: 0; }
+    .card.rl .turnstile-slot:has(iframe) { margin: 16px 0; min-height: 65px; }
+    .rl-pw-wrap { animation: rl-reveal 0.3s ease; }
+    .rl-pw-wrap[hidden] { display: none; }
+    @keyframes rl-reveal {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: none; }
+    }
+    .card.rl .submit { margin-top: 16px; }
     .card.rl .submit { margin-top: 2px; }
     .rl-terms {
       margin-top: 18px;
@@ -283,15 +263,13 @@
     <div class="orb orb-2" aria-hidden="true"></div>
     <div class="orb orb-3" aria-hidden="true"></div>
 
-    <a class="rl-home" href="/">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
-      Home
-    </a>
-
     <main class="card rl">
 
       <!-- Brand -->
-      <div class="rl-logo" aria-hidden="true"><span class="rl-tile"></span></div>
+      <div class="rl-logo" aria-hidden="true"><span class="rl-tile"><svg viewBox="4.8 2.55 14.4 18.9" aria-hidden="true" style="width:30px;height:39px;display:block">
+          <defs><linearGradient id="tileg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>
+          <rect x="5.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="7.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="12.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="10.2" y="7.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="10.2" y="12.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/>
+        </svg></span></div>
 
       <!-- hidden switch: the subtitle links drive it -->
       <nav class="tabs rl-hidden-tabs" role="tablist" aria-label="Sign in or sign up">
@@ -323,6 +301,7 @@
         <label class="rl-label" for="login-email">Email</label>
         <input class="rl-input" type="email" id="login-email" name="email" autocomplete="email" required>
 
+        <div class="rl-pw-wrap" id="login-pw-wrap" hidden>
         <div class="rl-label-row">
           <label class="rl-label" for="login-password">Password</label>
           <a class="link" href="/reset">Forgot your password?</a>
@@ -330,6 +309,7 @@
         <div class="rl-pw">
           <input class="rl-input" type="password" id="login-password" name="password" autocomplete="current-password" minlength="8" required>
           <button type="button" class="rl-eye" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
         </div>
 
         <!-- 2FA code (shown only when the account has 2FA enabled) -->
@@ -372,10 +352,12 @@
         <label class="rl-label" for="reg-email">Email</label>
         <input class="rl-input" type="email" id="reg-email" name="email" autocomplete="email" required>
 
+        <div class="rl-pw-wrap" id="reg-pw-wrap" hidden>
         <label class="rl-label" for="reg-password">Password</label>
         <div class="rl-pw">
           <input class="rl-input" type="password" id="reg-password" name="password" autocomplete="new-password" minlength="8" required>
           <button type="button" class="rl-eye" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
         </div>
         <p class="group-error" data-error></p>
 
@@ -406,12 +388,12 @@
 
     <footer class="auth-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-56</p>
+      <p class="auth-build">KW-57</p>
     </footer>
 
   </div>
 
-  <script src="ui.js?v=86"></script>
-  <script src="auth.js?v=86"></script>
+  <script src="ui.js?v=87"></script>
+  <script src="auth.js?v=87"></script>
 </body>
 </html>
