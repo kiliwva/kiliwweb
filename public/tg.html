@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=113">
+  <link rel="stylesheet" href="styles.css?v=114">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; overflow: hidden; }
@@ -126,7 +126,10 @@
         </div>
         <div class="fun-actions">
           <button type="button" class="fun-btn" id="tg-scan">📷 Сканировать код</button>
+          <button type="button" class="fun-btn ghost" id="tg-gallery">🖼 Код из галереи</button>
+          <input type="file" id="tg-file" accept="image/*" hidden>
         </div>
+        <p class="fun-note" id="tg-file-status" hidden></p>
         <p class="fun-note" id="tg-scan-note" hidden>Для сканера нужен Telegram посвежее.
           Наведи обычную камеру телефона на код — она откроет этого бота.</p>
       </div>
@@ -176,6 +179,7 @@
     </main>
   </div>
 
-  <script src="tg.js?v=113"></script>
+  <script src="vendor/jsqr.min.js"></script>
+  <script src="tg.js?v=114"></script>
 </body>
 </html>

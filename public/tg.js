@@ -110,6 +110,64 @@
     });
   }
 
+  /* --- QR from a gallery picture (decoded right here with jsQR) --- */
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = url;
+    });
+  }
+
+  async function decodeImage(file) {
+    if (!window.jsQR) return null;
+    try {
+      const im = await loadImage(file);
+      /* try a big and a small render: photos decode better downscaled,
+         tiny screenshots better at native size */
+      for (const target of [1100, 500]) {
+        const k = Math.min(1, target / Math.max(im.naturalWidth, im.naturalHeight));
+        const w = Math.max(1, Math.round(im.naturalWidth * k));
+        const h = Math.max(1, Math.round(im.naturalHeight * k));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(im, 0, 0, w, h);
+        const img = ctx.getImageData(0, 0, w, h);
+        const hit = window.jsQR(img.data, w, h);
+        if (hit) {
+          const token = tokenFrom(hit.data);
+          if (token) return token;
+        }
+      }
+    } catch (e) { /* not an image */ }
+    return null;
+  }
+
+  function wireGallery() {
+    const input = $('tg-file');
+    const status = $('tg-file-status');
+    $('tg-gallery').addEventListener('click', () => input.click());
+    input.addEventListener('change', async () => {
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+      status.hidden = false;
+      status.textContent = '🔎 Ищу код на картинке…';
+      const token = await decodeImage(file);
+      if (token) {
+        status.hidden = true;
+        openToken(token);
+      } else {
+        status.textContent = '😕 Не нашёл код на этой картинке — попробуй другую.';
+      }
+    });
+  }
+
   $('tg-back').addEventListener('click', home);
 
   /* --- boot --- */
@@ -119,6 +177,7 @@
     if (!data.success) { show('tg-outside'); return; }
     $('tg-mail').textContent = data.tgName || 'Telegram';
     wireScan();
+    wireGallery();
 
     /* opened from a startapp deep link or a web_app button (#mc_<token>) */
     const startParam = (tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
