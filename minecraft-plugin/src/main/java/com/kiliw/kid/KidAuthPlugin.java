@@ -80,7 +80,7 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     private long rememberMillis;
 
     private record Pending(String token, String poll, BukkitTask pollTask, BukkitTask timeoutTask,
-                           int mapSlot, ItemStack mapPrev) { }
+                           boolean gaveMap, ItemStack offhandPrev) { }
 
     private record Remembered(String address, long until) { }
 
@@ -144,30 +144,36 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
             String token = res.get("token").getAsString();
             String poll = res.get("poll").getAsString();
             String url = res.get("url").getAsString();
+            boolean notified = res.has("notified") && res.get("notified").getAsBoolean();
             boolean[][] modules = parseQr(res);
 
             Bukkit.getScheduler().runTask(this, () -> {
                 if (!player.isOnline()) return;
 
-                /* a QR map goes into the held slot; the previous item
-                   comes back once the sign-in finishes */
-                int mapSlot = -1;
-                ItemStack mapPrev = null;
+                /* the QR map goes into the offhand (shield slot); the
+                   previous item comes back once the sign-in finishes */
+                boolean gaveMap = false;
+                ItemStack offhandPrev = null;
                 if (modules != null) {
-                    mapSlot = player.getInventory().getHeldItemSlot();
-                    mapPrev = player.getInventory().getItem(mapSlot);
-                    player.getInventory().setItem(mapSlot, qrMap(player, modules));
+                    offhandPrev = player.getInventory().getItemInOffHand();
+                    player.getInventory().setItemInOffHand(qrMap(player, modules));
+                    gaveMap = true;
                 }
 
                 player.sendMessage(Component.empty());
-                player.sendMessage(Component.text("Sign in with your K-ID to play:", NamedTextColor.WHITE)
-                    .decoration(TextDecoration.BOLD, true));
+                if (notified) {
+                    player.sendMessage(Component.text("Confirmation sent to your Telegram — tap ✅ there.", NamedTextColor.GREEN)
+                        .decoration(TextDecoration.BOLD, true));
+                } else {
+                    player.sendMessage(Component.text("Sign in to play:", NamedTextColor.WHITE)
+                        .decoration(TextDecoration.BOLD, true));
+                }
                 player.sendMessage(Component.text(url, NamedTextColor.GOLD)
                     .decoration(TextDecoration.UNDERLINED, true)
                     .clickEvent(ClickEvent.openUrl(url)));
-                if (modules != null) {
+                if (gaveMap) {
                     player.sendMessage(Component.text(
-                        "…or scan the map in your hand with your phone — it opens the Telegram bot.",
+                        "…or scan the map in your left hand with your phone — it opens the Telegram bot.",
                         NamedTextColor.GRAY));
                 }
                 player.sendMessage(Component.text("The link works once and expires in 5 minutes.", NamedTextColor.GRAY));
@@ -179,12 +185,13 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                     Pending p = pending.remove(player.getUniqueId());
                     if (p != null) {
                         p.pollTask().cancel();
-                        restoreHand(player, p);
-                        player.kick(Component.text("K-ID sign-in timed out. Rejoin to try again."));
+                        restoreOffhand(player, p);
+                        player.setInvulnerable(false);
+                        player.kick(Component.text("Sign-in timed out. Rejoin to try again."));
                     }
                 }, timeoutSeconds * 20L);
                 pending.put(player.getUniqueId(),
-                    new Pending(token, poll, pollTask, timeoutTask, mapSlot, mapPrev));
+                    new Pending(token, poll, pollTask, timeoutTask, gaveMap, offhandPrev));
             });
         });
     }
@@ -202,20 +209,20 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                 p.timeoutTask().cancel();
             }
             if (!player.isOnline()) return;
-            if (p != null) restoreHand(player, p);
+            if (p != null) restoreOffhand(player, p);
+            player.setInvulnerable(false);
             switch (status) {
                 case "ok" -> {
-                    player.setInvulnerable(false);
                     String address = player.getAddress() != null
                         ? player.getAddress().getAddress().getHostAddress() : "";
                     remembered.put(player.getName().toLowerCase(),
                         new Remembered(address, System.currentTimeMillis() + rememberMillis));
-                    player.sendMessage(Component.text("K-ID verified — have fun!", NamedTextColor.GREEN));
+                    player.sendMessage(Component.text("Verified — have fun!", NamedTextColor.GREEN));
                 }
                 case "denied" -> player.kick(Component.text(
-                    "This nickname is tied to a different K-ID account."));
+                    "This nickname is tied to a different account."));
                 default -> player.kick(Component.text(
-                    "The K-ID link expired. Rejoin to get a new one."));
+                    "The sign-in link expired. Rejoin to get a new one."));
             }
         });
     }
@@ -238,6 +245,39 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         }
     }
 
+    /* site-styled QR: light modules on a dark background with rounded
+       finder eyes (dense squares for the data keep it scannable) */
+
+    private static final Color QR_BG = new Color(12, 12, 12);
+    private static final Color QR_FG = new Color(242, 242, 242);
+
+    private static boolean inEye(int n, int r, int c) {
+        return (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+    }
+
+    /* rounded-rectangle membership test, mirrored 1:1 by the decode test */
+    private static boolean inRound(int px, int py, int w, int h, int r) {
+        int cx = Math.max(r - px, px - (w - 1 - r));
+        int cy = Math.max(r - py, py - (h - 1 - r));
+        if (cx <= 0 || cy <= 0) return true;
+        return cx * cx + cy * cy <= r * r;
+    }
+
+    private static void fillRound(MapCanvas c, int x, int y, int w, int h, int r, Color col) {
+        for (int py = 0; py < h; py++) {
+            for (int px = 0; px < w; px++) {
+                if (inRound(px, py, w, h, r)) c.setPixelColor(x + px, y + py, col);
+            }
+        }
+    }
+
+    private static void drawEye(MapCanvas c, int x, int y, int scale) {
+        int s = 7 * scale;
+        fillRound(c, x, y, s, s, scale + 1, QR_FG);
+        fillRound(c, x + scale, y + scale, s - 2 * scale, s - 2 * scale, scale, QR_BG);
+        fillRound(c, x + 2 * scale, y + 2 * scale, s - 4 * scale, s - 4 * scale, scale, QR_FG);
+    }
+
     private ItemStack qrMap(Player player, boolean[][] modules) {
         MapView view = Bukkit.createMap(player.getWorld());
         view.getRenderers().forEach(view::removeRenderer);
@@ -254,31 +294,34 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                 int scale = Math.max(1, 128 / (n + 2));
                 int off = (128 - n * scale) / 2;
                 for (int x = 0; x < 128; x++) {
-                    for (int y = 0; y < 128; y++) canvas.setPixelColor(x, y, Color.WHITE);
+                    for (int y = 0; y < 128; y++) canvas.setPixelColor(x, y, QR_BG);
                 }
                 for (int r = 0; r < n; r++) {
                     for (int c = 0; c < n; c++) {
-                        if (!modules[r][c]) continue;
+                        if (!modules[r][c] || inEye(n, r, c)) continue;
                         for (int dy = 0; dy < scale; dy++) {
                             for (int dx = 0; dx < scale; dx++) {
-                                canvas.setPixelColor(off + c * scale + dx, off + r * scale + dy, Color.BLACK);
+                                canvas.setPixelColor(off + c * scale + dx, off + r * scale + dy, QR_FG);
                             }
                         }
                     }
                 }
+                drawEye(canvas, off, off, scale);
+                drawEye(canvas, off + (n - 7) * scale, off, scale);
+                drawEye(canvas, off, off + (n - 7) * scale, scale);
             }
         });
         ItemStack item = new ItemStack(Material.FILLED_MAP);
         MapMeta meta = (MapMeta) item.getItemMeta();
         meta.setMapView(view);
-        meta.displayName(Component.text("K-ID sign-in", NamedTextColor.GOLD));
+        meta.displayName(Component.text("Sign-in code", NamedTextColor.GOLD));
         item.setItemMeta(meta);
         return item;
     }
 
-    private void restoreHand(Player player, Pending p) {
-        if (p.mapSlot() >= 0 && player.isOnline()) {
-            player.getInventory().setItem(p.mapSlot(), p.mapPrev());
+    private void restoreOffhand(Player player, Pending p) {
+        if (p.gaveMap() && player.isOnline()) {
+            player.getInventory().setItemInOffHand(p.offhandPrev());
         }
     }
 
@@ -354,7 +397,8 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         if (p != null) {
             p.pollTask().cancel();
             p.timeoutTask().cancel();
-            restoreHand(e.getPlayer(), p);
+            restoreOffhand(e.getPlayer(), p);
+            e.getPlayer().setInvulnerable(false);
         }
     }
 

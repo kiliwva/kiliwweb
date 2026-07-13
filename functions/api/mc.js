@@ -29,6 +29,30 @@ function serverAuthed(request, env) {
   return Boolean(env.MC_API_KEY) && auth === `Bearer ${env.MC_API_KEY}`;
 }
 
+/* When the nick is already tied to a Telegram, ping that Telegram with
+   approve/deny buttons the moment the player joins — no tapping links. */
+async function tgNotify(env, chatId, data, token) {
+  const payload = {
+    chat_id: chatId,
+    text: `Minecraft sign-in\n\nLet ${data.server} log you in as ${data.nick}?`,
+    reply_markup: { inline_keyboard: [[
+      { text: '✅ Yes, that’s me', callback_data: `mc:ok:${token}` },
+      { text: '❌ Deny', callback_data: `mc:no:${token}` },
+    ]] },
+  };
+  if (env.MAIL_DEBUG) return { ok: true, debugTg: payload };
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${env.TG_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch {
+    return { ok: false };
+  }
+}
+
 export async function loadJoin(env, token) {
   if (!TOKEN_RE.test(String(token || ''))) return null;
   const obj = await env.KILIW_FILES.get(key(token));
@@ -148,7 +172,22 @@ export async function onRequestPost({ request, env }) {
         qr.push(row);
       }
     } catch { qr = null; }
-    return json({ success: true, token, poll, url, qr, ttl: MC_TTL });
+    /* known nick → push the confirmation straight to their Telegram */
+    let notified = false;
+    let debugTg = null;
+    if (env.TG_BOT_TOKEN) {
+      const bindObj = await env.KILIW_FILES.get(nickKey(nick));
+      const bind = bindObj ? await bindObj.json().catch(() => null) : null;
+      if (bind && bind.tgId) {
+        const sent = await tgNotify(env, bind.tgId, { nick, server }, token);
+        notified = Boolean(sent && sent.ok);
+        if (sent && sent.debugTg) debugTg = sent.debugTg;
+      }
+    }
+    return json({
+      success: true, token, poll, url, qr, notified, ttl: MC_TTL,
+      ...(debugTg ? { debugTg } : {}),
+    });
   }
 
   /* --- player: approve or deny from the browser --- */
