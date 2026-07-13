@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=72">
+  <link rel="stylesheet" href="styles.css?v=73">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
@@ -240,6 +240,7 @@
     }
 
   </style>
+  <style>.build-tag{position:fixed;right:10px;bottom:8px;z-index:400;font-size:10px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.28);pointer-events:none}</style>
 </head>
 <body data-title-key="title.auth">
 
@@ -362,8 +363,8 @@
     </main>
   </div>
 
-  <script src="ui.js?v=72"></script>
-  <script src="auth.js?v=72"></script>
+  <script src="ui.js?v=73"></script>
+  <script src="auth.js?v=73"></script>
   <script>
     (function () {
       var el = document.getElementById('brand-intro');
@@ -387,9 +388,10 @@
       window.addEventListener('pageshow', function (e) { if (e.persisted) replay(); });
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
-        if (hiddenAt && Date.now() - hiddenAt > 45000) replay();
+        if (hiddenAt && Date.now() - hiddenAt > 1500) replay();
       });
     })();
   </script>
+  <span class="build-tag">KW-49</span>
 </body>
 </html>

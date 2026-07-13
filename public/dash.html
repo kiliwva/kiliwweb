@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=72">
+  <link rel="stylesheet" href="styles.css?v=73">
   <style>
     /* ============================================================
        Brand intro: the pixel K assembles, collapses into one pixel,
@@ -678,7 +678,7 @@
       <div class="app-foot">
         <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
         <!-- build code: KW-<build number in hex, 2 digits> -->
-        <button type="button" class="app-build" id="app-build">KW-48</button>
+        <button type="button" class="app-build" id="app-build">KW-49</button>
       </div>
     </div>
   </div>
@@ -767,9 +767,9 @@
   </div>
 
 
-  <script src="vendor/qrcode.min.js?v=72"></script>
-  <script src="ui.js?v=72"></script>
-  <script src="cloud.js?v=72"></script>
+  <script src="vendor/qrcode.min.js?v=73"></script>
+  <script src="ui.js?v=73"></script>
+  <script src="cloud.js?v=73"></script>
   <script>
     (function () {
       var el = document.getElementById('brand-intro');
@@ -793,7 +793,7 @@
       window.addEventListener('pageshow', function (e) { if (e.persisted) replay(); });
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
-        if (hiddenAt && Date.now() - hiddenAt > 45000) replay();
+        if (hiddenAt && Date.now() - hiddenAt > 1500) replay();
       });
     })();
   </script>
