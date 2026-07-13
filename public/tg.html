@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=107">
+  <link rel="stylesheet" href="styles.css?v=108">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; overflow: hidden; }
@@ -33,18 +33,9 @@
       box-shadow: 0 10px 0 rgba(0, 0, 0, .35);
     }
 
-    /* pixel-K logo, gently bobbing */
-    .fun-logo {
-      width: 64px; height: 76px; margin: 2px auto 10px;
-      animation: logo-bob 2.6s ease-in-out infinite;
-    }
-    @keyframes logo-bob {
-      0%, 100% { transform: translateY(0) rotate(-2deg); }
-      50%      { transform: translateY(-6px) rotate(2deg); }
-    }
     .fun-brand {
-      font-weight: 800; font-size: 24px; letter-spacing: .5px;
-      color: #F2F2F2; margin-bottom: 18px;
+      font-weight: 800; font-size: 26px; letter-spacing: .5px;
+      color: #F2F2F2; margin: 4px 0 18px;
       text-shadow: 3px 3px 0 rgba(217, 119, 87, .45);
     }
     .fun-brand em { font-style: normal; color: #D97757; }
@@ -105,10 +96,6 @@
     <span class="px g" style="left:90%; top:60%; animation-delay:2.6s; width:10px; height:10px"></span>
 
     <main class="card fun-card">
-      <svg class="fun-logo" viewBox="4.8 2.55 14.4 18.9" aria-hidden="true">
-        <defs><linearGradient id="tileg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>
-        <rect x="5.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="7.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="12.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="10.2" y="7.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="10.2" y="12.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/>
-      </svg>
       <div class="fun-brand">K<em>-MCID</em></div>
 
       <div id="tg-loading"><p class="fun-sub">Секунду…</p></div>
@@ -181,6 +168,6 @@
     </main>
   </div>
 
-  <script src="tg.js?v=107"></script>
+  <script src="tg.js?v=108"></script>
 </body>
 </html>
