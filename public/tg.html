@@ -1,41 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0C0C0C">
-  <title>Minecraft sign-in — K-MCID</title>
+  <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=106">
+  <link rel="stylesheet" href="styles.css?v=107">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body { background: #0C0C0C; }
-    .tg-card { text-align: center; }
-    .tg-ico {
-      width: 56px; height: 56px;
-      margin: 6px auto 18px;
-      display: flex; align-items: center; justify-content: center;
-      border-radius: 16px;
-      color: #E8A38B;
-      background: rgba(217, 119, 87, 0.10);
-      border: 1px solid rgba(217, 119, 87, 0.2);
+    body { background: #0C0C0C; overflow: hidden; }
+
+    /* floating pixel blocks in the background */
+    .px {
+      position: fixed; width: 16px; height: 16px; border-radius: 3px;
+      opacity: .5; pointer-events: none;
+      animation: px-float 7s ease-in-out infinite;
     }
-    .tg-ico svg { width: 26px; height: 26px; }
-    .tg-strong { font-weight: 800; color: var(--text); }
-    .tg-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
-    .tg-ok { font-size: 42px; margin: 10px 0 6px; }
-    .tg-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
-    .tg-row {
+    .px.g  { background: #7FBF8E; }
+    .px.o  { background: #D97757; }
+    .px.b  { background: #8A6B4F; }
+    .px.w  { background: #3A3A3A; }
+    @keyframes px-float {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50%      { transform: translateY(-22px) rotate(12deg); }
+    }
+
+    .fun-card {
+      text-align: center;
+      border: 2px solid rgba(217, 119, 87, .35);
+      box-shadow: 0 10px 0 rgba(0, 0, 0, .35);
+    }
+
+    /* pixel-K logo, gently bobbing */
+    .fun-logo {
+      width: 64px; height: 76px; margin: 2px auto 10px;
+      animation: logo-bob 2.6s ease-in-out infinite;
+    }
+    @keyframes logo-bob {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50%      { transform: translateY(-6px) rotate(2deg); }
+    }
+    .fun-brand {
+      font-weight: 800; font-size: 24px; letter-spacing: .5px;
+      color: #F2F2F2; margin-bottom: 18px;
+      text-shadow: 3px 3px 0 rgba(217, 119, 87, .45);
+    }
+    .fun-brand em { font-style: normal; color: #D97757; }
+
+    .fun-title { font-size: 24px; font-weight: 800; margin: 4px 0 8px; color: var(--text); }
+    .fun-sub { color: var(--muted); font-weight: 600; font-size: 14px; line-height: 1.5; }
+    .fun-strong { font-weight: 800; color: var(--text); }
+
+    .fun-emoji { font-size: 44px; line-height: 1; margin: 6px 0 10px; display: inline-block; }
+    .fun-emoji.bounce { animation: emoji-bounce 1.6s ease-in-out infinite; }
+    @keyframes emoji-bounce {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+
+    .fun-row {
       display: flex; align-items: center; gap: 10px;
-      margin-top: 18px; padding: 12px 14px;
-      border: 1px solid var(--line); border-radius: 14px;
+      margin-top: 16px; padding: 12px 14px;
+      border: 2px dashed rgba(217, 119, 87, .35); border-radius: 14px;
       text-align: left;
     }
-    .tg-row svg { width: 20px; height: 20px; flex: none; color: var(--muted); }
-    .tg-row div { min-width: 0; }
-    .tg-row b { display: block; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tg-row span { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .fun-row .fr-ico { font-size: 22px; flex: none; }
+    .fun-row div { min-width: 0; }
+    .fun-row b { display: block; font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fun-row span { font-size: 12px; font-weight: 700; color: var(--muted); }
+
+    .fun-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+    .fun-btn {
+      appearance: none; border: 0; cursor: pointer;
+      font: inherit; font-weight: 800; font-size: 16px;
+      padding: 15px 18px; border-radius: 14px;
+      color: #16120E;
+      background: linear-gradient(160deg, #F2A47B, #D97757);
+      box-shadow: 0 5px 0 #8f3f1f;
+      transition: transform .06s ease, box-shadow .06s ease;
+    }
+    .fun-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #8f3f1f; }
+    .fun-btn.ghost {
+      color: var(--text);
+      background: #201D1A;
+      box-shadow: 0 5px 0 #000;
+      border: 1px solid var(--line);
+    }
+    .fun-note { margin-top: 14px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -44,77 +97,90 @@
     <div class="orb orb-1" aria-hidden="true"></div>
     <div class="orb orb-2" aria-hidden="true"></div>
 
-    <main class="card tg-card">
-      <div class="auth-brand"><span class="wordmark kid">K<em>-MCID</em></span></div>
+    <span class="px g" style="left:8%;  top:12%; animation-delay:0s"></span>
+    <span class="px o" style="left:82%; top:18%; animation-delay:1.2s"></span>
+    <span class="px b" style="left:14%; top:78%; animation-delay:2.1s"></span>
+    <span class="px w" style="left:74%; top:84%; animation-delay:.6s"></span>
+    <span class="px o" style="left:28%; top:6%;  animation-delay:1.8s; width:10px; height:10px"></span>
+    <span class="px g" style="left:90%; top:60%; animation-delay:2.6s; width:10px; height:10px"></span>
 
-      <div id="tg-loading"><p class="subtitle">One moment…</p></div>
+    <main class="card fun-card">
+      <svg class="fun-logo" viewBox="4.8 2.55 14.4 18.9" aria-hidden="true">
+        <defs><linearGradient id="tileg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>
+        <rect x="5.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="7.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="12.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="10.2" y="7.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="10.2" y="12.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/>
+      </svg>
+      <div class="fun-brand">K<em>-MCID</em></div>
+
+      <div id="tg-loading"><p class="fun-sub">Секунду…</p></div>
 
       <div id="tg-outside" hidden>
-        <h1 class="title" style="font-size:24px">Open in Telegram</h1>
-        <p class="subtitle">This page only works inside the Telegram bot.</p>
+        <p class="fun-emoji">🤨</p>
+        <h1 class="fun-title">Это страница для Telegram</h1>
+        <p class="fun-sub">Открой её внутри бота — там всё и работает.</p>
       </div>
 
       <div id="tg-home" hidden>
-        <h1 class="title" style="font-size:24px">Minecraft sign-in</h1>
-        <p class="subtitle">Approve server joins right from this chat,
-          or scan a code from a computer screen.</p>
-        <div class="tg-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <div><b id="tg-mail"></b><span>Telegram account</span></div>
+        <h1 class="fun-title">Го на сервер? ⛏️</h1>
+        <p class="fun-sub">Заходишь в игру — подтверждение падает сюда.
+          А код с экрана компа можно отсканировать.</p>
+        <div class="fun-row">
+          <span class="fr-ico">🎮</span>
+          <div><b id="tg-mail"></b><span>твой Telegram</span></div>
         </div>
-        <div class="tg-row" id="tg-nick-row" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
-          <div><b id="tg-nick"></b><span>Minecraft nickname</span></div>
+        <div class="fun-row" id="tg-nick-row" hidden>
+          <span class="fr-ico">🧱</span>
+          <div><b id="tg-nick"></b><span>ник в Minecraft</span></div>
         </div>
-        <div class="tg-actions">
-          <button type="button" class="submit" id="tg-scan">Scan a sign-in code</button>
+        <div class="fun-actions">
+          <button type="button" class="fun-btn" id="tg-scan">📷 Сканировать код</button>
         </div>
-        <p class="tg-note" id="tg-scan-note" hidden>Scanning needs a newer Telegram.
-          Point your phone camera at the code instead — it opens this bot.</p>
+        <p class="fun-note" id="tg-scan-note" hidden>Для сканера нужен Telegram посвежее.
+          Наведи обычную камеру телефона на код — она откроет этого бота.</p>
       </div>
 
       <div id="tg-ask" hidden>
-        <span class="tg-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
-        </span>
-        <h1 class="title" style="font-size:24px">Join the server?</h1>
-        <p class="subtitle">Let <span class="tg-strong" id="tg-server"></span> log you in as
-          <span class="tg-strong" id="tg-ask-nick"></span>?</p>
-        <div class="tg-actions">
-          <button type="button" class="submit" id="tg-approve">Yes, that&rsquo;s me</button>
-          <button type="button" class="ghost-btn" id="tg-deny">Deny</button>
+        <p class="fun-emoji bounce">🚪</p>
+        <h1 class="fun-title">Тук-тук!</h1>
+        <p class="fun-sub">Пустить <span class="fun-strong" id="tg-server"></span> залогинить
+          тебя как <span class="fun-strong" id="tg-ask-nick"></span>?</p>
+        <div class="fun-actions">
+          <button type="button" class="fun-btn" id="tg-approve">✅ Да, это я!</button>
+          <button type="button" class="fun-btn ghost" id="tg-deny">❌ Не-а</button>
         </div>
-        <p class="tg-note">The first approval ties this nickname to your Telegram —
-          nobody else will be able to join under it.</p>
+        <p class="fun-note">Первое «да» привяжет ник к твоему Telegram —
+          больше никто под ним не зайдёт.</p>
       </div>
 
       <div id="tg-done" hidden>
-        <p class="tg-ok">✓</p>
-        <h1 class="title" style="font-size:24px">You're in</h1>
-        <p class="subtitle">Switch back to Minecraft — the server is unfreezing you.</p>
+        <p class="fun-emoji bounce">🎉</p>
+        <h1 class="fun-title">Погнали!</h1>
+        <p class="fun-sub">Возвращайся в игру — сервер тебя уже размораживает.</p>
       </div>
 
       <div id="tg-denied" hidden>
-        <h1 class="title" style="font-size:24px">Denied</h1>
-        <p class="subtitle">The join was rejected. You can close this window.</p>
+        <p class="fun-emoji">🛑</p>
+        <h1 class="fun-title">Отклонено</h1>
+        <p class="fun-sub">Никто не пройдёт. Страницу можно закрыть.</p>
       </div>
 
       <div id="tg-taken" hidden>
-        <h1 class="title" style="font-size:24px">Nickname taken</h1>
-        <p class="subtitle">This nickname is tied to a different account.
-          Approve from that account or pick another nickname in the game.</p>
+        <p class="fun-emoji">😬</p>
+        <h1 class="fun-title">Ник занят</h1>
+        <p class="fun-sub">Этот ник привязан к другому Telegram.
+          Подтверди с него или возьми другой ник в игре.</p>
       </div>
 
       <div id="tg-bad" hidden>
-        <h1 class="title" style="font-size:24px">Code expired</h1>
-        <p class="subtitle">Rejoin the server (or refresh the code) and try again.</p>
-        <div class="tg-actions">
-          <button type="button" class="ghost-btn" id="tg-back">Back</button>
+        <p class="fun-emoji">⏰</p>
+        <h1 class="fun-title">Код протух</h1>
+        <p class="fun-sub">Перезайди на сервер — там выдадут свежий.</p>
+        <div class="fun-actions">
+          <button type="button" class="fun-btn ghost" id="tg-back">Назад</button>
         </div>
       </div>
     </main>
   </div>
 
-  <script src="tg.js?v=106"></script>
+  <script src="tg.js?v=107"></script>
 </body>
 </html>

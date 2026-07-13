@@ -77,7 +77,7 @@
     tg.onEvent('qrTextReceived', (e) => onText(e && e.data));
     $('tg-scan').addEventListener('click', () => {
       try {
-        tg.showScanQrPopup({ text: 'Point at the sign-in code' }, onText);
+        tg.showScanQrPopup({ text: 'Наведи на код на экране' }, onText);
       } catch (e) {
         $('tg-scan-note').hidden = false;
       }
