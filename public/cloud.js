@@ -2568,3 +2568,14 @@ Promise.all([refreshMe(), refreshStars().then(loadFiles), refreshNotifs()]).then
   checkPaymentReturn();
   setInterval(refreshNotifs, 60000);
 });
+
+/* the K-ID account hub lives on its own subdomain in production */
+(() => {
+  const link = document.getElementById('open-kid');
+  if (!link) return;
+  const host = window.location.hostname;
+  const plain = host === 'localhost' || host.endsWith('.workers.dev') || host.endsWith('.pages.dev') || /^[0-9.]+$/.test(host);
+  if (!plain) {
+    link.href = `${window.location.protocol}//id.${host.split('.').slice(-2).join('.')}/`;
+  }
+})();

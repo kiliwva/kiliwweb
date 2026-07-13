@@ -31,6 +31,8 @@
     'api.link-expired': 'This link has expired or was already used. Request a new code below or ask for a fresh link.',
     'reset.linkTitle': 'Set a new password.',
     'reset.linkSub': 'The link from your email signs you in once — just choose a new password.',
+    'profile.openKid': 'Open full profile (K-ID)',
+    'profile.kidHint': 'Password, 2FA, passkeys, devices and all Kiliw products live in your K-ID account.',
     'api.captcha': 'Captcha verification failed. Please try again.',
     'api.not-configured': 'Server storage is not configured yet. Contact the site owner.',
     'auth.totpPrompt': 'Enter the 6-digit code from your authenticator app.',
