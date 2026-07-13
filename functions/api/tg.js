@@ -338,6 +338,56 @@ export async function onRequestGet({ request, env }) {
     return json({ success: true, username: link.username, first: link.first });
   }
 
+  /* owner: wipe every Telegram binding and Minecraft nick claim,
+     so everyone starts fresh (GET /api/tg?reset=1) */
+  if (url.searchParams.get('reset') === '1') {
+    const session = await getSession(request, env);
+    if (!session || !isOwner(env, session.email)) {
+      return json({ success: false, error: 'unauthorized' }, 401);
+    }
+    const wipe = async (prefix) => {
+      let n = 0;
+      let cursor;
+      do {
+        const page = await env.KILIW_FILES.list({ prefix, cursor });
+        for (const obj of page.objects) {
+          await env.KILIW_FILES.delete(obj.key).catch(() => {});
+          n += 1;
+        }
+        cursor = page.truncated ? page.cursor : null;
+      } while (cursor);
+      return n;
+    };
+    const tgWiped = await wipe('_auth/tg/');
+    const linksWiped = await wipe('_auth/tglink/');
+    const nicksWiped = await wipe('_auth/mcnick/');
+    /* clear the mirror fields on the user records */
+    let usersCleared = 0;
+    let cursor;
+    do {
+      const page = await env.KILIW_FILES.list({ prefix: '_auth/users/', cursor });
+      for (const obj of page.objects) {
+        const rec = await env.KILIW_FILES.get(obj.key);
+        const user = rec ? await rec.json().catch(() => null) : null;
+        if (user && (user.tgId || user.tgUsername || user.mcNick)) {
+          delete user.tgId;
+          delete user.tgUsername;
+          delete user.mcNick;
+          await env.KILIW_FILES.put(obj.key, JSON.stringify(user));
+          usersCleared += 1;
+        }
+      }
+      cursor = page.truncated ? page.cursor : null;
+    } while (cursor);
+    return json({
+      success: true,
+      telegramBindings: tgWiped,
+      pendingLinkCodes: linksWiped,
+      minecraftNicks: nicksWiped,
+      usersCleared,
+    });
+  }
+
   /* owner: wire the bot up (webhook + menu button) in one click */
   if (url.searchParams.get('setup') === '1') {
     const session = await getSession(request, env);
