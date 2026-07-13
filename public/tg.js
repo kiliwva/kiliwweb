@@ -188,21 +188,28 @@
       const dx = (cw - vw * coverScale) / 2;
       const dy = (ch - vh * coverScale) / 2;
       const pts = corners.map((p) => mapPoint(p, coverScale, dx, dy));
+      /* subtle fill so the locked code reads as "captured" */
       hlCtx.beginPath();
       pts.forEach((p, i) => (i ? hlCtx.lineTo(p.x, p.y) : hlCtx.moveTo(p.x, p.y)));
       hlCtx.closePath();
-      hlCtx.fillStyle = 'rgba(242, 164, 123, .25)';
+      hlCtx.fillStyle = 'rgba(242, 164, 123, .18)';
       hlCtx.fill();
-      hlCtx.lineWidth = 4;
+      /* corner brackets snapping onto the code (no moving line) */
+      const lerp = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
       hlCtx.strokeStyle = '#F2A47B';
+      hlCtx.lineWidth = 5;
+      hlCtx.lineCap = 'round';
       hlCtx.lineJoin = 'round';
-      hlCtx.stroke();
-      /* corner dots */
-      hlCtx.fillStyle = '#F2A47B';
-      pts.forEach((p) => {
+      pts.forEach((p, i) => {
+        const next = pts[(i + 1) % 4];
+        const prev = pts[(i + 3) % 4];
+        const a = lerp(p, prev, 0.28);
+        const b = lerp(p, next, 0.28);
         hlCtx.beginPath();
-        hlCtx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-        hlCtx.fill();
+        hlCtx.moveTo(a.x, a.y);
+        hlCtx.lineTo(p.x, p.y);
+        hlCtx.lineTo(b.x, b.y);
+        hlCtx.stroke();
       });
     };
 
