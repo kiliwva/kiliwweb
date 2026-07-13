@@ -1,6 +1,6 @@
 import {
   json, storageReady, getUser, putUser, createSession, randomHex,
-  hashPassword, afterAuthRedirect, wipeAccount, getSession,
+  hashPassword, afterAuthRedirect, wipeAccount, getSession, isPlainHost,
 } from '../../lib/api.js';
 
 /* Social sign-in (Google / GitHub) for the K-ID account system.
@@ -10,8 +10,9 @@ import {
    Configure in the dashboard (secrets):
    GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
    GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
-   Register the callback URL with each provider:
-   https://id.<domain>/api/oauth/callback */
+   OAuth always runs through the auth.<domain> host, so each provider
+   needs exactly one callback URL:
+   https://auth.<domain>/api/oauth/callback */
 
 const STATE_TTL = 10 * 60 * 1000;
 
@@ -28,6 +29,13 @@ function conf(env, provider) {
 const backToLogin = (url, reason) => Response.redirect(
   new URL(`/login?oauth=${reason}`, url).toString(), 302,
 );
+
+/* one canonical callback origin per deployment: GitHub OAuth apps
+   accept a single callback URL */
+function canonicalOrigin(url) {
+  if (isPlainHost(url.hostname)) return url.origin;
+  return `${url.protocol}//auth.${url.hostname.split('.').slice(-2).join('.')}`;
+}
 
 export async function onRequestGet({ request, env }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
@@ -50,7 +58,7 @@ export async function onRequestGet({ request, env }) {
     let email = '';
     try {
       email = state.provider === 'google'
-        ? await googleEmail(c, code, `${url.origin}/api/oauth/callback`)
+        ? await googleEmail(c, code, `${canonicalOrigin(url)}/api/oauth/callback`)
         : await githubEmail(c, code);
     } catch {
       email = '';
@@ -137,7 +145,7 @@ export async function onRequestGet({ request, env }) {
       expires: Date.now() + STATE_TTL,
     }));
 
-    const redirectUri = `${url.origin}/api/oauth/callback`;
+    const redirectUri = `${canonicalOrigin(url)}/api/oauth/callback`;
     const target = provider === 'google'
       ? 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
         client_id: c.id,
