@@ -2,6 +2,7 @@
    - kiliw.com / www:   signed out → auth.kiliw.com, signed in → cloud.kiliw.com
    - auth.kiliw.com:    signed out → auth page; signed in → cloud.kiliw.com
    - cloud.kiliw.com:   signed out → auth.kiliw.com; signed in → cloud app
+   - id.kiliw.com:      the shared K-ID account hub (root = profile)
    - *.workers.dev / *.pages.dev / localhost: auth and cloud on one host */
 
 import { getSession, authRedirect, afterAuthRedirect, isPlainHost } from '../lib/api.js';
@@ -29,6 +30,8 @@ export async function onRequest(context) {
   const isAdminPage = url.pathname === '/admin.html' || url.pathname === '/admin';
   const isCloudPage = isAdminPage
     || ['/dash.html', '/dash', '/checkout.html', '/checkout'].includes(url.pathname);
+  /* the K-ID account hub page (session required) */
+  const isIdPage = ['/id.html', '/id'].includes(url.pathname);
 
   /* the admin page is for the site owner only */
   if (isAdminPage && session && env.OWNER_EMAIL && session.email !== env.OWNER_EMAIL) {
@@ -73,7 +76,7 @@ export async function onRequest(context) {
         ? Response.redirect(new URL('/dash', url).toString(), 302)
         : authPage();
     }
-    if (!session && isCloudPage) {
+    if (!session && (isCloudPage || isIdPage)) {
       return Response.redirect(new URL('/login', url).toString(), 302);
     }
     return next();
@@ -81,6 +84,26 @@ export async function onRequest(context) {
 
   const isAuthHost = host.startsWith('auth.');
   const isCloudHost = host.startsWith('cloud.');
+  const isIdHost = host.startsWith('id.');
+
+  /* id.<domain>: the shared account hub for the whole ecosystem */
+  if (isIdHost) {
+    const idPage = () => env.ASSETS.fetch(new URL('/id', url));
+    if (isRoot || isIdPage) {
+      return session
+        ? idPage()
+        : Response.redirect(new URL('/login', url).toString(), 302);
+    }
+    if (isLogin) {
+      return session
+        ? Response.redirect(new URL('/', url).toString(), 302)
+        : authPage();
+    }
+    if (isCloudPage) {
+      return Response.redirect(`${url.protocol}//cloud.${host.split('.').slice(-2).join('.')}${url.pathname}`, 302);
+    }
+    return next();
+  }
 
   if (isAuthHost) {
     if (session && (isRoot || isLogin)) return Response.redirect(afterAuthRedirect(request), 302);
@@ -95,6 +118,9 @@ export async function onRequest(context) {
       return session
         ? Response.redirect(new URL('/dash', url).toString(), 302)
         : authPage();
+    }
+    if (isIdPage) {
+      return Response.redirect(`${url.protocol}//id.${host.split('.').slice(-2).join('.')}/`, 302);
     }
     if (!session && isCloudPage) {
       return Response.redirect(authRedirect(request), 302);

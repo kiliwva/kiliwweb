@@ -2,6 +2,7 @@ import {
   json, getSession, storageReady, isOwner, getUser, putUser, planLimits,
   listPromos, putPromo, deletePromo, normPromoCode, getPromo,
   PRO_TIERS, DEV_GB, wipeSessionsFor, mailReady, sendEmail, notifyAccountEvent,
+  createResetLink,
 } from '../../lib/api.js';
 
 /* Owner-only site management: promo codes + basic stats. */
@@ -222,7 +223,8 @@ export async function onRequestPost({ request, env }) {
     const user = await getUser(env, email);
     if (!user) return json({ success: false, error: 'not-found' }, 404);
     const origin = new URL(request.url).origin;
-    const mail = resetLinkEmail(`${origin}/reset`);
+    const k = await createResetLink(env, email);
+    const mail = resetLinkEmail(`${origin}/reset?k=${k}`);
     const sent = await sendEmail(env, email, mail.subject, mail.text, mail.html);
     if (!sent) return json({ success: false, error: 'mail-failed' }, 502);
     return json({ success: true });
@@ -235,7 +237,7 @@ export async function onRequestPost({ request, env }) {
 function resetLinkEmail(url) {
   const font = "-apple-system,'Segoe UI',Roboto,Arial,sans-serif";
   const subject = 'Reset your Kiliw password';
-  const text = `Set a new password for your Kiliw account: ${url}\n\nIf you didn't expect this email, you can safely ignore it.`;
+  const text = `Set a new password for your Kiliw account (the link works once and expires in 15 minutes): ${url}\n\nIf you didn't expect this email, you can safely ignore it.`;
   const html = `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#161616;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#161616;">
@@ -244,7 +246,7 @@ function resetLinkEmail(url) {
         <tr><td style="padding:30px 28px 0;font-family:${font};">
           <span style="font-size:20px;font-weight:800;color:#F2F2F2;letter-spacing:-0.3px;">Kiliw <span style="color:#D97757;">Cloud</span></span>
         </td></tr>
-        <tr><td style="padding:16px 28px 0;font-family:${font};font-size:14.5px;line-height:1.55;color:#B9B9B9;">Our support team sent you this link to set a new password for your account.</td></tr>
+        <tr><td style="padding:16px 28px 0;font-family:${font};font-size:14.5px;line-height:1.55;color:#B9B9B9;">Our support team sent you this link to set a new password for your account. It works once and expires in 15 minutes.</td></tr>
         <tr><td align="center" style="padding:24px 28px 0;">
           <a href="${url}" style="display:inline-block;padding:14px 28px;background:#C8603E;border-radius:14px;font-family:${font};font-size:15px;font-weight:700;color:#FFFFFF;text-decoration:none;">Reset password</a>
         </td></tr>

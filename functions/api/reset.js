@@ -2,7 +2,7 @@ import {
   json, storageReady, getUser, putUser, randomHex, hashPassword,
   mailReady, sendEmail, sixDigitCode, buildCodeEmail, timingSafeEqualHex,
   verifyTurnstile, wipeSessionsFor, createSession, afterAuthRedirect,
-  notifyAccountEvent,
+  notifyAccountEvent, takeResetLink,
 } from '../../lib/api.js';
 
 const CODE_TTL = 15 * 60 * 1000;
@@ -33,6 +33,34 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'bad-request' }, 400);
   }
   const action = String(body?.action || '');
+
+  /* one-shot admin link: set the password directly, no code */
+  if (action === 'link-confirm') {
+    const password = String(body?.password || '');
+    if (password.length < 8) return json({ success: false, error: 'invalid-password' }, 400);
+    const linkEmail = await takeResetLink(env, body?.k);
+    if (!linkEmail) return json({ success: false, error: 'link-expired' }, 403);
+    const user = await getUser(env, linkEmail);
+    if (!user || user.banned) return json({ success: false, error: 'link-expired' }, 403);
+    if (user.deleteAt && user.deleteAt <= Date.now()) {
+      return json({ success: false, error: 'link-expired' }, 403);
+    }
+    const restored = Boolean(user.deleteAt);
+    delete user.deleteAt;
+    user.salt = randomHex(16);
+    user.hash = await hashPassword(password, user.salt);
+    delete user.resetCode;
+    await putUser(env, user);
+    await wipeSessionsFor(env, linkEmail);
+    await notifyAccountEvent(env, linkEmail, 'password-reset');
+    const { cookie } = await createSession(env, linkEmail, request);
+    return json(
+      { success: true, redirect: afterAuthRedirect(request), restored },
+      200,
+      { 'Set-Cookie': cookie },
+    );
+  }
+
   const email = String(body?.email || '').trim().toLowerCase();
   if (!email) return json({ success: false, error: 'bad-request' }, 400);
 

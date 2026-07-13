@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>K-ID — your Kiliw account</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=79">
+  <style>
+    body { background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 52%, var(--bg-c) 100%) fixed; }
+    .id-wrap { max-width: 640px; margin: 0 auto; padding: 22px 16px 60px; }
+    .id-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 6px 2px 22px;
+    }
+    .id-bar-actions { display: flex; align-items: center; gap: 8px; }
+    .id-card {
+      max-width: none;
+      padding: 24px 24px 22px;
+      margin-bottom: 14px;
+      animation-delay: 0.05s;
+    }
+    .id-who { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .id-ava {
+      width: 56px; height: 56px;
+      flex: none;
+      border-radius: 50%;
+      overflow: hidden;
+      display: grid; place-items: center;
+      font-size: 22px; font-weight: 800; color: #fff;
+      background: linear-gradient(135deg, #E08A63 0%, #C96A47 100%);
+    }
+    .id-ava img { width: 100%; height: 100%; object-fit: cover; }
+    .id-who-info { min-width: 0; }
+    .id-mail {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .id-sub { margin-top: 3px; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .id-sub .badge { margin-left: 6px; }
+    .id-h {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+    .id-sec-note { font-size: 13px; font-weight: 500; color: var(--muted); line-height: 1.5; margin-bottom: 14px; }
+    .id-block + .id-block { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--hairline); }
+    .id-block h3 { font-size: 14.5px; font-weight: 800; margin-bottom: 10px; }
+    .id-row-status { font-size: 13px; font-weight: 700; margin-left: 4px; }
+    .id-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .id-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .id-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+    }
+    .id-item-info { flex: 1; min-width: 0; }
+    .id-item-info b { display: block; font-size: 13.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .id-item-info span { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+    .id-item .icon-btn { flex: none; }
+    .id-x {
+      flex: none;
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      border: 1px solid var(--hairline);
+      border-radius: 9px;
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .id-x:hover { color: var(--error); border-color: rgba(242, 139, 112, 0.4); }
+    .id-x svg { width: 14px; height: 14px; }
+    .id-empty { font-size: 13px; font-weight: 600; color: var(--muted); }
+    #totp-setup { margin-top: 14px; }
+    #totp-qr { width: 168px; margin: 0 auto 10px; background: #fff; border-radius: 14px; padding: 8px; }
+    #totp-qr svg { display: block; width: 100%; height: auto; }
+    .id-secret {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      word-break: break-all;
+      margin-bottom: 12px;
+    }
+    .id-code-row { display: flex; gap: 8px; }
+    .id-code-row input {
+      width: 120px;
+      padding: 11px 14px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--text);
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 12px;
+      outline: none;
+    }
+    .id-pass-form .group { margin-bottom: 12px; }
+    .id-foot { margin-top: 26px; }
+  </style>
+</head>
+<body>
+
+  <script>
+    /* Brand intro, driven entirely by the Web Animations API: the overlay
+       is built by this script with inline styles, so it cannot be broken
+       by a stale stylesheet, cascade conflicts or reduce-motion CSS.
+       Loader-sized: the K assembles from dots, collapses into a single
+       dot; on auth pages the dot then bursts into the K-ID wordmark. */
+    (function () {
+      if (!window.Element || !Element.prototype.animate) return;
+      var SOLO = false;
+      var EASE_OUT = 'cubic-bezier(0.22,1,0.36,1)';
+      var GRAD = 'linear-gradient(135deg,#F2A47B 0%,#D97757 60%,#B4552F 100%)';
+      function play() {
+        if (document.getElementById('brand-intro')) return;
+        var ov = document.createElement('div');
+        ov.id = 'brand-intro';
+        ov.setAttribute('aria-hidden', 'true');
+        ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:center;justify-content:center;pointer-events:none;background:linear-gradient(160deg,#262626 0%,#161616 52%,#0C0C0C 100%)';
+        var stage = document.createElement('div');
+        stage.style.cssText = 'position:relative;width:36px;height:49px';
+        ov.appendChild(stage);
+        /* [left, top, fly-from-x, fly-from-y, delay]; first 4 cells form the
+           white stem, the rest are the gradient rays */
+        var cells = [
+          [0, 0, -23, -26, 0], [0, 13, -31, -9, 50], [0, 26, -26, 12, 100], [0, 39, -20, 31, 150],
+          [13, 13, 9, -31, 80], [26, 0, 26, -23, 120], [13, 26, 12, 34, 160], [26, 39, 29, 26, 200]
+        ];
+        cells.forEach(function (c, i) {
+          var el = document.createElement('i');
+          el.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:3.5px;opacity:0;left:' + c[0] + 'px;top:' + c[1] + 'px;background:' + (i > 3 ? GRAD : '#F2F2F2');
+          stage.appendChild(el);
+          el.animate([
+            { opacity: 0, transform: 'translate(' + c[2] + 'px,' + c[3] + 'px) scale(0.3)' },
+            { opacity: 1, transform: 'translate(0,0) scale(1)' }
+          ], { duration: 500, delay: c[4], easing: EASE_OUT, fill: 'both' });
+          el.animate([
+            { opacity: 1, transform: 'translate(0,0)' },
+            { opacity: 0, transform: 'translate(' + (13 - c[0]) + 'px,' + (19 - c[1]) + 'px) scale(0.5)' }
+          ], { duration: 360, delay: 780, easing: 'cubic-bezier(0.55,0,0.8,0.4)', fill: 'forwards' });
+        });
+        var px = document.createElement('i');
+        px.style.cssText = 'position:absolute;left:13px;top:19px;width:10px;height:10px;border-radius:3.5px;opacity:0;background:' + GRAD;
+        stage.appendChild(px);
+        if (SOLO) {
+          /* the single dot pulses once and melts away with the overlay */
+          px.animate([
+            { opacity: 0, transform: 'scale(0.4)', offset: 0 },
+            { opacity: 1, transform: 'scale(1.3)', offset: 0.35 },
+            { opacity: 1, transform: 'scale(1)', offset: 0.6 },
+            { opacity: 0, transform: 'scale(0.6)', offset: 1 }
+          ], { duration: 750, delay: 1020, easing: 'ease-in-out', fill: 'both' });
+        } else {
+          px.animate([
+            { opacity: 0, transform: 'scale(0.4)', offset: 0 },
+            { opacity: 1, transform: 'scale(1.18)', offset: 0.32 },
+            { opacity: 1, transform: 'scale(1)', offset: 0.52 },
+            { opacity: 0, transform: 'scale(3)', offset: 1 }
+          ], { duration: 850, delay: 1020, easing: 'cubic-bezier(0.3,0.7,0.4,1)', fill: 'both' });
+          var word = document.createElement('span');
+          word.style.cssText = 'position:absolute;left:50%;top:50%;opacity:0;font-family:Manrope,-apple-system,BlinkMacSystemFont,sans-serif;font-size:29px;font-weight:800;letter-spacing:-0.03em;line-height:1;white-space:nowrap;color:#F2F2F2;transform:translate(-50%,-50%) scale(0.4)';
+          word.appendChild(document.createTextNode('K'));
+          var em = document.createElement('em');
+          em.textContent = '-ID';
+          em.style.cssText = 'font-style:normal;background:linear-gradient(120deg,#F2A47B 0%,#D97757 55%,#C05C3E 100%);-webkit-background-clip:text;background-clip:text;color:transparent';
+          word.appendChild(em);
+          stage.appendChild(word);
+          word.animate([
+            { opacity: 0, transform: 'translate(-50%,-50%) scale(0.4)' },
+            { opacity: 1, transform: 'translate(-50%,-50%) scale(1)' }
+          ], { duration: 500, delay: 1300, easing: EASE_OUT, fill: 'both' });
+        }
+        document.body.appendChild(ov);
+        var fade = ov.animate([{ opacity: 1 }, { opacity: 0 }],
+          { duration: 400, delay: SOLO ? 1650 : 2100, fill: 'forwards' });
+        fade.onfinish = function () { try { ov.remove(); } catch (e) {} };
+        setTimeout(function () { try { ov.remove(); } catch (e) {} }, SOLO ? 3400 : 3900);
+      }
+      play();
+      var hiddenAt = 0;
+      window.addEventListener('pageshow', function (e) { if (e.persisted) play(); });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+        if (hiddenAt && Date.now() - hiddenAt > 1500) play();
+      });
+    })();
+  </script>
+
+
+  <div class="id-wrap">
+
+    <header class="id-bar">
+      <span class="wordmark kid" style="font-size:24px">K<em>-ID</em></span>
+      <span class="id-bar-actions">
+        <a class="ghost-btn" href="/dash" id="open-cloud">Open my cloud</a>
+        <button type="button" class="ghost-btn" id="logout">Log out</button>
+      </span>
+    </header>
+
+    <!-- who -->
+    <section class="card id-card">
+      <div class="id-who">
+        <span class="id-ava" id="id-ava"></span>
+        <div class="id-who-info">
+          <p class="id-mail" id="id-mail">…</p>
+          <p class="id-sub">One account for the whole Kiliw ecosystem<span id="id-plan"></span></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- security -->
+    <section class="card id-card">
+      <h2 class="id-h">Security</h2>
+
+      <div class="id-block">
+        <h3>Password</h3>
+        <form class="id-pass-form" id="pass-form" novalidate>
+          <div class="group">
+            <div class="field">
+              <input type="password" id="pass-current" placeholder=" " autocomplete="current-password" required>
+              <label for="pass-current">Current password</label>
+            </div>
+            <div class="divider"></div>
+            <div class="field">
+              <input type="password" id="pass-next" placeholder=" " autocomplete="new-password" minlength="8" required>
+              <label for="pass-next">New password (min 8 characters)</label>
+            </div>
+          </div>
+          <div class="id-actions">
+            <button type="submit" class="ghost-btn">Change password</button>
+            <span class="id-row-status" id="pass-status"></span>
+          </div>
+        </form>
+      </div>
+
+      <div class="id-block">
+        <h3>Two-factor authentication <span class="id-row-status" id="totp-state"></span></h3>
+        <p class="id-sec-note" id="totp-note">A 6-digit code from an authenticator app is asked at sign-in.</p>
+        <div class="id-actions">
+          <button type="button" class="ghost-btn" id="totp-btn" hidden></button>
+          <span class="id-row-status" id="totp-status"></span>
+        </div>
+        <div id="totp-setup" hidden>
+          <div id="totp-qr"></div>
+          <p class="id-secret" id="totp-secret"></p>
+          <div class="id-code-row">
+            <input id="totp-code" inputmode="numeric" maxlength="6" placeholder="000000">
+            <button type="button" class="ghost-btn" id="totp-confirm">Confirm</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="id-block">
+        <h3>Passkeys</h3>
+        <p class="id-sec-note">Sign in with Face ID, Touch ID or a security key — no password needed.</p>
+        <ul class="id-list" id="pk-list"></ul>
+        <div class="id-actions">
+          <button type="button" class="ghost-btn" id="pk-add">Add a passkey</button>
+          <span class="id-row-status" id="pk-status"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- devices -->
+    <section class="card id-card">
+      <h2 class="id-h">Devices</h2>
+      <p class="id-sec-note">Everywhere this account is signed in right now.</p>
+      <ul class="id-list" id="ses-list"></ul>
+      <div class="id-actions">
+        <button type="button" class="ghost-btn danger" id="ses-others">Sign out other devices</button>
+        <span class="id-row-status" id="ses-status"></span>
+      </div>
+    </section>
+
+    <footer class="auth-foot id-foot">
+      <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
+      <p class="auth-build">KW-4F</p>
+    </footer>
+
+  </div>
+
+  <script src="vendor/qrcode.min.js?v=79"></script>
+  <script src="ui.js?v=79"></script>
+  <script src="id.js?v=79"></script>
+</body>
+</html>

@@ -7,6 +7,22 @@ const formConfirm = document.getElementById('form-confirm');
 let resetEmail = '';
 let widgetId = null;
 
+/* one-shot admin link (?k=<token>): straight to the new password, no code */
+const linkToken = new URLSearchParams(window.location.search).get('k') || '';
+if (linkToken) {
+  formRequest.hidden = true;
+  formRequest.classList.remove('active');
+  formConfirm.hidden = false;
+  formConfirm.classList.add('active');
+  const linkTitle = document.getElementById('form-confirm').querySelector('.title');
+  linkTitle.dataset.i18n = 'reset.linkTitle';
+  linkTitle.textContent = KiliwUI.t('reset.linkTitle');
+  document.getElementById('reset-sub').textContent = KiliwUI.t('reset.linkSub');
+  document.querySelector('.otp-label').hidden = true;
+  document.getElementById('reset-otp').hidden = true;
+  document.getElementById('reset-again').parentElement.hidden = true;
+}
+
 window.onTurnstileLoad = function () {
   const slot = formRequest.querySelector('[data-turnstile]');
   widgetId = turnstile.render(slot, {
@@ -25,7 +41,7 @@ function showError(form, message) {
   el.classList.toggle('visible', Boolean(message));
 }
 
-const ERROR_KEYS = ['captcha', 'not-configured', 'code-invalid', 'code-expired', 'too-many', 'invalid-password'];
+const ERROR_KEYS = ['captcha', 'not-configured', 'code-invalid', 'code-expired', 'too-many', 'invalid-password', 'link-expired', 'banned'];
 
 formRequest.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -75,7 +91,7 @@ formConfirm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const code = document.getElementById('reset-code').value.trim();
   const password = document.getElementById('reset-password').value;
-  if (!/^\d{6}$/.test(code)) {
+  if (!linkToken && !/^\d{6}$/.test(code)) {
     showError(formConfirm, KiliwUI.t('api.code-invalid'));
     return;
   }
@@ -89,7 +105,9 @@ formConfirm.addEventListener('submit', async (e) => {
     const res = await fetch('/api/reset', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'confirm', email: resetEmail, code, password }),
+      body: JSON.stringify(linkToken
+        ? { action: 'link-confirm', k: linkToken, password }
+        : { action: 'confirm', email: resetEmail, code, password }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
