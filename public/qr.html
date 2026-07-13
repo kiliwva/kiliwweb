@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>Log in on your computer — K-ID</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=92">
+  <style>
+    .qr-card { text-align: center; }
+    .qr-ico {
+      width: 56px; height: 56px;
+      margin: 6px auto 18px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 16px;
+      color: #E8A38B;
+      background: rgba(217, 119, 87, 0.10);
+      border: 1px solid rgba(217, 119, 87, 0.2);
+    }
+    .qr-ico svg { width: 26px; height: 26px; }
+    .qr-mail { font-weight: 800; color: var(--text); }
+    .qr-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+    .qr-ok {
+      font-size: 42px;
+      margin: 10px 0 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="scene">
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+
+    <main class="card qr-card">
+      <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
+
+      <div id="qr-loading">
+        <p class="subtitle">One moment…</p>
+      </div>
+
+      <div id="qr-ask" hidden>
+        <span class="qr-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        </span>
+        <h1 class="title" style="font-size:24px">Log in on your computer?</h1>
+        <p class="subtitle">You are signed in as <span class="qr-mail" id="qr-mail"></span>.
+          The computer showing this code will be signed in to your account.</p>
+        <div class="qr-actions">
+          <button type="button" class="submit" id="qr-approve">Yes, log it in</button>
+          <button type="button" class="ghost-btn" id="qr-cancel">Cancel</button>
+        </div>
+        <p class="group-error" id="qr-error"></p>
+      </div>
+
+      <div id="qr-done" hidden>
+        <p class="qr-ok">✓</p>
+        <h1 class="title" style="font-size:24px">Done</h1>
+        <p class="subtitle">Your computer is signing in. You can close this page.</p>
+      </div>
+
+      <div id="qr-login" hidden>
+        <h1 class="title" style="font-size:24px">Sign in first</h1>
+        <p class="subtitle">Sign in on this phone, then scan the QR code again.</p>
+        <div class="qr-actions">
+          <a class="submit" style="display:block;text-decoration:none" href="/login">Sign in</a>
+        </div>
+      </div>
+
+      <div id="qr-bad" hidden>
+        <h1 class="title" style="font-size:24px">Code expired</h1>
+        <p class="subtitle">Refresh the QR code on your computer and scan it again.</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (async () => {
+      const show = (id) => {
+        for (const s of ['qr-loading', 'qr-ask', 'qr-done', 'qr-login', 'qr-bad']) {
+          document.getElementById(s).hidden = s !== id;
+        }
+      };
+      const token = (window.location.hash || '').slice(1);
+      if (!/^[0-9a-f]{64}$/.test(token)) { show('qr-bad'); return; }
+
+      const me = await fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (!me || !me.email) { show('qr-login'); return; }
+
+      document.getElementById('qr-mail').textContent = me.email;
+      show('qr-ask');
+
+      document.getElementById('qr-cancel').addEventListener('click', () => {
+        window.location.href = '/';
+      });
+      document.getElementById('qr-approve').addEventListener('click', async () => {
+        const btn = document.getElementById('qr-approve');
+        btn.disabled = true;
+        const res = await fetch('/api/qr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve', token }),
+        }).catch(() => null);
+        const data = res ? await res.json().catch(() => ({})) : {};
+        if (res && res.ok && data.success) {
+          show('qr-done');
+        } else {
+          btn.disabled = false;
+          show('qr-bad');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

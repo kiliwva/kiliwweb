@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=91">
+  <link rel="stylesheet" href="styles.css?v=92">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
@@ -182,6 +182,24 @@
     }
     .rl-pk-link:hover { color: var(--text); }
     .rl-pk-link svg { width: 15px; height: 15px; }
+    .rl-alt-row { display: flex; justify-content: center; gap: 4px; margin-top: 12px; }
+    .rl-alt-row .rl-pk-link { width: auto; margin-top: 0; padding: 6px 10px; }
+    .rl-qr-box {
+      width: 216px;
+      margin: 4px auto 16px;
+      padding: 12px;
+      background: #fff;
+      border-radius: 18px;
+    }
+    .rl-qr-box svg { display: block; width: 100%; height: auto; }
+    .rl-qr-state {
+      text-align: center;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    #qr-panel .rl-pk-link { margin-top: 6px; }
     @media (min-width: 768px) {
       .card.rl { max-width: 372px; padding-top: 4px; }
       .rl-logo { margin-bottom: 16px; }
@@ -365,10 +383,16 @@
 
         <button type="submit" class="submit" disabled>Log In</button>
 
-        <button type="button" class="rl-pk-link" id="passkey-link" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="4.5"/><path d="M2.5 21v-1.5a6 6 0 0 1 6-6h.5"/><path d="M21.5 11.5a3 3 0 1 0-4.5 2.6V20l1.5 1.5L20 20l-1-1 1-1-1-1 1.5-1.5v-1.4a3 3 0 0 0 1-2.6Z"/></svg>
-          Sign in with a passkey
-        </button>
+        <div class="rl-alt-row">
+          <button type="button" class="rl-pk-link" id="passkey-link" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="4.5"/><path d="M2.5 21v-1.5a6 6 0 0 1 6-6h.5"/><path d="M21.5 11.5a3 3 0 1 0-4.5 2.6V20l1.5 1.5L20 20l-1-1 1-1-1-1 1.5-1.5v-1.4a3 3 0 0 0 1-2.6Z"/></svg>
+            Passkey
+          </button>
+          <button type="button" class="rl-pk-link" id="qr-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><path d="M14 14h3v3h-3zM21 14v.01M14 21h.01M18 18h3v3h-3z"/></svg>
+            QR code
+          </button>
+        </div>
         <p class="modal-status" id="passkey-login-status" hidden></p>
 
         <p class="rl-terms">By signing in, you agree to our <a class="link" href="#">Terms</a> and <a class="link" href="#">Privacy Policy</a>.</p>
@@ -413,6 +437,16 @@
         <p class="rl-terms">By signing up, you agree to our <a class="link" href="#">Terms</a> and <a class="link" href="#">Privacy Policy</a>.</p>
       </form>
 
+      <!-- QR sign-in -->
+      <div class="form" id="qr-panel" hidden>
+        <h1 class="rl-title">Scan to log in</h1>
+        <p class="rl-sub">Open the camera on a phone where you are signed in and scan the code.</p>
+        <div class="rl-qr-box"><div id="qr-code"></div></div>
+        <p class="rl-qr-state" id="qr-state">Waiting for the scan…</p>
+        <button type="button" class="submit" id="qr-refresh" hidden>Get a new code</button>
+        <button type="button" class="rl-pk-link" id="qr-back">Back to password</button>
+      </div>
+
       <!-- Email verification step -->
       <form class="form" id="form-verify" novalidate hidden>
         <h1 class="rl-title" data-i18n="verify.title">Check your email.</h1>
@@ -433,12 +467,13 @@
 
     <footer class="auth-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-5B</p>
+      <p class="auth-build">KW-5C</p>
     </footer>
 
   </div>
 
-  <script src="ui.js?v=91"></script>
-  <script src="auth.js?v=91"></script>
+  <script src="vendor/qrcode.min.js?v=92"></script>
+  <script src="ui.js?v=92"></script>
+  <script src="auth.js?v=92"></script>
 </body>
 </html>

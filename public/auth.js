@@ -356,6 +356,76 @@ function wirePwReveal(emailId, wrapId) {
 wirePwReveal('login-email', 'login-pw-wrap');
 wirePwReveal('reg-email', 'reg-pw-wrap');
 
+/* ---------- QR sign-in (computer side) ---------- */
+
+(() => {
+  const link = document.getElementById('qr-link');
+  const panel = document.getElementById('qr-panel');
+  if (!link || !panel) return;
+  const stateEl = document.getElementById('qr-state');
+  const refreshBtn = document.getElementById('qr-refresh');
+  let pollTimer = null;
+
+  const stopPolling = () => {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  };
+
+  const showPanel = (on) => {
+    panel.hidden = !on;
+    panel.classList.toggle('active', on);
+    formLogin.hidden = on;
+    formLogin.classList.toggle('active', !on);
+    if (!on) stopPolling();
+  };
+
+  async function startQr() {
+    stopPolling();
+    refreshBtn.hidden = true;
+    stateEl.textContent = 'Waiting for the scan…';
+    const box = document.getElementById('qr-code');
+    box.innerHTML = '';
+    let data;
+    try {
+      const res = await fetch('/api/qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create' }),
+      });
+      data = await res.json();
+      if (!res.ok || !data.success) throw new Error('create failed');
+    } catch {
+      stateEl.textContent = 'Could not get a code. Try again.';
+      refreshBtn.hidden = false;
+      return;
+    }
+    if (window.qrcode) {
+      const qr = window.qrcode(0, 'M');
+      qr.addData(`${window.location.origin}/qr#${data.token}`);
+      qr.make();
+      box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    }
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/qr?token=${data.token}&poll=${data.poll}`);
+        const st = await res.json();
+        if (st.status === 'ok') {
+          stopPolling();
+          stateEl.textContent = 'Signed in ✓';
+          window.location.href = st.redirect || '/dash';
+        } else if (st.status === 'expired') {
+          stopPolling();
+          stateEl.textContent = 'The code expired.';
+          refreshBtn.hidden = false;
+        }
+      } catch { /* transient network hiccup: keep polling */ }
+    }, 2000);
+  }
+
+  link.addEventListener('click', () => { showPanel(true); startQr(); });
+  refreshBtn.addEventListener('click', () => startQr());
+  document.getElementById('qr-back').addEventListener('click', () => showPanel(false));
+})();
+
 /* ---------- social sign-in feedback ---------- */
 
 {
