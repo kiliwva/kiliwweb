@@ -381,6 +381,88 @@ $('ses-others').addEventListener('click', async () => {
   if (ok) loadSessions();
 });
 
+/* ---------- QR scanner: approve a computer sign-in from here ---------- */
+
+(() => {
+  const btn = $('scan-qr');
+  const overlay = $('scan-overlay');
+  if (!btn || !overlay) return;
+  const video = $('scan-video');
+  const statusEl = $('scan-status');
+  let stream = null;
+  let scanning = false;
+
+  const stop = () => {
+    scanning = false;
+    overlay.hidden = true;
+    if (stream) {
+      stream.getTracks().forEach((t) => t.stop());
+      stream = null;
+    }
+    video.srcObject = null;
+  };
+
+  const found = (text) => {
+    /* only our own sign-in links: <any kiliw origin>/qr#<64 hex> */
+    const m = String(text).match(/^https?:\/\/[^/]+\/qr#([0-9a-f]{64})$/);
+    if (!m) {
+      statusEl.textContent = 'That is not a Kiliw sign-in code.';
+      return false;
+    }
+    stop();
+    window.location.href = `/qr#${m[1]}`;
+    return true;
+  };
+
+  async function scanLoop() {
+    const canvas = document.createElement('canvas');
+    const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
+    let detector = null;
+    if ('BarcodeDetector' in window) {
+      try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { detector = null; }
+    }
+    while (scanning) {
+      if (video.readyState >= 2) {
+        try {
+          if (detector) {
+            const codes = await detector.detect(video);
+            if (codes.length && found(codes[0].rawValue)) return;
+          } else if (window.jsQR) {
+            const w = Math.min(video.videoWidth, 640);
+            const h = Math.round(video.videoHeight * (w / video.videoWidth));
+            canvas.width = w;
+            canvas.height = h;
+            ctx2d.drawImage(video, 0, 0, w, h);
+            const img = ctx2d.getImageData(0, 0, w, h);
+            const hit = window.jsQR(img.data, w, h);
+            if (hit && found(hit.data)) return;
+          }
+        } catch (e) { /* keep scanning */ }
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+
+  btn.addEventListener('click', async () => {
+    statusEl.textContent = '';
+    overlay.hidden = false;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      });
+      video.srcObject = stream;
+      await video.play();
+      scanning = true;
+      scanLoop();
+    } catch (e) {
+      statusEl.textContent = 'Camera access was denied. Allow it in the browser settings and try again.';
+    }
+  });
+
+  $('scan-close').addEventListener('click', stop);
+})();
+
 /* ---------- logout ---------- */
 
 $('logout').addEventListener('click', async () => {
