@@ -126,7 +126,9 @@ async function handleStart(env, bot, origin, msg, param) {
   const from = msg.from;
   const binding = from ? await getBinding(env, from.id) : null;
 
-  /* deep link from the Minecraft chat / map QR: /start mc_<token> */
+  /* deep link from the Minecraft chat / map QR: /start mc_<token>.
+     No K-ID account needed — an unlinked player binds the nick straight
+     to their Telegram. */
   if (param.startsWith('mc_')) {
     const token = param.slice(3);
     const data = await loadJoin(env, token);
@@ -137,20 +139,12 @@ async function handleStart(env, bot, origin, msg, param) {
       });
       return;
     }
-    if (!binding) {
-      const code = await makeLinkCode(env, from);
-      await bot.call('sendMessage', {
-        chat_id: chatId,
-        text: `To approve joins you first need to connect your K-ID account.\n\nAfter connecting, tap the link from the game chat (or scan the map) again.`,
-        reply_markup: { inline_keyboard: [[
-          { text: 'Connect my K-ID', url: `${origin}/tglink#${code}` },
-        ]] },
-      });
-      return;
-    }
+    const account = binding
+      ? binding.email
+      : `Telegram ${from && from.username ? `@${from.username}` : (from && from.first_name) || 'account'}`;
     await bot.call('sendMessage', {
       chat_id: chatId,
-      text: `Minecraft sign-in\n\nLet ${data.server} log you in as ${data.nick}?\nAccount: ${binding.email}`,
+      text: `Minecraft sign-in\n\nLet ${data.server} log you in as ${data.nick}?\nAccount: ${account}`,
       reply_markup: { inline_keyboard: [[
         { text: '✅ Yes, that’s me', callback_data: `mc:ok:${token}` },
         { text: '❌ Deny', callback_data: `mc:no:${token}` },
@@ -175,9 +169,9 @@ async function handleStart(env, bot, origin, msg, param) {
   const code = await makeLinkCode(env, from);
   await bot.call('sendMessage', {
     chat_id: chatId,
-    text: 'Hi! I connect your Telegram to your K-ID account, so you can approve Minecraft sign-ins right here.\n\nConnect your account to get started:',
+    text: 'Hi! When you join a Minecraft server, the confirmation will show up here — nothing to set up. Your nickname ties to this Telegram on the first approval.\n\nOptional: connect a K-ID account to use one identity across Kiliw.',
     reply_markup: { inline_keyboard: [[
-      { text: 'Connect my K-ID', url: `${origin}/tglink#${code}` },
+      { text: 'Connect K-ID (optional)', url: `${origin}/tglink#${code}` },
     ]] },
   });
 }
@@ -190,10 +184,14 @@ async function handleCallback(env, bot, cq) {
   const m = String(cq.data || '').match(/^mc:(ok|no):([0-9a-f]{24})$/);
   if (!m) { await answer(); return; }
 
-  const binding = cq.from ? await getBinding(env, cq.from.id) : null;
-  if (!binding) { await answer('Connect your K-ID first: send /start'); return; }
-
-  const res = await decideJoin(env, m[2], binding.email, m[1] === 'ok');
+  if (!cq.from) { await answer(); return; }
+  const binding = await getBinding(env, cq.from.id);
+  const who = {
+    email: binding ? binding.email : null,
+    tgId: cq.from.id,
+    tgUsername: cq.from.username || '',
+  };
+  const res = await decideJoin(env, m[2], who, m[1] === 'ok');
   const edit = (text) => (cq.message ? bot.call('editMessageText', {
     chat_id: cq.message.chat.id,
     message_id: cq.message.message_id,
@@ -203,7 +201,7 @@ async function handleCallback(env, bot, cq) {
   if (res.error === 'mc-expired') {
     await edit('This sign-in link has expired. Rejoin the server to get a fresh one.');
   } else if (res.error === 'nick-taken') {
-    await edit('❌ This nickname is tied to a different K-ID account.');
+    await edit('❌ This nickname is tied to a different account.');
   } else if (res.error) {
     await edit('Something went wrong. Rejoin the server and try again.');
   } else if (res.denied) {
@@ -291,6 +289,7 @@ export async function onRequestPost({ request, env }) {
       return json({
         success: true,
         linked: false,
+        tgName: tgUser.username ? `@${tgUser.username}` : (tgUser.first_name || 'Telegram'),
         linkUrl: `${idOrigin(request)}/tglink#${code}`,
       });
     }
@@ -304,8 +303,12 @@ export async function onRequestPost({ request, env }) {
   }
 
   if (action === 'approve' || action === 'deny') {
-    if (!binding) return json({ success: false, error: 'not-linked' }, 403);
-    const res = await decideJoin(env, String(body?.token || ''), binding.email, action === 'approve');
+    const who = {
+      email: binding ? binding.email : null,
+      tgId: tgUser.id,
+      tgUsername: tgUser.username || '',
+    };
+    const res = await decideJoin(env, String(body?.token || ''), who, action === 'approve');
     if (res.error) return json({ success: false, error: res.error }, res.http);
     return json({ success: true, denied: Boolean(res.denied), nick: res.nick });
   }

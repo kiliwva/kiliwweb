@@ -3,7 +3,7 @@
 
 (() => {
   const $ = (id) => document.getElementById(id);
-  const PANES = ['tg-loading', 'tg-outside', 'tg-link', 'tg-home', 'tg-ask',
+  const PANES = ['tg-loading', 'tg-outside', 'tg-home', 'tg-ask',
     'tg-done', 'tg-denied', 'tg-taken', 'tg-bad'];
   const show = (id) => PANES.forEach((p) => { $(p).hidden = p !== id; });
 
@@ -26,9 +26,7 @@
     }
   };
 
-  let linked = false;
-
-  const home = () => show(linked ? 'tg-home' : 'tg-link');
+  const home = () => show('tg-home');
 
   /* --- approving one join --- */
 
@@ -36,7 +34,6 @@
     show('tg-loading');
     const { data } = await api({ action: 'info', token });
     if (!data.success || data.status !== 'pending') { show('tg-bad'); return; }
-    if (!linked) { home(); return; }
     $('tg-server').textContent = data.server;
     $('tg-ask-nick').textContent = data.nick;
     show('tg-ask');
@@ -93,20 +90,23 @@
   (async () => {
     const { data } = await api({ action: 'auth' });
     if (!data.success) { show('tg-outside'); return; }
-    linked = Boolean(data.linked);
 
-    if (linked) {
+    if (data.linked) {
       $('tg-mail').textContent = data.email;
+      $('tg-mail-kind').textContent = 'K-ID account';
       if (data.mcNick) {
         $('tg-nick').textContent = data.mcNick;
         $('tg-nick-row').hidden = false;
       }
-      wireScan();
     } else {
-      $('tg-link-btn').onclick = () => {
-        if (data.linkUrl) tg.openLink(data.linkUrl);
-      };
+      /* no K-ID needed — the nick binds to the Telegram account */
+      $('tg-mail').textContent = data.tgName || 'Telegram';
+      $('tg-mail-kind').textContent = 'Telegram account';
+      const btn = $('tg-connect');
+      btn.hidden = false;
+      btn.onclick = () => { if (data.linkUrl) tg.openLink(data.linkUrl); };
     }
+    wireScan();
 
     /* opened straight from a t.me/...?startapp=mc_<token> link */
     const startParam = tg.initDataUnsafe && tg.initDataUnsafe.start_param;

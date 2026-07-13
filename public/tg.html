@@ -7,7 +7,7 @@
   <title>K-ID — Telegram</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=101">
+  <link rel="stylesheet" href="styles.css?v=102">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; }
@@ -54,23 +54,13 @@
         <p class="subtitle">This page only works inside the Telegram bot.</p>
       </div>
 
-      <div id="tg-link" hidden>
-        <h1 class="title" style="font-size:24px">Connect your K-ID</h1>
-        <p class="subtitle">Link this Telegram to your K-ID account to approve
-          Minecraft sign-ins here.</p>
-        <div class="tg-actions">
-          <button type="button" class="submit" id="tg-link-btn">Connect my K-ID</button>
-        </div>
-        <p class="tg-note">A browser page will open to confirm. Then come back here.</p>
-      </div>
-
       <div id="tg-home" hidden>
-        <h1 class="title" style="font-size:24px">You're connected</h1>
+        <h1 class="title" style="font-size:24px">K-ID sign-in</h1>
         <p class="subtitle">Approve Minecraft sign-ins right from this chat,
           or scan a code from a computer screen.</p>
         <div class="tg-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <div><b id="tg-mail"></b><span>K-ID account</span></div>
+          <div><b id="tg-mail"></b><span id="tg-mail-kind">Account</span></div>
         </div>
         <div class="tg-row" id="tg-nick-row" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
@@ -78,6 +68,7 @@
         </div>
         <div class="tg-actions">
           <button type="button" class="submit" id="tg-scan">Scan a sign-in code</button>
+          <button type="button" class="ghost-btn" id="tg-connect" hidden>Connect K-ID account (optional)</button>
         </div>
         <p class="tg-note" id="tg-scan-note" hidden>Scanning needs a newer Telegram.
           Point your phone camera at the code instead — it opens this bot.</p>
@@ -111,8 +102,8 @@
 
       <div id="tg-taken" hidden>
         <h1 class="title" style="font-size:24px">Nickname taken</h1>
-        <p class="subtitle">This nickname is tied to a different K-ID account.
-          Sign in with that account or pick another nickname in the game.</p>
+        <p class="subtitle">This nickname is tied to a different account.
+          Approve from that account or pick another nickname in the game.</p>
       </div>
 
       <div id="tg-bad" hidden>
@@ -125,6 +116,6 @@
     </main>
   </div>
 
-  <script src="tg.js?v=101"></script>
+  <script src="tg.js?v=102"></script>
 </body>
 </html>

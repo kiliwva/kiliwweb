@@ -41,9 +41,11 @@ export async function loadJoin(env, token) {
   return data;
 }
 
-/* Approve or deny a pending join on behalf of an account. Shared by the
-   web approval page and the Telegram bot. */
-export async function decideJoin(env, token, email, approve) {
+/* Approve or deny a pending join. Shared by the web approval page and
+   the Telegram bot. `who` identifies the approver: { email } for a site
+   session, { tgId, tgUsername, email? } for Telegram — a K-ID account
+   is NOT required, the nick can bind straight to the Telegram user. */
+export async function decideJoin(env, token, who, approve) {
   const data = await loadJoin(env, token);
   if (!data || data.status !== 'pending') return { error: 'mc-expired', http: 410 };
 
@@ -53,28 +55,49 @@ export async function decideJoin(env, token, email, approve) {
     return { denied: true, nick: data.nick };
   }
 
-  /* nick binding: first approval claims the nick for this account */
+  if (!who || (!who.email && !who.tgId)) return { error: 'unauthorized', http: 401 };
+
+  /* nick binding: the first approval claims the nick — for the K-ID
+     account when there is one, otherwise for the Telegram user */
   const bindObj = await env.KILIW_FILES.get(nickKey(data.nick));
   const bind = bindObj ? await bindObj.json().catch(() => null) : null;
-  if (bind && bind.email !== email) {
-    data.status = 'denied';
-    await env.KILIW_FILES.put(key(token), JSON.stringify(data));
-    return { error: 'nick-taken', http: 409 };
+  if (bind) {
+    const owns = (bind.email && who.email && bind.email === who.email)
+      || (bind.tgId && who.tgId && bind.tgId === who.tgId);
+    if (!owns) {
+      data.status = 'denied';
+      await env.KILIW_FILES.put(key(token), JSON.stringify(data));
+      return { error: 'nick-taken', http: 409 };
+    }
   }
-  const user = await getUser(env, email);
-  if (!user || user.banned) return { error: 'unauthorized', http: 401 };
-  if (!bind) {
+
+  if (who.email) {
+    const user = await getUser(env, who.email);
+    if (!user || user.banned) return { error: 'unauthorized', http: 401 };
+    if (user.mcNick !== data.nick) {
+      user.mcNick = data.nick;
+      await putUser(env, user);
+    }
+    /* claim the nick, or upgrade a Telegram-only claim to the account */
+    if (!bind || !bind.email) {
+      await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
+        ...(bind || {}),
+        email: who.email,
+        tgId: who.tgId || (bind && bind.tgId) || null,
+        created: (bind && bind.created) || Date.now(),
+      }));
+    }
+  } else if (!bind) {
     await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
-      email,
+      tgId: who.tgId,
+      tgUsername: who.tgUsername || '',
       created: Date.now(),
     }));
   }
-  if (user.mcNick !== data.nick) {
-    user.mcNick = data.nick;
-    await putUser(env, user);
-  }
+
   data.status = 'approved';
-  data.email = email;
+  data.email = who.email || null;
+  data.tgId = who.tgId || null;
   await env.KILIW_FILES.put(key(token), JSON.stringify(data));
   return { nick: data.nick };
 }
@@ -132,7 +155,7 @@ export async function onRequestPost({ request, env }) {
   if (action === 'approve' || action === 'deny') {
     const session = await getSession(request, env);
     if (!session) return json({ success: false, error: 'unauthorized' }, 401);
-    const res = await decideJoin(env, body?.token, session.email, action === 'approve');
+    const res = await decideJoin(env, body?.token, { email: session.email }, action === 'approve');
     if (res.error) return json({ success: false, error: res.error }, res.http);
     return json({ success: true, nick: res.nick });
   }
