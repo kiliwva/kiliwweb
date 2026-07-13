@@ -51,12 +51,14 @@ function renderProducts(data) {
   const plan = data.plan || {};
   const paid = plan.type && plan.type !== 'free';
   const planLine = paid
-    ? `${plan.type.toUpperCase()} · ${plan.gb >= 1024 ? `${plan.gb / 1024} TB` : `${plan.gb} GB`}${plan.until ? ` · until ${formatDate(plan.until)}` : ''}`
-    : 'Free plan · 10 GB';
+    ? `${plan.gb >= 1024 ? `${plan.gb / 1024} TB` : `${plan.gb} GB`}${plan.until ? ` · until ${formatDate(plan.until)}` : ''}`
+    : '10 GB free storage';
   const products = [
     {
       icon: 'cloud',
       name: 'Kiliw Cloud',
+      badge: paid ? plan.type.toUpperCase() : 'Free',
+      badgeOn: paid,
       status: `${planLine}\n${formatSize(data.usage)} used`,
       href: '/dash',
     },
@@ -86,9 +88,16 @@ function renderProducts(data) {
     ico.innerHTML = ICONS[p.icon];
     const b = document.createElement('b');
     b.textContent = p.name;
+    if (p.badge) {
+      const badge = document.createElement('span');
+      badge.className = `badge${p.badgeOn ? ' on' : ''}`;
+      badge.textContent = p.badge;
+      b.appendChild(badge);
+    }
     a.append(ico, b);
     for (const line of p.status.split('\n')) {
       const span = document.createElement('span');
+      span.className = 'id-prod-line';
       span.textContent = line;
       a.appendChild(span);
     }
@@ -115,12 +124,6 @@ async function loadMe() {
   } else {
     ava.textContent = data.email[0].toUpperCase();
   }
-  const plan = data.plan || {};
-  const badge = document.createElement('span');
-  badge.className = `badge${plan.type && plan.type !== 'free' ? ' on' : ''}`;
-  badge.textContent = plan.type && plan.type !== 'free' ? plan.type.toUpperCase() : 'Free';
-  $('id-plan').innerHTML = '';
-  $('id-plan').appendChild(badge);
   renderTotp(Boolean(data.totp));
   renderProducts(data);
 }

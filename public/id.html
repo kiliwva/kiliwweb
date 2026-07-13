@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=83">
+  <link rel="stylesheet" href="styles.css?v=84">
   <style>
     html { background: var(--bg-c); }
     body {
@@ -147,8 +147,16 @@
       border: 1px solid rgba(217, 119, 87, 0.18);
     }
     .id-prod-ico svg { width: 20px; height: 20px; flex: none; }
-    .id-prod b { display: block; font-size: 14.5px; font-weight: 800; letter-spacing: -0.01em; }
-    .id-prod span {
+    .id-prod b {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14.5px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+    .id-prod .badge { flex: none; }
+    .id-prod-line {
       display: block;
       margin-top: 4px;
       font-size: 12px;
@@ -159,27 +167,33 @@
     .id-foot { margin-top: 26px; }
     .id-tabs {
       display: flex;
-      gap: 4px;
-      padding: 3px;
+      gap: 5px;
+      padding: 4px;
       margin-bottom: 14px;
-      background: var(--frost-soft);
+      background: rgba(0, 0, 0, 0.28);
       border: 1px solid var(--hairline);
-      border-radius: 14px;
+      border-radius: 16px;
     }
     .id-tab {
       flex: 1;
-      padding: 10px 0;
+      padding: 12px 0;
       border: 0;
-      border-radius: 11px;
+      border-radius: 12px;
       background: none;
       font: inherit;
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--muted);
       cursor: pointer;
-      transition: color 0.2s, background 0.2s;
+      transition: color 0.2s, background 0.2s, box-shadow 0.2s;
     }
-    .id-tab.active { color: var(--text); background: var(--frost-strong); }
+    .id-tab.active {
+      color: var(--text);
+      background: var(--frost-strong);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 2px 10px rgba(0, 0, 0, 0.3);
+    }
     .id-pane[hidden] { display: none; }
   </style>
 </head>
@@ -287,7 +301,7 @@
         <span class="id-ava" id="id-ava"></span>
         <div class="id-who-info">
           <p class="id-mail" id="id-mail">…</p>
-          <p class="id-sub">One account for the whole Kiliw ecosystem<span id="id-plan"></span></p>
+          <p class="id-sub">One account for the whole Kiliw ecosystem</p>
         </div>
       </div>
     </section>
@@ -370,13 +384,13 @@
 
     <footer class="auth-foot id-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-53</p>
+      <p class="auth-build">KW-54</p>
     </footer>
 
   </div>
 
-  <script src="vendor/qrcode.min.js?v=83"></script>
-  <script src="ui.js?v=83"></script>
-  <script src="id.js?v=83"></script>
+  <script src="vendor/qrcode.min.js?v=84"></script>
+  <script src="ui.js?v=84"></script>
+  <script src="id.js?v=84"></script>
 </body>
 </html>
