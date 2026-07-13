@@ -164,6 +164,9 @@ async function handleSubmit(form, kind) {
       showFormError(form, KiliwUI.t('auth.totpPrompt'));
       KiliwUI.otpClear('login-totp-otp');
       KiliwUI.otpFocus('login-totp-otp');
+      /* a passkey outranks the code: offer it first, the code stays
+         as the fallback if the prompt is dismissed */
+      if (data.passkey && passkeyAssert) passkeyAssert();
       return;
     }
     if (data.error === 'totp-invalid' && captchaCtx) {
@@ -302,6 +305,8 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
 
 /* ---------- passkey sign-in (WebAuthn) ---------- */
 
+let passkeyAssert = null; /* set below when WebAuthn is available */
+
 (() => {
   const btn = document.getElementById('passkey-login');
   if (!btn || !window.PublicKeyCredential) return;
@@ -318,7 +323,7 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
     el.hidden = !msg;
   };
 
-  btn.addEventListener('click', async () => {
+  passkeyAssert = async () => {
     status('');
     try {
       const optRes = await fetch('/api/passkeys', {
@@ -363,5 +368,7 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
       /* the user closed the passkey prompt: stay quiet */
       if (err?.name !== 'NotAllowedError') status(KiliwUI.t('pk.loginFail'));
     }
-  });
+  };
+
+  btn.addEventListener('click', () => passkeyAssert());
 })();

@@ -34,6 +34,9 @@ const bufToB64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)))
 /* ---------- products ---------- */
 
 const ICONS = {
+  mc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>',
+  google: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.74 2.98-4.32 2.98-7.35Z"/><path d="M12 21.5c2.7 0 4.96-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.75-5.58-4.1H3.07v2.58A9.99 9.99 0 0 0 12 21.5Z"/><path d="M6.42 13.43a5.99 5.99 0 0 1 0-3.86V6.99H3.07a10 10 0 0 0 0 9.02l3.35-2.58Z"/><path d="M12 5.47c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.97 9.97 0 0 0 12 1.5a9.99 9.99 0 0 0-8.93 5.49l3.35 2.58C7.2 7.22 9.4 5.47 12 5.47Z"/></svg>',
+  github: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1.5A10.5 10.5 0 0 0 8.68 21.96c.53.1.72-.23.72-.5v-1.96c-2.92.63-3.54-1.24-3.54-1.24-.48-1.21-1.17-1.54-1.17-1.54-.95-.65.07-.64.07-.64 1.06.08 1.61 1.08 1.61 1.08.94 1.6 2.46 1.14 3.06.87.1-.68.37-1.14.66-1.4-2.33-.27-4.79-1.17-4.79-5.2 0-1.14.41-2.08 1.08-2.81-.1-.27-.47-1.34.1-2.79 0 0 .89-.28 2.9 1.08a10.1 10.1 0 0 1 5.29 0c2-1.36 2.89-1.08 2.89-1.08.58 1.45.22 2.52.11 2.79.67.73 1.08 1.67 1.08 2.81 0 4.04-2.46 4.92-4.81 5.18.38.33.72.97.72 1.96v2.9c0 .28.19.61.73.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>',
   cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>',
   api: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>',
   admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>',
@@ -69,6 +72,13 @@ function renderProducts(data) {
       href: '/docs',
     },
   ];
+  products.push({
+    icon: 'mc',
+    name: 'Minecraft Hosting',
+    badge: 'Soon',
+    status: 'Game server hosting is coming to the Kiliw ecosystem.',
+    href: null,
+  });
   if (data.owner) {
     products.push({
       icon: 'admin',
@@ -80,9 +90,9 @@ function renderProducts(data) {
   const wrap = $('id-products');
   wrap.innerHTML = '';
   for (const p of products) {
-    const a = document.createElement('a');
-    a.className = 'id-prod';
-    a.href = p.href;
+    const a = document.createElement(p.href ? 'a' : 'div');
+    a.className = p.href ? 'id-prod' : 'id-prod soon';
+    if (p.href) a.href = p.href;
     const ico = document.createElement('span');
     ico.className = 'id-prod-ico';
     ico.innerHTML = ICONS[p.icon];
@@ -126,6 +136,7 @@ async function loadMe() {
   }
   renderTotp(Boolean(data.totp));
   renderProducts(data);
+  renderLinks(data.links || {});
 }
 
 /* ---------- password ---------- */
@@ -286,6 +297,49 @@ $('pk-add').addEventListener('click', async () => {
     /* the user closed the system prompt: stay quiet */
   }
 });
+
+/* ---------- linked accounts ---------- */
+
+function renderLinks(links) {
+  const list = $('link-list');
+  list.innerHTML = '';
+  for (const provider of ['google', 'github']) {
+    const bound = links && links[provider];
+    const li = document.createElement('li');
+    li.className = 'id-item';
+    const ico = document.createElement('span');
+    ico.className = 'id-link-ico';
+    ico.innerHTML = ICONS[provider];
+    const info = document.createElement('div');
+    info.className = 'id-item-info';
+    const b = document.createElement('b');
+    b.textContent = provider === 'google' ? 'Google' : 'GitHub';
+    const span = document.createElement('span');
+    span.textContent = bound ? `Linked · ${bound}` : 'Not linked';
+    info.append(b, span);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ghost-btn';
+    btn.textContent = bound ? 'Unlink' : 'Link';
+    btn.addEventListener('click', async () => {
+      if (!bound) {
+        window.location.href = `/api/oauth?start=1&provider=${provider}&link=1`;
+        return;
+      }
+      if (!confirm(`Unlink ${b.textContent}? Signing in through it will stop working.`)) return;
+      const r = await api('/api/oauth', { action: 'unlink', provider });
+      if (r.ok) {
+        me.links = r.data.links || {};
+        renderLinks(me.links);
+        setStatus($('link-status'), true, '✓ Unlinked');
+      } else {
+        setStatus($('link-status'), false, 'Something went wrong.');
+      }
+    });
+    li.append(ico, info, btn);
+    list.appendChild(li);
+  }
+}
 
 /* ---------- devices ---------- */
 

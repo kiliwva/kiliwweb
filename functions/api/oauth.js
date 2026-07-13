@@ -1,6 +1,6 @@
 import {
   json, storageReady, getUser, putUser, createSession, randomHex,
-  hashPassword, afterAuthRedirect, wipeAccount,
+  hashPassword, afterAuthRedirect, wipeAccount, getSession,
 } from '../../lib/api.js';
 
 /* Social sign-in (Google / GitHub) for the K-ID account system.
@@ -58,6 +58,28 @@ export async function onRequestGet({ request, env }) {
     email = String(email || '').trim().toLowerCase();
     if (!email || !email.includes('@')) return backToLogin(url, 'failed');
 
+    /* an explicit link binds this provider identity to the account */
+    if (state.link && state.email) {
+      const owner = await getUser(env, state.email);
+      if (owner) {
+        await env.KILIW_FILES.put(
+          `_auth/oauthlinks/${state.provider}:${email}.json`,
+          JSON.stringify({ email: state.email }),
+        );
+        owner.links = owner.links || {};
+        owner.links[state.provider] = email;
+        await putUser(env, owner);
+      }
+      return Response.redirect(state.after || afterAuthRedirect(request), 302);
+    }
+
+    /* linked identities sign into their bound account, whatever the emails */
+    const linkObj = await env.KILIW_FILES.get(`_auth/oauthlinks/${state.provider}:${email}.json`);
+    if (linkObj) {
+      const link = await linkObj.json().catch(() => null);
+      if (link?.email) email = link.email;
+    }
+
     let user = await getUser(env, email);
     if (user?.banned) return backToLogin(url, 'banned');
     let restored = false;
@@ -98,10 +120,20 @@ export async function onRequestGet({ request, env }) {
     const c = conf(env, provider);
     if (!c) return backToLogin(url, 'unavailable');
 
+    /* ?link=1: bind the provider to the signed-in account instead */
+    let link = null;
+    if (url.searchParams.get('link') === '1') {
+      const session = await getSession(request, env);
+      if (!session) return backToLogin(url, 'failed');
+      link = session.email;
+    }
+
     const stateKey = randomHex(32);
     await env.KILIW_FILES.put(`_auth/oauth/${stateKey}.json`, JSON.stringify({
       provider,
-      after: afterAuthRedirect(request),
+      link: Boolean(link),
+      email: link || undefined,
+      after: link ? `${url.origin}/#security` : afterAuthRedirect(request),
       expires: Date.now() + STATE_TTL,
     }));
 
@@ -125,6 +157,32 @@ export async function onRequestGet({ request, env }) {
   }
 
   return json({ success: false, error: 'bad-request' }, 400);
+}
+
+/* POST /api/oauth { action: "unlink", provider } — remove a binding */
+export async function onRequestPost({ request, env }) {
+  if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
+  const session = await getSession(request, env);
+  if (!session) return json({ success: false, error: 'unauthorized' }, 401);
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ success: false, error: 'bad-request' }, 400);
+  }
+  if (String(body?.action) !== 'unlink') return json({ success: false, error: 'bad-request' }, 400);
+  const provider = String(body?.provider || '');
+  if (!['google', 'github'].includes(provider)) return json({ success: false, error: 'bad-request' }, 400);
+
+  const user = await getUser(env, session.email);
+  if (!user) return json({ success: false, error: 'unauthorized' }, 401);
+  const bound = user.links?.[provider];
+  if (bound) {
+    await env.KILIW_FILES.delete(`_auth/oauthlinks/${provider}:${bound}.json`).catch(() => {});
+    delete user.links[provider];
+    await putUser(env, user);
+  }
+  return json({ success: true, links: user.links || {} });
 }
 
 /* ---------- provider plumbing ---------- */

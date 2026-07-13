@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=84">
+  <link rel="stylesheet" href="styles.css?v=85">
   <style>
     html { background: var(--bg-c); }
     body {
@@ -165,6 +165,19 @@
       color: var(--muted);
     }
     .id-foot { margin-top: 26px; }
+    .id-prod.soon { opacity: 0.75; cursor: default; }
+    .id-prod.soon:hover { border-color: var(--hairline); background: var(--frost-soft); }
+    .id-link-ico {
+      flex: none;
+      width: 34px; height: 34px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--hairline);
+    }
+    .id-link-ico svg { width: 16px; height: 16px; flex: none; }
+    .id-item .ghost-btn { flex: none; padding: 8px 14px; font-size: 12.5px; }
     .id-tabs {
       display: flex;
       gap: 5px;
@@ -361,6 +374,13 @@
       </div>
 
       <div class="id-block">
+        <h3>Linked accounts</h3>
+        <p class="id-sec-note">Sign in with these providers — linked to this account even if their email differs.</p>
+        <ul class="id-list" id="link-list"></ul>
+        <span class="id-row-status" id="link-status"></span>
+      </div>
+
+      <div class="id-block">
         <h3>Passkeys</h3>
         <p class="id-sec-note">Sign in with Face ID, Touch ID or a security key — no password needed.</p>
         <ul class="id-list" id="pk-list"></ul>
@@ -384,13 +404,13 @@
 
     <footer class="auth-foot id-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-54</p>
+      <p class="auth-build">KW-55</p>
     </footer>
 
   </div>
 
-  <script src="vendor/qrcode.min.js?v=84"></script>
-  <script src="ui.js?v=84"></script>
-  <script src="id.js?v=84"></script>
+  <script src="vendor/qrcode.min.js?v=85"></script>
+  <script src="ui.js?v=85"></script>
+  <script src="id.js?v=85"></script>
 </body>
 </html>

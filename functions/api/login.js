@@ -46,6 +46,8 @@ export async function onRequestPost({ request, env }) {
         success: false,
         error: 'totp-required',
         ctx: ticketOk ? ctx : await createCaptchaTicket(env, email),
+        /* a passkey outranks the code: the client offers it first */
+        passkey: Boolean(user.passkeys && user.passkeys.length),
       }, 401);
     }
     if (!(await verifyTotp(user.totp, code))) {
