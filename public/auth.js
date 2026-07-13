@@ -373,6 +373,9 @@ let passkeyAssert = null; /* set below when WebAuthn is available */
 
 (() => {
   if (!window.PublicKeyCredential) return;
+  const pkLink = document.getElementById('passkey-link');
+  if (pkLink) pkLink.hidden = false;
+  let condAbort = null;
 
   const b64uToBuf = (s) => Uint8Array.from(
     atob(String(s).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0),
@@ -386,7 +389,7 @@ let passkeyAssert = null; /* set below when WebAuthn is available */
     el.hidden = !msg;
   };
 
-  passkeyAssert = async () => {
+  const passkeyRun = async (conditional) => {
     status('');
     try {
       const optRes = await fetch('/api/passkeys', {
@@ -402,7 +405,13 @@ let passkeyAssert = null; /* set below when WebAuthn is available */
       const options = optData.options;
       options.challenge = b64uToBuf(options.challenge);
 
-      const cred = await navigator.credentials.get({ publicKey: options });
+      const getOpts = { publicKey: options };
+      if (conditional) {
+        condAbort = new AbortController();
+        getOpts.mediation = 'conditional';
+        getOpts.signal = condAbort.signal;
+      }
+      const cred = await navigator.credentials.get(getOpts);
       const res = await fetch('/api/passkeys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -430,9 +439,27 @@ let passkeyAssert = null; /* set below when WebAuthn is available */
       status(KiliwUI.t('pk.loginFail'));
       return false;
     } catch (err) {
-      /* the user closed the passkey prompt: stay quiet */
-      if (err?.name !== 'NotAllowedError') status(KiliwUI.t('pk.loginFail'));
+      /* the user closed the passkey prompt (or we aborted the
+         background request): stay quiet */
+      if (err?.name !== 'NotAllowedError' && err?.name !== 'AbortError' && !conditional) {
+        status(KiliwUI.t('pk.loginFail'));
+      }
       return false;
     }
   };
+
+  passkeyAssert = () => {
+    /* the modal prompt replaces the pending autofill request */
+    if (condAbort) { try { condAbort.abort(); } catch (e) {} condAbort = null; }
+    return passkeyRun(false);
+  };
+
+  pkLink?.addEventListener('click', () => passkeyAssert());
+
+  /* browser autofill offers saved passkeys right in the email field */
+  if (PublicKeyCredential.isConditionalMediationAvailable) {
+    PublicKeyCredential.isConditionalMediationAvailable().then((yes) => {
+      if (yes) passkeyRun(true);
+    }).catch(() => {});
+  }
 })();

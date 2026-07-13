@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=90">
+  <link rel="stylesheet" href="styles.css?v=91">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
@@ -163,6 +163,25 @@
       color: var(--muted);
     }
     .card.rl .group-error { margin-top: 10px; }
+    .rl-pk-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+      margin-top: 14px;
+      padding: 6px;
+      border: 0;
+      background: none;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .rl-pk-link:hover { color: var(--text); }
+    .rl-pk-link svg { width: 15px; height: 15px; }
     @media (min-width: 768px) {
       .card.rl { max-width: 372px; padding-top: 4px; }
       .rl-logo { margin-bottom: 16px; }
@@ -321,7 +340,7 @@
         <div class="rl-or" aria-hidden="true"><span>or</span></div>
 
         <label class="rl-label" for="login-email">Email</label>
-        <input class="rl-input" type="email" id="login-email" name="email" autocomplete="email" required>
+        <input class="rl-input" type="email" id="login-email" name="email" autocomplete="email webauthn" required>
 
         <div class="rl-pw-wrap" id="login-pw-wrap" hidden>
         <div class="rl-label-row">
@@ -346,6 +365,10 @@
 
         <button type="submit" class="submit" disabled>Log In</button>
 
+        <button type="button" class="rl-pk-link" id="passkey-link" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="4.5"/><path d="M2.5 21v-1.5a6 6 0 0 1 6-6h.5"/><path d="M21.5 11.5a3 3 0 1 0-4.5 2.6V20l1.5 1.5L20 20l-1-1 1-1-1-1 1.5-1.5v-1.4a3 3 0 0 0 1-2.6Z"/></svg>
+          Sign in with a passkey
+        </button>
         <p class="modal-status" id="passkey-login-status" hidden></p>
 
         <p class="rl-terms">By signing in, you agree to our <a class="link" href="#">Terms</a> and <a class="link" href="#">Privacy Policy</a>.</p>
@@ -410,12 +433,12 @@
 
     <footer class="auth-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-5A</p>
+      <p class="auth-build">KW-5B</p>
     </footer>
 
   </div>
 
-  <script src="ui.js?v=90"></script>
-  <script src="auth.js?v=90"></script>
+  <script src="ui.js?v=91"></script>
+  <script src="auth.js?v=91"></script>
 </body>
 </html>
