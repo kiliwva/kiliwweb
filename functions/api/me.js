@@ -16,7 +16,6 @@ export async function onRequestGet({ request, env }) {
     email: session.email,
     totp: Boolean(user?.totp),
     links: user?.links || {},
-    mcNick: user?.mcNick || null,
     avatar: user?.avatar || null,
     owner: isOwner(env, session.email),
     plan: {

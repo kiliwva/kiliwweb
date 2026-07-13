@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>Connect Telegram — K-ID</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=101">
+  <style>
+    .tl-card { text-align: center; }
+    .tl-ico {
+      width: 56px; height: 56px;
+      margin: 6px auto 18px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 16px;
+      color: #E8A38B;
+      background: rgba(217, 119, 87, 0.10);
+      border: 1px solid rgba(217, 119, 87, 0.2);
+    }
+    .tl-ico svg { width: 26px; height: 26px; }
+    .tl-strong { font-weight: 800; color: var(--text); }
+    .tl-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+    .tl-ok { font-size: 42px; margin: 10px 0 6px; }
+    .tl-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <div class="scene">
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+
+    <main class="card tl-card">
+      <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
+
+      <div id="tl-loading"><p class="subtitle">One moment…</p></div>
+
+      <div id="tl-ask" hidden>
+        <span class="tl-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+        </span>
+        <h1 class="title" style="font-size:24px">Connect Telegram?</h1>
+        <p class="subtitle">Telegram <span class="tl-strong" id="tl-user"></span> will be
+          connected to <span class="tl-strong" id="tl-mail"></span> and will be able to
+          approve Minecraft sign-ins for this account.</p>
+        <div class="tl-actions">
+          <button type="button" class="submit" id="tl-approve">Connect</button>
+          <button type="button" class="ghost-btn" id="tl-cancel">Cancel</button>
+        </div>
+        <p class="group-error" id="tl-error"></p>
+      </div>
+
+      <div id="tl-done" hidden>
+        <p class="tl-ok">✓</p>
+        <h1 class="title" style="font-size:24px">Connected</h1>
+        <p class="subtitle">Go back to Telegram and press <span class="tl-strong">/start</span> —
+          the bot is ready.</p>
+      </div>
+
+      <div id="tl-login" hidden>
+        <h1 class="title" style="font-size:24px">Sign in first</h1>
+        <p class="subtitle">Sign in to your K-ID, then open the link from the bot again.</p>
+        <div class="tl-actions">
+          <a class="submit" style="display:block;text-decoration:none" href="/login">Sign in</a>
+        </div>
+      </div>
+
+      <div id="tl-bad" hidden>
+        <h1 class="title" style="font-size:24px">Link expired</h1>
+        <p class="subtitle">Open the bot in Telegram and request a new link
+          (<span class="tl-strong">/start</span>).</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (async () => {
+      const panes = ['tl-loading', 'tl-ask', 'tl-done', 'tl-login', 'tl-bad'];
+      const show = (id) => panes.forEach((s) => { document.getElementById(s).hidden = s !== id; });
+      const code = (window.location.hash || '').slice(1);
+      if (!/^[0-9a-f]{32}$/.test(code)) { show('tl-bad'); return; }
+
+      const [me, info] = await Promise.all([
+        fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/tg?link=${code}`).then((r) => r.json()).catch(() => null),
+      ]);
+      if (!info || !info.success) { show('tl-bad'); return; }
+      if (!me || !me.email) { show('tl-login'); return; }
+
+      document.getElementById('tl-user').textContent = info.username
+        ? `@${info.username}` : (info.first || 'account');
+      document.getElementById('tl-mail').textContent = me.email;
+      show('tl-ask');
+
+      document.getElementById('tl-cancel').addEventListener('click', () => {
+        window.location.href = '/';
+      });
+      document.getElementById('tl-approve').addEventListener('click', async () => {
+        const btn = document.getElementById('tl-approve');
+        btn.disabled = true;
+        const res = await fetch('/api/tg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'bind', code }),
+        }).catch(() => null);
+        const data = res ? await res.json().catch(() => ({})) : {};
+        if (res && res.ok && data.success) {
+          show('tl-done');
+        } else {
+          btn.disabled = false;
+          show('tl-bad');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

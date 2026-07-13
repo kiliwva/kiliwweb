@@ -1,6 +1,7 @@
 import {
   json, storageReady, getSession, getUser, putUser, randomHex,
 } from '../../lib/api.js';
+import qrcode from '../../lib/qrcode.js';
 
 /* Minecraft server auth (K-ID for offline-mode servers).
 
@@ -28,7 +29,7 @@ function serverAuthed(request, env) {
   return Boolean(env.MC_API_KEY) && auth === `Bearer ${env.MC_API_KEY}`;
 }
 
-async function load(env, token) {
+export async function loadJoin(env, token) {
   if (!TOKEN_RE.test(String(token || ''))) return null;
   const obj = await env.KILIW_FILES.get(key(token));
   if (!obj) return null;
@@ -38,6 +39,44 @@ async function load(env, token) {
     return null;
   }
   return data;
+}
+
+/* Approve or deny a pending join on behalf of an account. Shared by the
+   web approval page and the Telegram bot. */
+export async function decideJoin(env, token, email, approve) {
+  const data = await loadJoin(env, token);
+  if (!data || data.status !== 'pending') return { error: 'mc-expired', http: 410 };
+
+  if (!approve) {
+    data.status = 'denied';
+    await env.KILIW_FILES.put(key(token), JSON.stringify(data));
+    return { denied: true, nick: data.nick };
+  }
+
+  /* nick binding: first approval claims the nick for this account */
+  const bindObj = await env.KILIW_FILES.get(nickKey(data.nick));
+  const bind = bindObj ? await bindObj.json().catch(() => null) : null;
+  if (bind && bind.email !== email) {
+    data.status = 'denied';
+    await env.KILIW_FILES.put(key(token), JSON.stringify(data));
+    return { error: 'nick-taken', http: 409 };
+  }
+  const user = await getUser(env, email);
+  if (!user || user.banned) return { error: 'unauthorized', http: 401 };
+  if (!bind) {
+    await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
+      email,
+      created: Date.now(),
+    }));
+  }
+  if (user.mcNick !== data.nick) {
+    user.mcNick = data.nick;
+    await putUser(env, user);
+  }
+  data.status = 'approved';
+  data.email = email;
+  await env.KILIW_FILES.put(key(token), JSON.stringify(data));
+  return { nick: data.nick };
 }
 
 export async function onRequestPost({ request, env }) {
@@ -65,49 +104,37 @@ export async function onRequestPost({ request, env }) {
       status: 'pending',
       expires: Date.now() + MC_TTL,
     }));
-    const url = new URL(request.url);
-    return json({ success: true, token, poll, url: `${url.origin}/mc#${token}`, ttl: MC_TTL });
+    /* players approve through the Telegram bot; the site page /mc stays
+       as a fallback when the bot is not configured */
+    const reqUrl = new URL(request.url);
+    const url = env.TG_BOT_USERNAME
+      ? `https://t.me/${env.TG_BOT_USERNAME}?start=mc_${token}`
+      : `${reqUrl.origin}/mc#${token}`;
+    /* QR module matrix ("1" dark / "0" light rows) — the plugin draws
+       it on an in-game map so the player can scan it with a phone */
+    let qr = null;
+    try {
+      const q = qrcode(0, 'M');
+      q.addData(url);
+      q.make();
+      const n = q.getModuleCount();
+      qr = [];
+      for (let r = 0; r < n; r += 1) {
+        let row = '';
+        for (let c = 0; c < n; c += 1) row += q.isDark(r, c) ? '1' : '0';
+        qr.push(row);
+      }
+    } catch { qr = null; }
+    return json({ success: true, token, poll, url, qr, ttl: MC_TTL });
   }
 
   /* --- player: approve or deny from the browser --- */
   if (action === 'approve' || action === 'deny') {
     const session = await getSession(request, env);
     if (!session) return json({ success: false, error: 'unauthorized' }, 401);
-    const data = await load(env, body?.token);
-    if (!data || data.status !== 'pending') {
-      return json({ success: false, error: 'mc-expired' }, 410);
-    }
-
-    if (action === 'deny') {
-      data.status = 'denied';
-      await env.KILIW_FILES.put(key(body.token), JSON.stringify(data));
-      return json({ success: true });
-    }
-
-    /* nick binding: first approval claims the nick for this account */
-    const bindObj = await env.KILIW_FILES.get(nickKey(data.nick));
-    const bind = bindObj ? await bindObj.json().catch(() => null) : null;
-    if (bind && bind.email !== session.email) {
-      data.status = 'denied';
-      await env.KILIW_FILES.put(key(body.token), JSON.stringify(data));
-      return json({ success: false, error: 'nick-taken' }, 409);
-    }
-    const user = await getUser(env, session.email);
-    if (!user || user.banned) return json({ success: false, error: 'unauthorized' }, 401);
-    if (!bind) {
-      await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
-        email: session.email,
-        created: Date.now(),
-      }));
-    }
-    if (user.mcNick !== data.nick) {
-      user.mcNick = data.nick;
-      await putUser(env, user);
-    }
-    data.status = 'approved';
-    data.email = session.email;
-    await env.KILIW_FILES.put(key(body.token), JSON.stringify(data));
-    return json({ success: true, nick: data.nick });
+    const res = await decideJoin(env, body?.token, session.email, action === 'approve');
+    if (res.error) return json({ success: false, error: res.error }, res.http);
+    return json({ success: true, nick: res.nick });
   }
 
   /* --- player: untie the nickname from the account --- */
@@ -138,14 +165,14 @@ export async function onRequestGet({ request, env }) {
 
   /* player page: what is being approved? */
   if (url.searchParams.get('info') === '1') {
-    const data = await load(env, token);
+    const data = await loadJoin(env, token);
     if (!data) return json({ success: true, status: 'expired' });
     return json({ success: true, status: data.status, nick: data.nick, server: data.server });
   }
 
   /* game server poll */
   if (!serverAuthed(request, env)) return json({ success: false, error: 'unauthorized' }, 401);
-  const data = await load(env, token);
+  const data = await loadJoin(env, token);
   if (!data) return json({ success: true, status: 'expired' });
   if (data.poll !== String(url.searchParams.get('poll') || '')) {
     return json({ success: false, error: 'bad-request' }, 403);

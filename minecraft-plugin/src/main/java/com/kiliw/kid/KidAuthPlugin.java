@@ -1,12 +1,14 @@
 package com.kiliw.kid;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -15,15 +17,25 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.AsyncChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapRenderer;
+import org.bukkit.map.MapView;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+
+import java.awt.Color;
 
 import java.io.IOException;
 import java.net.URI;
@@ -67,7 +79,8 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     private int timeoutSeconds;
     private long rememberMillis;
 
-    private record Pending(String token, String poll, BukkitTask pollTask, BukkitTask timeoutTask) { }
+    private record Pending(String token, String poll, BukkitTask pollTask, BukkitTask timeoutTask,
+                           int mapSlot, ItemStack mapPrev) { }
 
     private record Remembered(String address, long until) { }
 
@@ -131,15 +144,32 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
             String token = res.get("token").getAsString();
             String poll = res.get("poll").getAsString();
             String url = res.get("url").getAsString();
+            boolean[][] modules = parseQr(res);
 
             Bukkit.getScheduler().runTask(this, () -> {
                 if (!player.isOnline()) return;
+
+                /* a QR map goes into the held slot; the previous item
+                   comes back once the sign-in finishes */
+                int mapSlot = -1;
+                ItemStack mapPrev = null;
+                if (modules != null) {
+                    mapSlot = player.getInventory().getHeldItemSlot();
+                    mapPrev = player.getInventory().getItem(mapSlot);
+                    player.getInventory().setItem(mapSlot, qrMap(player, modules));
+                }
+
                 player.sendMessage(Component.empty());
                 player.sendMessage(Component.text("Sign in with your K-ID to play:", NamedTextColor.WHITE)
                     .decoration(TextDecoration.BOLD, true));
                 player.sendMessage(Component.text(url, NamedTextColor.GOLD)
                     .decoration(TextDecoration.UNDERLINED, true)
                     .clickEvent(ClickEvent.openUrl(url)));
+                if (modules != null) {
+                    player.sendMessage(Component.text(
+                        "…or scan the map in your hand with your phone — it opens the Telegram bot.",
+                        NamedTextColor.GRAY));
+                }
                 player.sendMessage(Component.text("The link works once and expires in 5 minutes.", NamedTextColor.GRAY));
                 player.sendMessage(Component.empty());
 
@@ -149,10 +179,12 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                     Pending p = pending.remove(player.getUniqueId());
                     if (p != null) {
                         p.pollTask().cancel();
+                        restoreHand(player, p);
                         player.kick(Component.text("K-ID sign-in timed out. Rejoin to try again."));
                     }
                 }, timeoutSeconds * 20L);
-                pending.put(player.getUniqueId(), new Pending(token, poll, pollTask, timeoutTask));
+                pending.put(player.getUniqueId(),
+                    new Pending(token, poll, pollTask, timeoutTask, mapSlot, mapPrev));
             });
         });
     }
@@ -170,6 +202,7 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                 p.timeoutTask().cancel();
             }
             if (!player.isOnline()) return;
+            if (p != null) restoreHand(player, p);
             switch (status) {
                 case "ok" -> {
                     player.setInvulnerable(false);
@@ -185,6 +218,68 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                     "The K-ID link expired. Rejoin to get a new one."));
             }
         });
+    }
+
+    /* ---------- the QR map ---------- */
+
+    private boolean[][] parseQr(JsonObject res) {
+        try {
+            if (!res.has("qr") || res.get("qr").isJsonNull()) return null;
+            JsonArray rows = res.getAsJsonArray("qr");
+            boolean[][] modules = new boolean[rows.size()][];
+            for (int r = 0; r < rows.size(); r++) {
+                String row = rows.get(r).getAsString();
+                modules[r] = new boolean[row.length()];
+                for (int c = 0; c < row.length(); c++) modules[r][c] = row.charAt(c) == '1';
+            }
+            return modules.length >= 21 ? modules : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private ItemStack qrMap(Player player, boolean[][] modules) {
+        MapView view = Bukkit.createMap(player.getWorld());
+        view.getRenderers().forEach(view::removeRenderer);
+        view.setScale(MapView.Scale.CLOSEST);
+        view.setLocked(true);
+        view.addRenderer(new MapRenderer() {
+            private boolean drawn;
+
+            @Override
+            public void render(MapView v, MapCanvas canvas, Player p) {
+                if (drawn) return;
+                drawn = true;
+                int n = modules.length;
+                int scale = Math.max(1, 128 / (n + 2));
+                int off = (128 - n * scale) / 2;
+                for (int x = 0; x < 128; x++) {
+                    for (int y = 0; y < 128; y++) canvas.setPixelColor(x, y, Color.WHITE);
+                }
+                for (int r = 0; r < n; r++) {
+                    for (int c = 0; c < n; c++) {
+                        if (!modules[r][c]) continue;
+                        for (int dy = 0; dy < scale; dy++) {
+                            for (int dx = 0; dx < scale; dx++) {
+                                canvas.setPixelColor(off + c * scale + dx, off + r * scale + dy, Color.BLACK);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        ItemStack item = new ItemStack(Material.FILLED_MAP);
+        MapMeta meta = (MapMeta) item.getItemMeta();
+        meta.setMapView(view);
+        meta.displayName(Component.text("K-ID sign-in", NamedTextColor.GOLD));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private void restoreHand(Player player, Pending p) {
+        if (p.mapSlot() >= 0 && player.isOnline()) {
+            player.getInventory().setItem(p.mapSlot(), p.mapPrev());
+        }
     }
 
     /* ---------- the freeze itself ---------- */
@@ -239,11 +334,27 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     }
 
     @EventHandler
+    public void onInvClick(InventoryClickEvent e) {
+        if (e.getWhoClicked() instanceof Player p && frozen(p)) e.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onHeldChange(PlayerItemHeldEvent e) {
+        if (frozen(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onSwapHands(PlayerSwapHandItemsEvent e) {
+        if (frozen(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         Pending p = pending.remove(e.getPlayer().getUniqueId());
         if (p != null) {
             p.pollTask().cancel();
             p.timeoutTask().cancel();
+            restoreHand(e.getPlayer(), p);
         }
     }
 

@@ -37,6 +37,7 @@ import * as debug from '../functions/api/debug.js';
 import * as oauth from '../functions/api/oauth.js';
 import * as qr from '../functions/api/qr.js';
 import * as mc from '../functions/api/mc.js';
+import * as tg from '../functions/api/tg.js';
 import { handleShare } from '../functions/share.js';
 import { handleDirect, handlePresignedUpload } from '../functions/direct.js';
 import { json, purgeExpiredAccounts } from '../lib/api.js';
@@ -77,6 +78,7 @@ const ROUTES = {
   '/api/oauth/callback': oauth,
   '/api/qr': qr,
   '/api/mc': mc,
+  '/api/tg': tg,
 };
 
 function dispatch(mod, context) {

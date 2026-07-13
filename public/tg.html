@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>K-ID — Telegram</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=101">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { background: #0C0C0C; }
+    .tg-card { text-align: center; }
+    .tg-ico {
+      width: 56px; height: 56px;
+      margin: 6px auto 18px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 16px;
+      color: #E8A38B;
+      background: rgba(217, 119, 87, 0.10);
+      border: 1px solid rgba(217, 119, 87, 0.2);
+    }
+    .tg-ico svg { width: 26px; height: 26px; }
+    .tg-strong { font-weight: 800; color: var(--text); }
+    .tg-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+    .tg-ok { font-size: 42px; margin: 10px 0 6px; }
+    .tg-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+    .tg-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 18px; padding: 12px 14px;
+      border: 1px solid var(--line); border-radius: 14px;
+      text-align: left;
+    }
+    .tg-row svg { width: 20px; height: 20px; flex: none; color: var(--muted); }
+    .tg-row div { min-width: 0; }
+    .tg-row b { display: block; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tg-row span { font-size: 12px; font-weight: 600; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <div class="scene">
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+
+    <main class="card tg-card">
+      <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
+
+      <div id="tg-loading"><p class="subtitle">One moment…</p></div>
+
+      <div id="tg-outside" hidden>
+        <h1 class="title" style="font-size:24px">Open in Telegram</h1>
+        <p class="subtitle">This page only works inside the Telegram bot.</p>
+      </div>
+
+      <div id="tg-link" hidden>
+        <h1 class="title" style="font-size:24px">Connect your K-ID</h1>
+        <p class="subtitle">Link this Telegram to your K-ID account to approve
+          Minecraft sign-ins here.</p>
+        <div class="tg-actions">
+          <button type="button" class="submit" id="tg-link-btn">Connect my K-ID</button>
+        </div>
+        <p class="tg-note">A browser page will open to confirm. Then come back here.</p>
+      </div>
+
+      <div id="tg-home" hidden>
+        <h1 class="title" style="font-size:24px">You're connected</h1>
+        <p class="subtitle">Approve Minecraft sign-ins right from this chat,
+          or scan a code from a computer screen.</p>
+        <div class="tg-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <div><b id="tg-mail"></b><span>K-ID account</span></div>
+        </div>
+        <div class="tg-row" id="tg-nick-row" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+          <div><b id="tg-nick"></b><span>Minecraft nickname</span></div>
+        </div>
+        <div class="tg-actions">
+          <button type="button" class="submit" id="tg-scan">Scan a sign-in code</button>
+        </div>
+        <p class="tg-note" id="tg-scan-note" hidden>Scanning needs a newer Telegram.
+          Point your phone camera at the code instead — it opens this bot.</p>
+      </div>
+
+      <div id="tg-ask" hidden>
+        <span class="tg-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+        </span>
+        <h1 class="title" style="font-size:24px">Join the server?</h1>
+        <p class="subtitle">Let <span class="tg-strong" id="tg-server"></span> log you in as
+          <span class="tg-strong" id="tg-ask-nick"></span>?</p>
+        <div class="tg-actions">
+          <button type="button" class="submit" id="tg-approve">Yes, that&rsquo;s me</button>
+          <button type="button" class="ghost-btn" id="tg-deny">Deny</button>
+        </div>
+        <p class="tg-note">The first approval ties this nickname to your K-ID —
+          nobody else will be able to join under it.</p>
+      </div>
+
+      <div id="tg-done" hidden>
+        <p class="tg-ok">✓</p>
+        <h1 class="title" style="font-size:24px">You're in</h1>
+        <p class="subtitle">Switch back to Minecraft — the server is unfreezing you.</p>
+      </div>
+
+      <div id="tg-denied" hidden>
+        <h1 class="title" style="font-size:24px">Denied</h1>
+        <p class="subtitle">The join was rejected. You can close this window.</p>
+      </div>
+
+      <div id="tg-taken" hidden>
+        <h1 class="title" style="font-size:24px">Nickname taken</h1>
+        <p class="subtitle">This nickname is tied to a different K-ID account.
+          Sign in with that account or pick another nickname in the game.</p>
+      </div>
+
+      <div id="tg-bad" hidden>
+        <h1 class="title" style="font-size:24px">Code expired</h1>
+        <p class="subtitle">Rejoin the server (or refresh the code) and try again.</p>
+        <div class="tg-actions">
+          <button type="button" class="ghost-btn" id="tg-back">Back</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="tg.js?v=101"></script>
+</body>
+</html>
