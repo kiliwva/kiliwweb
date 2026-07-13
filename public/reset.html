@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=75">
+  <link rel="stylesheet" href="styles.css?v=76">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>.build-tag{position:fixed;right:10px;bottom:8px;z-index:400;font-size:10px;font-weight:700;letter-spacing:.06em;color:rgba(255,255,255,.28);pointer-events:none}</style>
@@ -18,7 +18,9 @@
   <script>
     /* Brand intro, driven entirely by the Web Animations API: the overlay
        is built by this script with inline styles, so it cannot be broken
-       by a stale stylesheet, cascade conflicts or reduce-motion CSS. */
+       by a stale stylesheet, cascade conflicts or reduce-motion CSS.
+       Loader-sized: the K assembles from dots, collapses into a single
+       dot; on auth pages the dot then bursts into the K-ID wordmark. */
     (function () {
       if (!window.Element || !Element.prototype.animate) return;
       var SOLO = false;
@@ -31,33 +33,39 @@
         ov.setAttribute('aria-hidden', 'true');
         ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:center;justify-content:center;pointer-events:none;background:linear-gradient(160deg,#262626 0%,#161616 52%,#0C0C0C 100%)';
         var stage = document.createElement('div');
-        stage.style.cssText = 'position:relative;width:64px;height:87px';
+        stage.style.cssText = 'position:relative;width:36px;height:49px';
         ov.appendChild(stage);
         /* [left, top, fly-from-x, fly-from-y, delay]; first 4 cells form the
            white stem, the rest are the gradient rays */
         var cells = [
-          [0, 0, -41, -46, 0], [0, 23, -56, -16, 50], [0, 46, -46, 21, 100], [0, 69, -35, 56, 150],
-          [23, 23, 16, -56, 80], [46, 0, 46, -41, 120], [23, 46, 21, 61, 160], [46, 69, 51, 46, 200]
+          [0, 0, -23, -26, 0], [0, 13, -31, -9, 50], [0, 26, -26, 12, 100], [0, 39, -20, 31, 150],
+          [13, 13, 9, -31, 80], [26, 0, 26, -23, 120], [13, 26, 12, 34, 160], [26, 39, 29, 26, 200]
         ];
         cells.forEach(function (c, i) {
           var el = document.createElement('i');
-          el.style.cssText = 'position:absolute;width:18px;height:18px;border-radius:6px;opacity:0;left:' + c[0] + 'px;top:' + c[1] + 'px;background:' + (i > 3 ? GRAD : '#F2F2F2');
+          el.style.cssText = 'position:absolute;width:10px;height:10px;border-radius:3.5px;opacity:0;left:' + c[0] + 'px;top:' + c[1] + 'px;background:' + (i > 3 ? GRAD : '#F2F2F2');
           stage.appendChild(el);
           el.animate([
             { opacity: 0, transform: 'translate(' + c[2] + 'px,' + c[3] + 'px) scale(0.3)' },
             { opacity: 1, transform: 'translate(0,0) scale(1)' }
           ], { duration: 500, delay: c[4], easing: EASE_OUT, fill: 'both' });
-          if (!SOLO) {
-            el.animate([
-              { opacity: 1, transform: 'translate(0,0)' },
-              { opacity: 0, transform: 'translate(' + (23 - c[0]) + 'px,' + (34 - c[1]) + 'px) scale(0.5)' }
-            ], { duration: 360, delay: 780, easing: 'cubic-bezier(0.55,0,0.8,0.4)', fill: 'forwards' });
-          }
+          el.animate([
+            { opacity: 1, transform: 'translate(0,0)' },
+            { opacity: 0, transform: 'translate(' + (13 - c[0]) + 'px,' + (19 - c[1]) + 'px) scale(0.5)' }
+          ], { duration: 360, delay: 780, easing: 'cubic-bezier(0.55,0,0.8,0.4)', fill: 'forwards' });
         });
-        if (!SOLO) {
-          var px = document.createElement('i');
-          px.style.cssText = 'position:absolute;left:23px;top:34px;width:18px;height:18px;border-radius:6px;opacity:0;background:' + GRAD;
-          stage.appendChild(px);
+        var px = document.createElement('i');
+        px.style.cssText = 'position:absolute;left:13px;top:19px;width:10px;height:10px;border-radius:3.5px;opacity:0;background:' + GRAD;
+        stage.appendChild(px);
+        if (SOLO) {
+          /* the single dot pulses once and melts away with the overlay */
+          px.animate([
+            { opacity: 0, transform: 'scale(0.4)', offset: 0 },
+            { opacity: 1, transform: 'scale(1.3)', offset: 0.35 },
+            { opacity: 1, transform: 'scale(1)', offset: 0.6 },
+            { opacity: 0, transform: 'scale(0.6)', offset: 1 }
+          ], { duration: 750, delay: 1020, easing: 'ease-in-out', fill: 'both' });
+        } else {
           px.animate([
             { opacity: 0, transform: 'scale(0.4)', offset: 0 },
             { opacity: 1, transform: 'scale(1.18)', offset: 0.32 },
@@ -79,9 +87,9 @@
         }
         document.body.appendChild(ov);
         var fade = ov.animate([{ opacity: 1 }, { opacity: 0 }],
-          { duration: 400, delay: SOLO ? 1150 : 2100, fill: 'forwards' });
+          { duration: 400, delay: SOLO ? 1650 : 2100, fill: 'forwards' });
         fade.onfinish = function () { try { ov.remove(); } catch (e) {} };
-        setTimeout(function () { try { ov.remove(); } catch (e) {} }, SOLO ? 3000 : 3900);
+        setTimeout(function () { try { ov.remove(); } catch (e) {} }, SOLO ? 3400 : 3900);
       }
       play();
       var hiddenAt = 0;
@@ -153,8 +161,8 @@
     </main>
   </div>
 
-  <script src="ui.js?v=75"></script>
-  <script src="reset.js?v=75"></script>
-  <span class="build-tag">KW-4B</span>
+  <script src="ui.js?v=76"></script>
+  <script src="reset.js?v=76"></script>
+  <span class="build-tag">KW-4C</span>
 </body>
 </html>
