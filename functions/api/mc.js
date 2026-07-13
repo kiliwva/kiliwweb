@@ -31,14 +31,17 @@ function serverAuthed(request, env) {
 
 /* When the nick is already tied to a Telegram, ping that Telegram with
    approve/deny buttons the moment the player joins — no tapping links. */
-async function tgNotify(env, chatId, data, token) {
+async function tgNotify(env, chatId, data, token, origin) {
   const payload = {
     chat_id: chatId,
     text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?`,
-    reply_markup: { inline_keyboard: [[
-      { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
-      { text: '❌ Не-а', callback_data: `mc:no:${token}` },
-    ]] },
+    reply_markup: { inline_keyboard: [
+      [
+        { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
+        { text: '❌ Не-а', callback_data: `mc:no:${token}` },
+      ],
+      [{ text: '🔐 Подтвердить с Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
+    ] },
   };
   if (env.MAIL_DEBUG) return { ok: true, debugTg: payload };
   try {
@@ -179,7 +182,7 @@ export async function onRequestPost({ request, env }) {
       const bindObj = await env.KILIW_FILES.get(nickKey(nick));
       const bind = bindObj ? await bindObj.json().catch(() => null) : null;
       if (bind && bind.tgId) {
-        const sent = await tgNotify(env, bind.tgId, { nick, server }, token);
+        const sent = await tgNotify(env, bind.tgId, { nick, server }, token, reqUrl.origin);
         notified = Boolean(sent && sent.ok);
         if (sent && sent.debugTg) debugTg = sent.debugTg;
       }

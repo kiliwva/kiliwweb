@@ -29,6 +29,24 @@
 
   const home = () => show('tg-home');
 
+  /* --- Face ID / Touch ID gate (Telegram BiometricManager, 7.2+) --- */
+
+  const bio = tg.BiometricManager;
+  const bioSupported = () => Boolean(bio) && tg.isVersionAtLeast && tg.isVersionAtLeast('7.2');
+
+  function withBiometry(reason, go) {
+    if (!bioSupported()) { go(); return; }
+    const auth = () => bio.authenticate({ reason }, (ok) => { if (ok) go(); });
+    const after = () => {
+      if (!bio.isBiometricAvailable) { go(); return; }
+      if (bio.isAccessGranted) { auth(); return; }
+      bio.requestAccess({ reason: 'Подтверждение входа на серверы Minecraft' },
+        (granted) => (granted ? auth() : go()));
+    };
+    if (bio.isInited) after();
+    else bio.init(after);
+  }
+
   /* --- approving one join --- */
 
   async function openToken(token) {
@@ -37,16 +55,17 @@
     if (!data.success || data.status !== 'pending') { show('tg-bad'); return; }
     $('tg-server').textContent = data.server;
     $('tg-ask-nick').textContent = data.nick;
+    if (bioSupported()) $('tg-bio-note').hidden = false;
     show('tg-ask');
 
-    $('tg-approve').onclick = async () => {
+    $('tg-approve').onclick = () => withBiometry('Подтверди, что это ты заходишь на сервер', async () => {
       $('tg-approve').disabled = true;
       const r = await api({ action: 'approve', token });
       $('tg-approve').disabled = false;
       if (r.ok && r.data.success) show('tg-done');
       else if (r.data.error === 'nick-taken') show('tg-taken');
       else show('tg-bad');
-    };
+    });
     $('tg-deny').onclick = async () => {
       await api({ action: 'deny', token });
       show('tg-denied');
@@ -94,9 +113,10 @@
     $('tg-mail').textContent = data.tgName || 'Telegram';
     wireScan();
 
-    /* opened straight from a t.me/...?startapp=mc_<token> link */
-    const startParam = tg.initDataUnsafe && tg.initDataUnsafe.start_param;
-    const token = tokenFrom(`startapp=${startParam || ''}`);
+    /* opened from a startapp deep link or a web_app button (#mc_<token>) */
+    const startParam = (tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
+    const hashParam = (window.location.hash || '').slice(1);
+    const token = tokenFrom(`startapp=${startParam}`) || tokenFrom(`startapp=${hashParam}`);
     if (token) { openToken(token); return; }
     home();
   })();

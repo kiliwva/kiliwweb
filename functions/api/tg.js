@@ -124,10 +124,13 @@ async function handleStart(env, bot, origin, msg, param) {
     await bot.call('sendMessage', {
       chat_id: chatId,
       text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?\nTelegram: ${tgName(from)}`,
-      reply_markup: { inline_keyboard: [[
-        { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
-        { text: '❌ Не-а', callback_data: `mc:no:${token}` },
-      ]] },
+      reply_markup: { inline_keyboard: [
+        [
+          { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
+          { text: '❌ Не-а', callback_data: `mc:no:${token}` },
+        ],
+        [{ text: '🔐 Подтвердить с Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
+      ] },
     });
     return;
   }
