@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=71">
+  <link rel="stylesheet" href="styles.css?v=72">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
@@ -362,17 +362,33 @@
     </main>
   </div>
 
-  <script src="ui.js?v=71"></script>
-  <script src="auth.js?v=71"></script>
+  <script src="ui.js?v=72"></script>
+  <script src="auth.js?v=72"></script>
   <script>
     (function () {
       var el = document.getElementById('brand-intro');
       if (!el) return;
-      /* CSS finishes the show; JS only tidies up the node afterwards */
-      el.addEventListener('animationend', function (e) {
-        if (e.target === el) el.remove();
+      var saved = el.outerHTML;
+      var hiddenAt = 0;
+      function arm(node) {
+        node.addEventListener('animationend', function (e) {
+          if (e.target === node) node.remove();
+        });
+        setTimeout(function () { node.classList.add('done'); try { node.remove(); } catch (err) {} }, 3200);
+      }
+      function replay() {
+        if (document.getElementById('brand-intro')) return;
+        document.body.insertAdjacentHTML('afterbegin', saved);
+        arm(document.getElementById('brand-intro'));
+      }
+      arm(el);
+      /* iOS Safari restores tabs from memory without reloading, so the
+         intro replays on every return to the page, like a real app */
+      window.addEventListener('pageshow', function (e) { if (e.persisted) replay(); });
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+        if (hiddenAt && Date.now() - hiddenAt > 45000) replay();
       });
-      setTimeout(function () { el.classList.add('done'); try { el.remove(); } catch (err) {} }, 3200);
     })();
   </script>
 </body>
