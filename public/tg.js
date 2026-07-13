@@ -20,6 +20,12 @@
   if (!initData) { show('tg-outside'); return; }
   tg.ready();
   tg.expand();
+  /* go full screen where supported (Bot API 8.0+) */
+  try {
+    if (tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && tg.requestFullscreen) {
+      tg.requestFullscreen();
+    }
+  } catch (e) { /* not supported: stay expanded */ }
 
   const api = async (payload) => {
     try {

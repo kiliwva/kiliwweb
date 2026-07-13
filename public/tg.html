@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=122">
+  <link rel="stylesheet" href="styles.css?v=123">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; }
@@ -87,15 +87,38 @@
     #scan-hl { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; }
     .scan-frame {
       position: relative; z-index: 2;
-      width: min(62vw, 260px); aspect-ratio: 1;
-      border: 2px solid rgba(255, 255, 255, .85);
-      border-radius: 16px;
-      box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .5);
+      width: min(66vw, 270px); aspect-ratio: 1;
+      border-radius: 20px;
+      box-shadow: 0 0 0 200vmax rgba(0, 0, 0, .55);
+      overflow: hidden;
     }
     .scan-frame[hidden] { display: none; }
+    /* Sber-style corner brackets */
+    .scan-frame .corner {
+      position: absolute; width: 34px; height: 34px;
+      border: 3px solid #F2A47B;
+    }
+    .scan-frame .corner.tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-top-left-radius: 20px; }
+    .scan-frame .corner.tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-top-right-radius: 20px; }
+    .scan-frame .corner.bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-bottom-left-radius: 20px; }
+    .scan-frame .corner.br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-bottom-right-radius: 20px; }
+    /* sweeping scan line */
+    .scan-line {
+      position: absolute; left: 8px; right: 8px; height: 2px;
+      background: linear-gradient(90deg, transparent, #F2A47B, transparent);
+      box-shadow: 0 0 12px 2px rgba(242, 164, 123, .7);
+      animation: scan-sweep 2.4s ease-in-out infinite;
+    }
+    @keyframes scan-sweep {
+      0%   { top: 8px; opacity: .3; }
+      15%  { opacity: 1; }
+      50%  { top: calc(100% - 10px); opacity: 1; }
+      85%  { opacity: 1; }
+      100% { top: 8px; opacity: .3; }
+    }
     #scan-torch {
       position: absolute; z-index: 4;
-      top: calc(18px + env(safe-area-inset-top)); right: 18px;
+      top: calc(18px + env(safe-area-inset-top)); left: 18px;
       width: 48px; height: 48px; border-radius: 12px;
       border: 1px solid rgba(255,255,255,.15); cursor: pointer;
       display: flex; align-items: center; justify-content: center;
@@ -203,7 +226,11 @@
   <div id="scan-overlay" hidden>
     <video id="scan-video" playsinline muted></video>
     <canvas id="scan-hl" aria-hidden="true"></canvas>
-    <div class="scan-frame" id="scan-frame" aria-hidden="true"></div>
+    <div class="scan-frame" id="scan-frame" aria-hidden="true">
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <span class="corner bl"></span><span class="corner br"></span>
+      <span class="scan-line"></span>
+    </div>
     <button type="button" id="scan-torch" hidden aria-label="Torch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14l-1.5 6-2 2v9a2 2 0 0 1-2 2h-3a2 2 0 0 1-2-2v-9l-2-2L5 3Z"/><path d="M8.5 9h7"/></svg></button>
     <p id="scan-status"></p>
     <div class="scan-btns">
@@ -213,6 +240,6 @@
   </div>
 
   <script src="vendor/jsqr.min.js"></script>
-  <script src="tg.js?v=122"></script>
+  <script src="tg.js?v=123"></script>
 </body>
 </html>
