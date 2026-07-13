@@ -370,7 +370,7 @@ function prettyQr(text) {
   const size = n * S + Q * 2;
   const inFinder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
   /* center knockout for the logo */
-  const hole = Math.floor(n * 0.24);
+  const hole = Math.floor(n * 0.22);
   const h0 = Math.floor((n - hole) / 2);
   const h1 = h0 + hole - 1;
 
@@ -378,13 +378,13 @@ function prettyQr(text) {
   let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`;
   out += '<defs><linearGradient id="qrg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>';
 
-  const d = S - 1.6;
-  const rx = d * 0.44;
+  const d = S - 0.7;
+  const rx = d * 0.3;
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       if (!qr.isDark(r, c) || inFinder(r, c)) continue;
       if (r >= h0 && r <= h1 && c >= h0 && c <= h1) continue;
-      out += `<rect x="${(Q + c * S + 0.8).toFixed(1)}" y="${(Q + r * S + 0.8).toFixed(1)}" width="${d}" height="${d}" rx="${rx.toFixed(1)}" fill="${ink}"/>`;
+      out += `<rect x="${(Q + c * S + 0.35).toFixed(2)}" y="${(Q + r * S + 0.35).toFixed(2)}" width="${d}" height="${d}" rx="${rx.toFixed(1)}" fill="${ink}"/>`;
     }
   }
 
@@ -399,7 +399,7 @@ function prettyQr(text) {
     return `<path fill-rule="evenodd" fill="${ink}" d="`
       + roundedRectPath(x, y, o, o, 2.4 * S)
       + roundedRectPath(x + S, y + S, i, i, 1.7 * S)
-      + `"/><rect x="${x + 2 * S}" y="${y + 2 * S}" width="${p}" height="${p}" rx="${1.1 * S}" fill="url(#qrg)"/>`;
+      + `"/><rect x="${x + 2 * S}" y="${y + 2 * S}" width="${p}" height="${p}" rx="${1.1 * S}" fill="${ink}"/>`;
   };
   out += eye(Q, Q);
   out += eye(Q + (n - 7) * S, Q);
@@ -409,12 +409,11 @@ function prettyQr(text) {
   const tile = hole * S;
   const tx = Q + h0 * S;
   const ty = Q + h0 * S;
-  out += `<rect x="${tx}" y="${ty}" width="${tile}" height="${tile}" rx="${tile * 0.26}" fill="#151515" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/>`;
   /* mark content: x 5.7-18.3, y 3.45-20.55 in 24-units → scale into the tile */
-  const mScale = (tile * 0.62) / 17.1;
+  const mScale = (tile * 0.66) / 17.1;
   const mw = 12.6 * mScale;
   const ox = tx + (tile - mw) / 2 - 5.7 * mScale;
-  const oy = ty + tile * 0.19 - 3.45 * mScale;
+  const oy = ty + tile * 0.17 - 3.45 * mScale;
   const cell = (cx, cy, grad) => {
     const px = (ox + cx * mScale).toFixed(1);
     const py = (oy + cy * mScale).toFixed(1);

@@ -404,7 +404,7 @@ $('ses-others').addEventListener('click', async () => {
 
   const found = (text) => {
     /* only our own sign-in links: <any kiliw origin>/qr#<64 hex> */
-    const m = String(text).match(/^https?:\/\/[^/]+\/qr#([0-9a-f]{64})$/);
+    const m = String(text).match(/^https?:\/\/[^/]+\/qr#([0-9a-f]{24})$/);
     if (!m) {
       statusEl.textContent = 'That is not a Kiliw sign-in code.';
       return false;

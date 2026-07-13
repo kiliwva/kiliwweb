@@ -16,10 +16,10 @@ import {
 const QR_TTL = 3 * 60 * 1000;
 
 const key = (token) => `_auth/qr/${token}.json`;
-const HEX32 = /^[0-9a-f]{64}$/;
+const TOKEN_RE = /^[0-9a-f]{24}$/;
 
 async function load(env, token) {
-  if (!HEX32.test(String(token || ''))) return null;
+  if (!TOKEN_RE.test(String(token || ''))) return null;
   const obj = await env.KILIW_FILES.get(key(token));
   if (!obj) return null;
   const data = await obj.json().catch(() => null);
@@ -41,7 +41,9 @@ export async function onRequestPost({ request, env }) {
   const action = String(body?.action || '');
 
   if (action === 'create') {
-    const token = randomHex(32);
+    /* a short channel token keeps the QR at a low version, so the
+       center logo never covers an alignment pattern */
+    const token = randomHex(12);
     const poll = randomHex(32);
     await env.KILIW_FILES.put(key(token), JSON.stringify({
       poll,
