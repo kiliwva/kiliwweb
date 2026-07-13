@@ -34,10 +34,10 @@ function serverAuthed(request, env) {
 async function tgNotify(env, chatId, data, token) {
   const payload = {
     chat_id: chatId,
-    text: `Minecraft sign-in\n\nLet ${data.server} log you in as ${data.nick}?`,
+    text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?`,
     reply_markup: { inline_keyboard: [[
-      { text: '✅ Yes, that’s me', callback_data: `mc:ok:${token}` },
-      { text: '❌ Deny', callback_data: `mc:no:${token}` },
+      { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
+      { text: '❌ Не-а', callback_data: `mc:no:${token}` },
     ]] },
   };
   if (env.MAIL_DEBUG) return { ok: true, debugTg: payload };

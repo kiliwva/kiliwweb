@@ -117,16 +117,16 @@ async function handleStart(env, bot, origin, msg, param) {
     if (!data || data.status !== 'pending') {
       await bot.call('sendMessage', {
         chat_id: chatId,
-        text: 'This sign-in link has expired. Rejoin the server to get a fresh one.',
+        text: '⏰ Код протух. Перезайди на сервер — там выдадут свежий.',
       });
       return;
     }
     await bot.call('sendMessage', {
       chat_id: chatId,
-      text: `Minecraft sign-in\n\nLet ${data.server} log you in as ${data.nick}?\nTelegram: ${tgName(from)}`,
+      text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?\nTelegram: ${tgName(from)}`,
       reply_markup: { inline_keyboard: [[
-        { text: '✅ Yes, that’s me', callback_data: `mc:ok:${token}` },
-        { text: '❌ Deny', callback_data: `mc:no:${token}` },
+        { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
+        { text: '❌ Не-а', callback_data: `mc:no:${token}` },
       ]] },
     });
     return;
@@ -135,9 +135,9 @@ async function handleStart(env, bot, origin, msg, param) {
   /* plain /start */
   await bot.call('sendMessage', {
     chat_id: chatId,
-    text: 'Hi! When you join a Minecraft server, the sign-in confirmation shows up here — nothing to set up.\n\nYour nickname ties to this Telegram on the first approval, so nobody else can join under it. You can also scan a sign-in code from a computer screen:',
+    text: 'Привет! 👋 Заходишь на сервер в Minecraft — подтверждение падает сюда само, настраивать ничего не надо.\n\nПервое «да» привяжет ник к твоему Telegram, и никто чужой под ним не зайдёт. ⛏️\n\nА код с экрана компа можно отсканировать:',
     reply_markup: { inline_keyboard: [[
-      { text: 'Scan a sign-in code', web_app: { url: `${origin}/tg` } },
+      { text: '📷 Сканировать код', web_app: { url: `${origin}/tg` } },
     ]] },
   });
 }
@@ -158,15 +158,15 @@ async function handleCallback(env, bot, cq) {
   }) : Promise.resolve());
 
   if (res.error === 'mc-expired') {
-    await edit('This sign-in link has expired. Rejoin the server to get a fresh one.');
+    await edit('⏰ Код протух. Перезайди на сервер — там выдадут свежий.');
   } else if (res.error === 'nick-taken') {
-    await edit('❌ This nickname is tied to a different Telegram.');
+    await edit('😬 Ник занят — он привязан к другому Telegram. Подтверди с него или возьми другой ник в игре.');
   } else if (res.error) {
-    await edit('Something went wrong. Rejoin the server and try again.');
+    await edit('🤔 Что-то пошло не так. Перезайди на сервер и попробуй ещё раз.');
   } else if (res.denied) {
-    await edit(`❌ Denied. ${res.nick} will be kicked from the server.`);
+    await edit(`🛑 Отклонено. ${res.nick} сейчас кикнет с сервера — никто не пройдёт.`);
   } else {
-    await edit(`✅ Done! Switch back to Minecraft — the server is unfreezing ${res.nick}.`);
+    await edit(`🎉 Погнали! Возвращайся в игру — сервер уже размораживает ${res.nick}.`);
   }
   await answer();
 }
@@ -306,10 +306,10 @@ export async function onRequestGet({ request, env }) {
       allowed_updates: ['message', 'callback_query'],
     });
     const menu = await bot.call('setChatMenuButton', {
-      menu_button: { type: 'web_app', text: 'Scan', web_app: { url: `${origin}/tg` } },
+      menu_button: { type: 'web_app', text: '📷 Скан', web_app: { url: `${origin}/tg` } },
     });
     const commands = await bot.call('setMyCommands', {
-      commands: [{ command: 'start', description: 'Minecraft sign-in' }],
+      commands: [{ command: 'start', description: 'Вход на сервер Minecraft' }],
     });
     return json({
       success: Boolean(webhook?.ok),
