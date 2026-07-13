@@ -192,7 +192,7 @@
 
     /* the aiming corners rest as a square in the middle until a code is found */
     const centerFrame = () => {
-      const s = Math.min(window.innerWidth * 0.6, 250);
+      const s = Math.min(window.innerWidth * 0.5, 200);
       const x = (window.innerWidth - s) / 2;
       const y = (window.innerHeight - s) / 2;
       placeCorners([

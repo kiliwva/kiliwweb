@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=129">
+  <link rel="stylesheet" href="styles.css?v=130">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; }
@@ -89,12 +89,16 @@
     }
     .scan-frame .corner {
       position: absolute; width: 30px; height: 30px;
-      border-top: 3px solid #F2A47B; border-left: 3px solid #F2A47B;
-      border-top-left-radius: 10px;
+      border-top: 3.5px solid #F2A47B; border-left: 3.5px solid #F2A47B;
+      border-top-left-radius: 16px;
       transform-origin: 0 0;
-      transition: left .2s ease-out, top .2s ease-out, transform .2s ease-out, border-color .2s ease-out;
+      filter: drop-shadow(0 0 7px rgba(242, 164, 123, .45));
+      transition: left .2s ease-out, top .2s ease-out, transform .2s ease-out, border-color .2s ease-out, filter .2s ease-out;
     }
-    .scan-frame.invalid .corner { border-color: #E5484D; }
+    .scan-frame.invalid .corner {
+      border-color: #E5484D;
+      filter: drop-shadow(0 0 7px rgba(229, 72, 77, .45));
+    }
     #scan-status {
       position: absolute; z-index: 3;
       left: 0; right: 0; bottom: calc(92px + env(safe-area-inset-bottom));
@@ -214,6 +218,6 @@
   </div>
 
   <script src="vendor/jsqr.min.js"></script>
-  <script src="tg.js?v=129"></script>
+  <script src="tg.js?v=130"></script>
 </body>
 </html>
