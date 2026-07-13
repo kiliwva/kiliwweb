@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=88">
+  <link rel="stylesheet" href="styles.css?v=89">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
@@ -24,6 +24,7 @@
     }
     .rl-hidden-tabs { display: none; }
     .rl-logo { display: flex; justify-content: center; margin-bottom: 20px; }
+    .rl-tile svg { width: 30px; height: 39px; display: block; }
     .rl-tile {
       display: flex;
       align-items: center;
@@ -162,6 +163,28 @@
       color: var(--muted);
     }
     .card.rl .group-error { margin-top: 10px; }
+    @media (min-width: 768px) {
+      .card.rl { max-width: 372px; padding-top: 4px; }
+      .rl-logo { margin-bottom: 16px; }
+      .rl-tile { width: 50px; height: 50px; border-radius: 13px; }
+      .rl-tile svg { width: 23px; height: 30px; }
+      .rl-title { font-size: 24px; margin-bottom: 8px; }
+      .rl-sub { font-size: 13.5px; margin-bottom: 22px; }
+      .rl-socials { gap: 8px; }
+      .rl-social { padding: 10px; font-size: 13.5px; border-radius: 11px; }
+      .rl-social svg { width: 15px; height: 15px; }
+      .rl-or { margin: 16px 0; font-size: 12px; }
+      .rl-label { font-size: 12.5px; margin-bottom: 6px; }
+      .rl-label-row { margin: 14px 2px 6px; }
+      .rl-label-row .link { font-size: 12px; }
+      .rl-input { padding: 10px 13px; font-size: 14px; border-radius: 11px; }
+      .rl-pw .rl-input { padding-right: 42px; }
+      .rl-eye { width: 32px; height: 32px; }
+      .rl-eye svg { width: 16px; height: 16px; }
+      .card.rl .submit { margin-top: 20px; padding: 11px; font-size: 14.5px; border-radius: 11px; }
+      .card.rl .passkey-btn { padding: 10px; font-size: 13.5px; }
+      .rl-terms { margin-top: 14px; font-size: 11.5px; }
+    }
   </style>
 </head>
 <body data-title-key="title.auth">
@@ -265,7 +288,7 @@
     <main class="card rl">
 
       <!-- Brand -->
-      <div class="rl-logo" aria-hidden="true"><span class="rl-tile"><svg viewBox="4.8 2.55 14.4 18.9" aria-hidden="true" style="width:30px;height:39px;display:block">
+      <div class="rl-logo" aria-hidden="true"><span class="rl-tile"><svg viewBox="4.8 2.55 14.4 18.9" aria-hidden="true">
           <defs><linearGradient id="tileg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>
           <rect x="5.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="7.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="12.45" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="5.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="#F2F2F2"/><rect x="10.2" y="7.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="3.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="10.2" y="12.45" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/><rect x="14.7" y="16.95" width="3.6" height="3.6" rx="1.1" fill="url(#tileg)"/>
         </svg></span></div>
@@ -387,12 +410,12 @@
 
     <footer class="auth-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-58</p>
+      <p class="auth-build">KW-59</p>
     </footer>
 
   </div>
 
-  <script src="ui.js?v=88"></script>
-  <script src="auth.js?v=88"></script>
+  <script src="ui.js?v=89"></script>
+  <script src="auth.js?v=89"></script>
 </body>
 </html>
