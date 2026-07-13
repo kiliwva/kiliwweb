@@ -16,7 +16,7 @@ import {
 const QR_TTL = 3 * 60 * 1000;
 
 const key = (token) => `_auth/qr/${token}.json`;
-const TOKEN_RE = /^[0-9a-f]{24}$/;
+const TOKEN_RE = /^[0-9a-f]{24,64}$/;
 
 async function load(env, token) {
   if (!TOKEN_RE.test(String(token || ''))) return null;
