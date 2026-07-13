@@ -159,6 +159,43 @@
     let locked = false;
     let torchOn = false;
 
+    const BASE = 220; /* the frame's intrinsic size in CSS px */
+    let cur = null; /* current {x,y,a,s} */
+    let tgt = null; /* target  {x,y,a,s} */
+    let raf = 0;
+
+    const applyFrame = (st) => {
+      frame.style.transform =
+        `translate(${st.x - BASE / 2}px, ${st.y - BASE / 2}px) rotate(${st.a}deg) scale(${st.s / BASE})`;
+    };
+
+    /* continuously ease the frame toward its target for buttery motion */
+    const tick = () => {
+      if (!cur || !tgt) { raf = 0; return; }
+      const k = 0.18;
+      let da = tgt.a - cur.a;
+      da = ((da + 180) % 360 + 360) % 360 - 180; /* shortest rotation */
+      const settled = Math.abs(tgt.x - cur.x) + Math.abs(tgt.y - cur.y)
+        + Math.abs(da) + Math.abs(tgt.s - cur.s) < 0.4;
+      if (settled) { cur = { ...tgt }; applyFrame(cur); raf = 0; return; }
+      cur = {
+        x: cur.x + (tgt.x - cur.x) * k,
+        y: cur.y + (tgt.y - cur.y) * k,
+        a: cur.a + da * k,
+        s: cur.s + (tgt.s - cur.s) * k,
+      };
+      applyFrame(cur);
+      raf = requestAnimationFrame(tick);
+    };
+
+    /* move/rotate/scale the whole rigid frame as one unit (eased) */
+    const setFrame = (cx, cy, angleDeg, size, valid) => {
+      frame.classList.toggle('invalid', !valid);
+      tgt = { x: cx, y: cy, a: angleDeg, s: size };
+      if (!cur) { cur = { ...tgt }; applyFrame(cur); }
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+
     const stop = () => {
       scanning = false;
       locked = false;
@@ -167,22 +204,14 @@
       torchBtn.classList.remove('on');
       torchOn = false;
       frame.classList.remove('invalid');
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      cur = null; tgt = null;
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
         stream = null;
       }
       track = null;
       video.srcObject = null;
-    };
-
-    const BASE = 220; /* the frame's intrinsic size in CSS px */
-
-    /* move/rotate/scale the whole rigid frame as one unit */
-    const setFrame = (cx, cy, angleDeg, size, valid) => {
-      frame.classList.toggle('invalid', !valid);
-      const scale = size / BASE;
-      frame.style.transform =
-        `translate(${cx - BASE / 2}px, ${cy - BASE / 2}px) rotate(${angleDeg}deg) scale(${scale})`;
     };
 
     /* the frame rests centered and upright until a code is found */
