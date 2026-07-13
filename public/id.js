@@ -31,6 +31,71 @@ const b64uToBuf = (s) => Uint8Array.from(
 const bufToB64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)))
   .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
+/* ---------- products ---------- */
+
+const ICONS = {
+  cloud: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>',
+  api: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>',
+  admin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>',
+};
+
+function formatSize(bytes) {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes || 0;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+  return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
+}
+
+function renderProducts(data) {
+  const plan = data.plan || {};
+  const paid = plan.type && plan.type !== 'free';
+  const planLine = paid
+    ? `${plan.type.toUpperCase()} · ${plan.gb >= 1024 ? `${plan.gb / 1024} TB` : `${plan.gb} GB`}${plan.until ? ` · until ${formatDate(plan.until)}` : ''}`
+    : 'Free plan · 10 GB';
+  const products = [
+    {
+      icon: 'cloud',
+      name: 'Kiliw Cloud',
+      status: `${planLine}\n${formatSize(data.usage)} used`,
+      href: '/dash',
+    },
+    {
+      icon: 'api',
+      name: 'Developer API',
+      status: plan.api ? 'Active — included in your plan' : 'Requires the DEV plan',
+      href: '/docs',
+    },
+  ];
+  if (data.owner) {
+    products.push({
+      icon: 'admin',
+      name: 'Admin',
+      status: 'Site owner tools',
+      href: '/admin',
+    });
+  }
+  const wrap = $('id-products');
+  wrap.innerHTML = '';
+  for (const p of products) {
+    const a = document.createElement('a');
+    a.className = 'id-prod';
+    a.href = p.href;
+    const ico = document.createElement('span');
+    ico.className = 'id-prod-ico';
+    ico.innerHTML = ICONS[p.icon];
+    const b = document.createElement('b');
+    b.textContent = p.name;
+    a.append(ico, b);
+    for (const line of p.status.split('\n')) {
+      const span = document.createElement('span');
+      span.textContent = line;
+      a.appendChild(span);
+    }
+    wrap.appendChild(a);
+  }
+}
+
 /* ---------- profile ---------- */
 
 let me = null;
@@ -57,6 +122,7 @@ async function loadMe() {
   $('id-plan').innerHTML = '';
   $('id-plan').appendChild(badge);
   renderTotp(Boolean(data.totp));
+  renderProducts(data);
 }
 
 /* ---------- password ---------- */
