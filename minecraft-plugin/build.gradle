@@ -5,8 +5,11 @@ plugins {
 group = 'com.kiliw'
 version = '1.0.0'
 
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+/* build with whatever JDK is installed (21 or newer),
+   but always produce Java 21 bytecode for Paper */
+compileJava {
+    options.release = 21
+    options.encoding = 'UTF-8'
 }
 
 repositories {
