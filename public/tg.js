@@ -8,6 +8,8 @@
     'tg-done', 'tg-denied', 'tg-taken', 'tg-bad'];
   const show = (id) => PANES.forEach((p) => { $(p).hidden = p !== id; });
 
+  const META_ICONS = { geo: '#i-geo', ip: '#i-ip', session: '#i-ticket' };
+
   const tg = window.Telegram && window.Telegram.WebApp;
   const initData = tg && tg.initData;
   if (!initData) { show('tg-outside'); return; }
@@ -57,7 +59,19 @@
     $('tg-ask-nick').textContent = data.nick;
     const metaEl = $('tg-meta');
     if (Array.isArray(data.meta) && data.meta.length) {
-      metaEl.textContent = data.meta.join('\n');
+      metaEl.innerHTML = '';
+      for (const m of data.meta) {
+        const line = document.createElement('span');
+        line.className = 'meta-line';
+        const ico = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        use.setAttribute('href', META_ICONS[m.icon] || '#i-help');
+        ico.appendChild(use);
+        const txt = document.createElement('span');
+        txt.textContent = m.text;
+        line.append(ico, txt);
+        metaEl.appendChild(line);
+      }
       metaEl.hidden = false;
     } else {
       metaEl.hidden = true;

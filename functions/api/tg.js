@@ -1,7 +1,7 @@
 import {
   json, storageReady, getSession, isOwner,
 } from '../../lib/api.js';
-import { loadJoin, decideJoin, joinMeta } from './mc.js';
+import { loadJoin, decideJoin, joinMeta, joinMetaLines } from './mc.js';
 
 /* Telegram bot: Minecraft join approvals, tied to Telegram only —
    no site account is involved anywhere in the bot.
@@ -121,7 +121,7 @@ async function handleStart(env, bot, origin, msg, param) {
       });
       return;
     }
-    const meta = joinMeta(data, token);
+    const meta = joinMetaLines(data, token);
     await bot.call('sendMessage', {
       chat_id: chatId,
       text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?\nTelegram: ${tgName(from)}`

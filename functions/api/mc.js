@@ -43,21 +43,28 @@ async function lookupGeo(env, ip) {
   return null;
 }
 
-/* the "🌍 city · 📡 ip · 🎫 session" block shown in every confirmation */
+/* the city / ip / session block shown in every confirmation, as
+   structured items so the mini app can draw its own icons */
 export function joinMeta(data, token) {
-  const lines = [];
+  const items = [];
   if (data.geo && (data.geo.city || data.geo.country)) {
-    lines.push(`🌍 ${[data.geo.city, data.geo.country].filter(Boolean).join(', ')}`);
+    items.push({ icon: 'geo', text: [data.geo.city, data.geo.country].filter(Boolean).join(', ') });
   }
-  if (data.ip) lines.push(`📡 IP: ${data.ip}`);
-  if (token) lines.push(`🎫 Сессия #${token.slice(0, 6).toUpperCase()}`);
-  return lines;
+  if (data.ip) items.push({ icon: 'ip', text: `IP: ${data.ip}` });
+  if (token) items.push({ icon: 'session', text: `Сессия #${token.slice(0, 6).toUpperCase()}` });
+  return items;
+}
+
+/* same block as plain emoji lines for Telegram chat messages */
+export function joinMetaLines(data, token) {
+  const emoji = { geo: '🌍', ip: '📡', session: '🎫' };
+  return joinMeta(data, token).map((m) => `${emoji[m.icon]} ${m.text}`);
 }
 
 /* When the nick is already tied to a Telegram, ping that Telegram with
    approve/deny buttons the moment the player joins — no tapping links. */
 async function tgNotify(env, chatId, data, token, origin) {
-  const meta = joinMeta(data, token);
+  const meta = joinMetaLines(data, token);
   const payload = {
     chat_id: chatId,
     text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?`
