@@ -64,6 +64,39 @@ function switchTo(name) {
 tabLogin.addEventListener('click', () => switchTo('login'));
 tabRegister.addEventListener('click', () => switchTo('register'));
 
+/* the visible switch lives in the subtitles now */
+document.getElementById('go-register')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  switchTo('register');
+});
+document.getElementById('go-login')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  switchTo('login');
+});
+
+/* password visibility */
+document.querySelectorAll('.rl-eye').forEach((eye) => {
+  eye.addEventListener('click', () => {
+    const input = eye.parentElement.querySelector('input');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    eye.classList.toggle('on', show);
+    eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  });
+});
+
+/* remember the last sign-in method for the "Last used" chip */
+try {
+  const last = localStorage.getItem('kwLastLogin');
+  document.querySelectorAll('.rl-social').forEach((a) => {
+    const chip = a.querySelector('.rl-last');
+    if (chip) chip.hidden = a.dataset.provider !== last;
+    a.addEventListener('click', () => {
+      try { localStorage.setItem('kwLastLogin', a.dataset.provider); } catch (err) {}
+    });
+  });
+} catch (err) { /* private mode */ }
+
 /* ---------- Validation ---------- */
 
 const API_ERROR_KEYS = [
@@ -140,6 +173,7 @@ async function handleSubmit(form, kind) {
     const data = await res.json().catch(() => null);
 
     if (res.ok && data && data.success) {
+      try { localStorage.setItem('kwLastLogin', 'password'); } catch (err) {}
       if (data.verify) {
         showVerifyStep(payload.email);
         return;
@@ -156,17 +190,26 @@ async function handleSubmit(form, kind) {
       showFormError(form, KiliwUI.t('auth.serverDown'));
       return;
     }
-    if (data.error === 'totp-required') {
-      /* account has 2FA: reveal the code field and ask for it; the
-         server ticket lets code attempts skip the captcha */
+    if (data.error === 'totp-required' || data.error === 'email-code-required') {
+      /* the server ticket lets code attempts skip the captcha */
       captchaCtx = data.ctx || null;
-      document.getElementById('login-totp-group').hidden = false;
-      showFormError(form, KiliwUI.t('auth.totpPrompt'));
-      KiliwUI.otpClear('login-totp-otp');
-      KiliwUI.otpFocus('login-totp-otp');
-      /* a passkey outranks the code: offer it first, the code stays
-         as the fallback if the prompt is dismissed */
-      if (data.passkey && passkeyAssert) passkeyAssert();
+      const emailCode = data.error === 'email-code-required';
+      const showCode = () => {
+        document.getElementById('login-totp-group').hidden = false;
+        document.querySelector('#login-totp-group .otp-label').textContent =
+          KiliwUI.t(emailCode ? 'label.emailCode' : 'label.totp');
+        showFormError(form, KiliwUI.t(emailCode ? 'auth.emailCodePrompt' : 'auth.totpPrompt'));
+        KiliwUI.otpClear('login-totp-otp');
+        KiliwUI.otpFocus('login-totp-otp');
+      };
+      if (data.passkey && passkeyAssert) {
+        /* a passkey outranks any code: the field only appears if the
+           passkey prompt is dismissed or fails */
+        const ok = await passkeyAssert();
+        if (!ok) showCode();
+      } else {
+        showCode();
+      }
       return;
     }
     if (data.error === 'totp-invalid' && captchaCtx) {
@@ -308,9 +351,7 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
 let passkeyAssert = null; /* set below when WebAuthn is available */
 
 (() => {
-  const btn = document.getElementById('passkey-login');
-  if (!btn || !window.PublicKeyCredential) return;
-  btn.hidden = false;
+  if (!window.PublicKeyCredential) return;
 
   const b64uToBuf = (s) => Uint8Array.from(
     atob(String(s).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0),
@@ -319,6 +360,7 @@ let passkeyAssert = null; /* set below when WebAuthn is available */
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const status = (msg) => {
     const el = document.getElementById('passkey-login-status');
+    if (!el) return;
     el.textContent = msg;
     el.hidden = !msg;
   };
@@ -334,7 +376,7 @@ let passkeyAssert = null; /* set below when WebAuthn is available */
       const optData = await optRes.json();
       if (!optRes.ok || !optData.success) {
         status(KiliwUI.t('pk.loginFail'));
-        return;
+        return false;
       }
       const options = optData.options;
       options.challenge = b64uToBuf(options.challenge);
@@ -359,16 +401,17 @@ let passkeyAssert = null; /* set below when WebAuthn is available */
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
+        try { localStorage.setItem('kwLastLogin', 'passkey'); } catch (e) {}
         if (data.restored) alert(KiliwUI.t('auth.restored'));
         window.location.href = data.redirect || '/dash';
-      } else {
-        status(KiliwUI.t('pk.loginFail'));
+        return true;
       }
+      status(KiliwUI.t('pk.loginFail'));
+      return false;
     } catch (err) {
       /* the user closed the passkey prompt: stay quiet */
       if (err?.name !== 'NotAllowedError') status(KiliwUI.t('pk.loginFail'));
+      return false;
     }
   };
-
-  btn.addEventListener('click', () => passkeyAssert());
 })();

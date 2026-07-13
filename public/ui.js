@@ -35,6 +35,8 @@
     'profile.kidHint': 'Password, 2FA, passkeys, devices and all Kiliw products live in your K-ID account.',
     'auth.oauthUnavailable': 'This sign-in method is not enabled yet. Use your email and password.',
     'auth.oauthFailed': 'Could not sign you in with that provider. Try again or use your password.',
+    'label.emailCode': 'Code from the email we just sent',
+    'auth.emailCodePrompt': 'We emailed you a 6-digit sign-in code.',
     'api.captcha': 'Captcha verification failed. Please try again.',
     'api.not-configured': 'Server storage is not configured yet. Contact the site owner.',
     'auth.totpPrompt': 'Enter the 6-digit code from your authenticator app.',
@@ -329,9 +331,16 @@
       const cells = [];
 
       const sync = () => {
-        if (target) {
-          target.value = cells.map((c) => c.value).join('');
-          target.dispatchEvent(new Event('input', { bubbles: true }));
+        if (!target) return;
+        target.value = cells.map((c) => c.value).join('');
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        /* opt-in auto-enter: a fully typed code submits its form */
+        if (box.hasAttribute('data-otp-submit') && target.value.length === cells.length) {
+          const form = box.closest('form');
+          if (form) {
+            if (form.requestSubmit) form.requestSubmit();
+            else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
         }
       };
 

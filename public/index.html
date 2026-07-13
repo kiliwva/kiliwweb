@@ -8,9 +8,182 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=85">
+  <link rel="stylesheet" href="styles.css?v=86">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
+  <style>
+    /* Resend-style auth layout */
+    .rl-home {
+      position: absolute;
+      top: 20px; left: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      opacity: 0.9;
+      z-index: 5;
+    }
+    .rl-home svg { width: 16px; height: 16px; }
+    .card.rl {
+      background: none;
+      border: 0;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      max-width: 430px;
+      padding: 12px 6px 0;
+    }
+    .rl-hidden-tabs { display: none; }
+    .rl-logo { display: flex; justify-content: center; margin-bottom: 20px; }
+    .rl-tile {
+      position: relative;
+      width: 64px; height: 64px;
+      border-radius: 17px;
+      background: linear-gradient(160deg, #1B1B1B 0%, #101010 100%);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.8);
+    }
+    .rl-tile::before {
+      content: 'k';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 7px;
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1;
+      background: linear-gradient(120deg, #F2A47B 0%, #D97757 55%, #C05C3E 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .rl-title {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+    }
+    .rl-sub {
+      text-align: center;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 28px;
+    }
+    .rl-sub .link { font-weight: 700; }
+    .rl-socials { display: flex; flex-direction: column; gap: 10px; }
+    .rl-social {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .rl-social:hover { background: rgba(255, 255, 255, 0.12); }
+    .rl-social svg { width: 17px; height: 17px; flex: none; }
+    .rl-last {
+      position: absolute;
+      top: -9px; right: 10px;
+      padding: 3px 9px;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: var(--text);
+      background: #2E2E2E;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+    .rl-or {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 20px 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .rl-or::before, .rl-or::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--hairline);
+    }
+    .rl-label {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--muted);
+      margin: 0 2px 8px;
+    }
+    .rl-label-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin: 16px 2px 8px;
+    }
+    .rl-label-row .rl-label { margin: 0; }
+    .rl-label-row .link { font-size: 13px; font-weight: 700; }
+    .rl-input {
+      width: 100%;
+      padding: 14px 16px;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--frost-soft);
+      border: 1px solid var(--hairline);
+      border-radius: 14px;
+      outline: none;
+      transition: box-shadow 0.2s, background 0.2s;
+    }
+    .rl-input:focus {
+      background: var(--frost);
+      box-shadow: 0 0 0 3.5px var(--accent-ring);
+    }
+    .rl-input + .rl-label, .rl-input + .rl-label-row { margin-top: 16px; }
+    .rl-pw { position: relative; }
+    .rl-pw .rl-input { padding-right: 48px; }
+    .rl-eye {
+      position: absolute;
+      top: 50%; right: 8px;
+      transform: translateY(-50%);
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border: 0;
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .rl-eye svg { width: 18px; height: 18px; }
+    .rl-eye.on { color: var(--text); }
+    .card.rl .form > .rl-input:first-of-type { margin-bottom: 0; }
+    .card.rl .turnstile-slot { margin: 16px 0; }
+    .card.rl .submit { margin-top: 2px; }
+    .rl-terms {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .card.rl .group-error { margin-top: 10px; }
+  </style>
 </head>
 <body data-title-key="title.auth">
 
@@ -110,15 +283,18 @@
     <div class="orb orb-2" aria-hidden="true"></div>
     <div class="orb orb-3" aria-hidden="true"></div>
 
-    <main class="card">
+    <a class="rl-home" href="/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+      Home
+    </a>
+
+    <main class="card rl">
 
       <!-- Brand -->
-      <div class="auth-brand">
-        <span class="wordmark kid">K<em>-ID</em></span>
-      </div>
+      <div class="rl-logo" aria-hidden="true"><span class="rl-tile"></span></div>
 
-      <!-- Sign in / Sign up switch -->
-      <nav class="tabs" role="tablist" aria-label="Sign in or sign up">
+      <!-- hidden switch: the subtitle links drive it -->
+      <nav class="tabs rl-hidden-tabs" role="tablist" aria-label="Sign in or sign up">
         <span class="tab-thumb" aria-hidden="true"></span>
         <button class="tab active" id="tab-login" role="tab" aria-selected="true" aria-controls="form-login" data-i18n="tab.signin">Sign In</button>
         <button class="tab" id="tab-register" role="tab" aria-selected="false" aria-controls="form-register" data-i18n="tab.signup">Sign Up</button>
@@ -126,68 +302,80 @@
 
       <!-- Sign in -->
       <form class="form active" id="form-login" role="tabpanel" aria-labelledby="tab-login" novalidate>
-        <h1 class="title" data-i18n="auth.welcome">Welcome back.</h1>
-        <p class="subtitle" data-i18n="auth.subLogin">Sign in to continue where you left off.</p>
+        <h1 class="rl-title">Log in to K-ID</h1>
+        <p class="rl-sub">Don&rsquo;t have an account? <a class="link" href="#" id="go-register">Sign up</a>.</p>
 
-        <div class="group">
-          <div class="field">
-            <input type="email" id="login-email" name="email" placeholder=" " autocomplete="email" required>
-            <label for="login-email" data-i18n="label.email">Email</label>
-          </div>
-          <div class="divider"></div>
-          <div class="field">
-            <input type="password" id="login-password" name="password" placeholder=" " autocomplete="current-password" minlength="8" required>
-            <label for="login-password" data-i18n="label.password">Password</label>
-          </div>
+        <div class="rl-socials">
+          <a class="rl-social" data-provider="google" href="/api/oauth?start=1&amp;provider=google">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.74 2.98-4.32 2.98-7.35Z"/><path d="M12 21.5c2.7 0 4.96-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.75-5.58-4.1H3.07v2.58A9.99 9.99 0 0 0 12 21.5Z"/><path d="M6.42 13.43a5.99 5.99 0 0 1 0-3.86V6.99H3.07a10 10 0 0 0 0 9.02l3.35-2.58Z"/><path d="M12 5.47c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.97 9.97 0 0 0 12 1.5a9.99 9.99 0 0 0-8.93 5.49l3.35 2.58C7.2 7.22 9.4 5.47 12 5.47Z"/></svg>
+            <span>Log in with Google</span>
+            <b class="rl-last" hidden>Last used</b>
+          </a>
+          <a class="rl-social" data-provider="github" href="/api/oauth?start=1&amp;provider=github">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.68 21.96c.53.1.72-.23.72-.5v-1.96c-2.92.63-3.54-1.24-3.54-1.24-.48-1.21-1.17-1.54-1.17-1.54-.95-.65.07-.64.07-.64 1.06.08 1.61 1.08 1.61 1.08.94 1.6 2.46 1.14 3.06.87.1-.68.37-1.14.66-1.4-2.33-.27-4.79-1.17-4.79-5.2 0-1.14.41-2.08 1.08-2.81-.1-.27-.47-1.34.1-2.79 0 0 .89-.28 2.9 1.08a10.1 10.1 0 0 1 5.29 0c2-1.36 2.89-1.08 2.89-1.08.58 1.45.22 2.52.11 2.79.67.73 1.08 1.67 1.08 2.81 0 4.04-2.46 4.92-4.81 5.18.38.33.72.97.72 1.96v2.9c0 .28.19.61.73.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
+            <span>Log in with GitHub</span>
+            <b class="rl-last" hidden>Last used</b>
+          </a>
+        </div>
+
+        <div class="rl-or" aria-hidden="true"><span>or</span></div>
+
+        <label class="rl-label" for="login-email">Email</label>
+        <input class="rl-input" type="email" id="login-email" name="email" autocomplete="email" required>
+
+        <div class="rl-label-row">
+          <label class="rl-label" for="login-password">Password</label>
+          <a class="link" href="/reset">Forgot your password?</a>
+        </div>
+        <div class="rl-pw">
+          <input class="rl-input" type="password" id="login-password" name="password" autocomplete="current-password" minlength="8" required>
+          <button type="button" class="rl-eye" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
 
         <!-- 2FA code (shown only when the account has 2FA enabled) -->
         <div class="totp-group" id="login-totp-group" hidden>
           <p class="otp-label" data-i18n="label.totp">2FA code from your authenticator app</p>
-          <div class="otp" id="login-totp-otp" data-otp data-otp-target="login-totp"></div>
+          <div class="otp" id="login-totp-otp" data-otp data-otp-submit data-otp-target="login-totp"></div>
           <input type="hidden" id="login-totp" name="code">
         </div>
         <p class="group-error" data-error></p>
 
         <div class="turnstile-slot" data-turnstile></div>
 
-        <button type="submit" class="submit" disabled data-i18n="btn.signin">Sign In</button>
+        <button type="submit" class="submit" disabled>Log In</button>
 
-        <button type="button" class="passkey-btn" id="passkey-login" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8.5" cy="8.5" r="4.5"/><path d="M2.5 21v-1.5a6 6 0 0 1 6-6h.5"/><path d="M21.5 11.5a3 3 0 1 0-4.5 2.6V20l1.5 1.5L20 20l-1-1 1-1-1-1 1.5-1.5v-1.4a3 3 0 0 0 1-2.6Z"/></svg>
-          <span data-i18n="pk.signin">Sign in with a passkey</span>
-        </button>
         <p class="modal-status" id="passkey-login-status" hidden></p>
 
-        <div class="oauth-row">
-          <a class="ghost-btn oauth-btn" href="/api/oauth?start=1&amp;provider=google">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.74 2.98-4.32 2.98-7.35Z"/><path d="M12 21.5c2.7 0 4.96-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.75-5.58-4.1H3.07v2.58A9.99 9.99 0 0 0 12 21.5Z"/><path d="M6.42 13.43a5.99 5.99 0 0 1 0-3.86V6.99H3.07a10 10 0 0 0 0 9.02l3.35-2.58Z"/><path d="M12 5.47c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.97 9.97 0 0 0 12 1.5a9.99 9.99 0 0 0-8.93 5.49l3.35 2.58C7.2 7.22 9.4 5.47 12 5.47Z"/></svg>
-            <span>Google</span>
-          </a>
-          <a class="ghost-btn oauth-btn" href="/api/oauth?start=1&amp;provider=github">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.68 21.96c.53.1.72-.23.72-.5v-1.96c-2.92.63-3.54-1.24-3.54-1.24-.48-1.21-1.17-1.54-1.17-1.54-.95-.65.07-.64.07-.64 1.06.08 1.61 1.08 1.61 1.08.94 1.6 2.46 1.14 3.06.87.1-.68.37-1.14.66-1.4-2.33-.27-4.79-1.17-4.79-5.2 0-1.14.41-2.08 1.08-2.81-.1-.27-.47-1.34.1-2.79 0 0 .89-.28 2.9 1.08a10.1 10.1 0 0 1 5.29 0c2-1.36 2.89-1.08 2.89-1.08.58 1.45.22 2.52.11 2.79.67.73 1.08 1.67 1.08 2.81 0 4.04-2.46 4.92-4.81 5.18.38.33.72.97.72 1.96v2.9c0 .28.19.61.73.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
-            <span>GitHub</span>
-          </a>
-        </div>
-
-        <p class="note"><a class="link" href="/reset" data-i18n="auth.forgot">Forgot password?</a></p>
+        <p class="rl-terms">By signing in, you agree to our <a class="link" href="#">Terms</a> and <a class="link" href="#">Privacy Policy</a>.</p>
       </form>
 
       <!-- Sign up -->
       <form class="form" id="form-register" role="tabpanel" aria-labelledby="tab-register" novalidate hidden>
-        <h1 class="title" data-i18n="auth.create">Create yours.</h1>
-        <p class="subtitle" data-i18n="auth.subReg">One account. Less than a minute.</p>
+        <h1 class="rl-title">Create your K-ID</h1>
+        <p class="rl-sub">Already have an account? <a class="link" href="#" id="go-login">Log in</a>.</p>
 
-        <div class="group">
-          <div class="field">
-            <input type="email" id="reg-email" name="email" placeholder=" " autocomplete="email" required>
-            <label for="reg-email" data-i18n="label.email">Email</label>
-          </div>
-          <div class="divider"></div>
-          <div class="field">
-            <input type="password" id="reg-password" name="password" placeholder=" " autocomplete="new-password" minlength="8" required>
-            <label for="reg-password" data-i18n="label.password">Password</label>
-          </div>
+        <div class="rl-socials">
+          <a class="rl-social" data-provider="google" href="/api/oauth?start=1&amp;provider=google">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.74 2.98-4.32 2.98-7.35Z"/><path d="M12 21.5c2.7 0 4.96-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.75-5.58-4.1H3.07v2.58A9.99 9.99 0 0 0 12 21.5Z"/><path d="M6.42 13.43a5.99 5.99 0 0 1 0-3.86V6.99H3.07a10 10 0 0 0 0 9.02l3.35-2.58Z"/><path d="M12 5.47c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.97 9.97 0 0 0 12 1.5a9.99 9.99 0 0 0-8.93 5.49l3.35 2.58C7.2 7.22 9.4 5.47 12 5.47Z"/></svg>
+            <span>Sign up with Google</span>
+            <b class="rl-last" hidden>Last used</b>
+          </a>
+          <a class="rl-social" data-provider="github" href="/api/oauth?start=1&amp;provider=github">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.68 21.96c.53.1.72-.23.72-.5v-1.96c-2.92.63-3.54-1.24-3.54-1.24-.48-1.21-1.17-1.54-1.17-1.54-.95-.65.07-.64.07-.64 1.06.08 1.61 1.08 1.61 1.08.94 1.6 2.46 1.14 3.06.87.1-.68.37-1.14.66-1.4-2.33-.27-4.79-1.17-4.79-5.2 0-1.14.41-2.08 1.08-2.81-.1-.27-.47-1.34.1-2.79 0 0 .89-.28 2.9 1.08a10.1 10.1 0 0 1 5.29 0c2-1.36 2.89-1.08 2.89-1.08.58 1.45.22 2.52.11 2.79.67.73 1.08 1.67 1.08 2.81 0 4.04-2.46 4.92-4.81 5.18.38.33.72.97.72 1.96v2.9c0 .28.19.61.73.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
+            <span>Sign up with GitHub</span>
+            <b class="rl-last" hidden>Last used</b>
+          </a>
+        </div>
+
+        <div class="rl-or" aria-hidden="true"><span>or</span></div>
+
+        <label class="rl-label" for="reg-email">Email</label>
+        <input class="rl-input" type="email" id="reg-email" name="email" autocomplete="email" required>
+
+        <label class="rl-label" for="reg-password">Password</label>
+        <div class="rl-pw">
+          <input class="rl-input" type="password" id="reg-password" name="password" autocomplete="new-password" minlength="8" required>
+          <button type="button" class="rl-eye" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
         <p class="group-error" data-error></p>
 
@@ -195,16 +383,16 @@
 
         <button type="submit" class="submit" disabled data-i18n="btn.create">Create Account</button>
 
-        <p class="note muted" data-i18n-html="auth.terms">By continuing you agree to the <a class="link" href="#">Terms of Service</a>.</p>
+        <p class="rl-terms">By signing up, you agree to our <a class="link" href="#">Terms</a> and <a class="link" href="#">Privacy Policy</a>.</p>
       </form>
 
       <!-- Email verification step -->
       <form class="form" id="form-verify" novalidate hidden>
-        <h1 class="title" data-i18n="verify.title">Check your email.</h1>
-        <p class="subtitle" id="verify-sub"></p>
+        <h1 class="rl-title" data-i18n="verify.title">Check your email.</h1>
+        <p class="rl-sub" id="verify-sub"></p>
 
         <p class="otp-label" data-i18n="verify.code">Verification code</p>
-        <div class="otp" id="verify-otp" data-otp data-otp-target="verify-code"></div>
+        <div class="otp" id="verify-otp" data-otp data-otp-submit data-otp-target="verify-code"></div>
         <input type="hidden" id="verify-code">
         <p class="group-error" data-error></p>
 
@@ -218,12 +406,12 @@
 
     <footer class="auth-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-55</p>
+      <p class="auth-build">KW-56</p>
     </footer>
 
   </div>
 
-  <script src="ui.js?v=85"></script>
-  <script src="auth.js?v=85"></script>
+  <script src="ui.js?v=86"></script>
+  <script src="auth.js?v=86"></script>
 </body>
 </html>
