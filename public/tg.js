@@ -47,7 +47,7 @@
     const after = () => {
       if (!bio.isBiometricAvailable) { go(); return; }
       if (bio.isAccessGranted) { auth(); return; }
-      bio.requestAccess({ reason: 'Подтверждение входа на серверы Minecraft' },
+      bio.requestAccess({ reason: 'Minecraft sign-in confirmation' },
         (granted) => (granted ? auth() : go()));
     };
     if (bio.isInited) after();
@@ -68,7 +68,14 @@
       for (const m of data.meta) {
         const line = document.createElement('span');
         line.className = 'meta-line';
-        line.innerHTML = META_ICONS[m.icon] || '';
+        if (m.icon === 'geo' && m.flag) {
+          const flag = document.createElement('span');
+          flag.className = 'flag';
+          flag.textContent = m.flag;
+          line.appendChild(flag);
+        } else {
+          line.innerHTML = META_ICONS[m.icon] || '';
+        }
         const txt = document.createElement('span');
         txt.textContent = m.text;
         line.appendChild(txt);
@@ -81,7 +88,7 @@
     if (bioSupported()) $('tg-bio-note').hidden = false;
     show('tg-ask');
 
-    $('tg-approve').onclick = () => withBiometry('Подтверди, что это ты заходишь на сервер', async () => {
+    $('tg-approve').onclick = () => withBiometry('Confirm your Minecraft sign-in', async () => {
       $('tg-approve').disabled = true;
       const r = await api({ action: 'approve', token });
       $('tg-approve').disabled = false;
@@ -218,7 +225,7 @@
       scanning = false;
       frame.hidden = true;
       if (corners) drawBox(corners);
-      statusEl.textContent = 'Нашёл! 🎯';
+      statusEl.textContent = 'Found it';
       setTimeout(() => {
         const s = stream;
         stop();
@@ -264,7 +271,7 @@
             if (hit) {
               const token = tokenFrom(hit.text);
               if (token) { lockOnto(token, hit.corners); return; }
-              statusEl.textContent = 'Хм, это не код K-MCID 🤔';
+              statusEl.textContent = 'Not a K-MCID code';
             }
           } catch (e) { /* keep scanning */ }
         }
@@ -296,7 +303,7 @@
     });
 
     $('tg-scan').addEventListener('click', async () => {
-      statusEl.textContent = 'Наведи на код 🎯';
+      statusEl.textContent = 'Point at the code';
       frame.hidden = false;
       overlay.hidden = false;
       try {
@@ -321,7 +328,7 @@
         scanning = true;
         scanLoop();
       } catch (e) {
-        statusEl.textContent = 'Камера недоступна 😔 — выбери фото с кодом';
+        statusEl.textContent = 'Camera unavailable — pick an image instead';
       }
     });
 
@@ -331,13 +338,13 @@
       const file = input.files && input.files[0];
       input.value = '';
       if (!file) return;
-      statusEl.textContent = '🔎 Ищу код на картинке…';
+      statusEl.textContent = 'Scanning the image…';
       const token = await decodeImage(file);
       if (token) {
         stop();
         openToken(token);
       } else {
-        statusEl.textContent = '😕 На этой картинке кода нет — попробуй другую';
+        statusEl.textContent = 'No code found in that image — try another';
       }
     });
   }

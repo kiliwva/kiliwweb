@@ -29,36 +29,51 @@ function serverAuthed(request, env) {
   return Boolean(env.MC_API_KEY) && auth === `Bearer ${env.MC_API_KEY}`;
 }
 
+/* 2-letter country code -> flag emoji */
+function flagEmoji(cc) {
+  if (!cc || cc.length !== 2) return '';
+  const base = 0x1F1E6;
+  return String.fromCodePoint(
+    ...[...cc.toUpperCase()].map((c) => base + c.charCodeAt(0) - 65),
+  );
+}
+
 /* where is the player connecting from? (free geo lookup, best effort) */
 async function lookupGeo(env, ip) {
   if (!ip) return null;
-  if (env.MAIL_DEBUG) return { city: 'Тестоград', country: 'RU' };
+  if (env.MAIL_DEBUG) return { city: 'Berlin', cc: 'DE', flag: flagEmoji('DE') };
   try {
     const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`);
     const j = await res.json();
     if (j && j.success !== false) {
-      return { city: j.city || '', country: j.country_code || j.country || '' };
+      const cc = j.country_code || '';
+      return { city: j.city || '', cc, flag: (j.flag && j.flag.emoji) || flagEmoji(cc) };
     }
   } catch { /* geo is optional */ }
   return null;
 }
 
-/* the city / ip / session block shown in every confirmation, as
+/* the location / ip / session block shown in every confirmation, as
    structured items so the mini app can draw its own icons */
 export function joinMeta(data, token) {
   const items = [];
-  if (data.geo && (data.geo.city || data.geo.country)) {
-    items.push({ icon: 'geo', text: [data.geo.city, data.geo.country].filter(Boolean).join(', ') });
+  const geo = data.geo;
+  if (geo && (geo.city || geo.cc)) {
+    const place = [geo.city, geo.cc].filter(Boolean).join(', ');
+    items.push({ icon: 'geo', flag: geo.flag || '', text: place });
   }
-  if (data.ip) items.push({ icon: 'ip', text: `IP: ${data.ip}` });
-  if (token) items.push({ icon: 'session', text: `Сессия #${token.slice(0, 6).toUpperCase()}` });
+  if (data.ip) items.push({ icon: 'ip', text: data.ip });
+  if (token) items.push({ icon: 'session', text: `Session #${token.slice(0, 6).toUpperCase()}` });
   return items;
 }
 
-/* same block as plain emoji lines for Telegram chat messages */
+/* same block as plain lines for Telegram chat messages */
 export function joinMetaLines(data, token) {
-  const emoji = { geo: '🌍', ip: '📡', session: '🎫' };
-  return joinMeta(data, token).map((m) => `${emoji[m.icon]} ${m.text}`);
+  const emoji = { geo: '📍', ip: '📡', session: '🎫' };
+  return joinMeta(data, token).map((m) => {
+    const lead = m.icon === 'geo' && m.flag ? m.flag : emoji[m.icon];
+    return `${lead} ${m.text}`;
+  });
 }
 
 /* keep the bot from spamming: remember the last message we sent to a
@@ -93,14 +108,14 @@ async function tgNotify(env, chatId, data, token, origin) {
   const meta = joinMetaLines(data, token);
   const payload = {
     chat_id: chatId,
-    text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?`
+    text: `Sign-in request\n\n${data.server} wants to log you in as ${data.nick}.`
       + (meta.length ? `\n\n${meta.join('\n')}` : ''),
     reply_markup: { inline_keyboard: [
       [
-        { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
-        { text: '❌ Не-а', callback_data: `mc:no:${token}` },
+        { text: 'Approve', callback_data: `mc:ok:${token}` },
+        { text: 'Deny', callback_data: `mc:no:${token}` },
       ],
-      [{ text: '🔐 Подтвердить с Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
+      [{ text: 'Confirm with Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
     ] },
   };
   await tgDeletePrev(env, chatId);

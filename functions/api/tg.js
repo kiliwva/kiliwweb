@@ -127,20 +127,20 @@ async function handleStart(env, bot, origin, msg, param) {
     const data = await loadJoin(env, token);
     if (!data || data.status !== 'pending') {
       await sendTracked(env, bot, chatId, {
-        text: '⏰ Код протух. Перезайди на сервер — там выдадут свежий.',
+        text: 'This code has expired. Rejoin the server to get a fresh one.',
       });
       return;
     }
     const meta = joinMetaLines(data, token);
     await sendTracked(env, bot, chatId, {
-      text: `🚪 Тук-тук!\n\nНа ${data.server} ломится ${data.nick} — это ты?\nTelegram: ${tgName(from)}`
+      text: `Sign-in request\n\n${data.server} wants to log you in as ${data.nick}.\nTelegram: ${tgName(from)}`
         + (meta.length ? `\n\n${meta.join('\n')}` : ''),
       reply_markup: { inline_keyboard: [
         [
-          { text: '✅ Да, это я!', callback_data: `mc:ok:${token}` },
-          { text: '❌ Не-а', callback_data: `mc:no:${token}` },
+          { text: 'Approve', callback_data: `mc:ok:${token}` },
+          { text: 'Deny', callback_data: `mc:no:${token}` },
         ],
-        [{ text: '🔐 Подтвердить с Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
+        [{ text: 'Confirm with Face ID', web_app: { url: `${origin}/tg#mc_${token}` } }],
       ] },
     });
     return;
@@ -148,9 +148,9 @@ async function handleStart(env, bot, origin, msg, param) {
 
   /* plain /start */
   await sendTracked(env, bot, chatId, {
-    text: 'Привет! 👋 Заходишь на сервер в Minecraft — подтверждение падает сюда само, настраивать ничего не надо.\n\nПервое «да» привяжет ник к твоему Telegram, и никто чужой под ним не зайдёт. ⛏️\n\nА код с экрана компа можно отсканировать:',
+    text: 'Welcome to K-MCID.\n\nWhen you join a Minecraft server, the sign-in request appears here — nothing to set up. The first approval ties your nickname to this Telegram, so no one else can join under it.\n\nYou can also scan a sign-in code shown on a computer screen:',
     reply_markup: { inline_keyboard: [[
-      { text: '📷 Сканировать код', web_app: { url: `${origin}/tg` } },
+      { text: 'Scan a code', web_app: { url: `${origin}/tg` } },
     ]] },
   });
 }
@@ -171,15 +171,15 @@ async function handleCallback(env, bot, cq) {
   }) : Promise.resolve());
 
   if (res.error === 'mc-expired') {
-    await edit('⏰ Код протух. Перезайди на сервер — там выдадут свежий.');
+    await edit('This code has expired. Rejoin the server to get a fresh one.');
   } else if (res.error === 'nick-taken') {
-    await edit('😬 Ник занят — он привязан к другому Telegram. Подтверди с него или возьми другой ник в игре.');
+    await edit('This nickname is tied to a different Telegram. Approve from that account or pick another nickname in-game.');
   } else if (res.error) {
-    await edit('🤔 Что-то пошло не так. Перезайди на сервер и попробуй ещё раз.');
+    await edit('Something went wrong. Rejoin the server and try again.');
   } else if (res.denied) {
-    await edit(`🛑 Отклонено. ${res.nick} сейчас кикнет с сервера — никто не пройдёт.`);
+    await edit(`Denied. ${res.nick} will be kicked from the server.`);
   } else {
-    await edit(`🎉 Погнали! Возвращайся в игру — сервер уже размораживает ${res.nick}.`);
+    await edit(`Approved. Switch back to Minecraft — the server is letting ${res.nick} in.`);
   }
   await answer();
 }
@@ -326,10 +326,10 @@ export async function onRequestGet({ request, env }) {
       allowed_updates: ['message', 'callback_query'],
     });
     const menu = await bot.call('setChatMenuButton', {
-      menu_button: { type: 'web_app', text: '📷 Скан', web_app: { url: `${origin}/tg` } },
+      menu_button: { type: 'web_app', text: 'Scan', web_app: { url: `${origin}/tg` } },
     });
     const commands = await bot.call('setMyCommands', {
-      commands: [{ command: 'start', description: 'Вход на сервер Minecraft' }],
+      commands: [{ command: 'start', description: 'Minecraft sign-in' }],
     });
     return json({
       success: Boolean(webhook?.ok),
