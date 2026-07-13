@@ -1,0 +1,43 @@
+name: Build Minecraft plugin
+
+on:
+  push:
+    paths:
+      - 'minecraft-plugin/**'
+      - '.github/workflows/plugin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        working-directory: minecraft-plugin
+        run: gradle build --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KidAuth
+          path: minecraft-plugin/build/libs/*.jar
+
+      # a stable download link that always points at the freshest jar:
+      # .../releases/download/plugin-latest/KidAuth-1.0.0.jar
+      - name: Publish to the plugin-latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: plugin-latest
+          name: KidAuth plugin (latest build)
+          body: Automatically built from the newest minecraft-plugin sources.
+          files: minecraft-plugin/build/libs/*.jar
