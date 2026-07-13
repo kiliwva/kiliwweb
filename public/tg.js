@@ -332,12 +332,43 @@
 
   $('tg-back').addEventListener('click', home);
 
+  /* --- linked Minecraft nickname --- */
+
+  function setNick(nick) {
+    const unlink = $('tg-unlink');
+    if (nick) {
+      $('tg-nick').textContent = nick;
+      $('tg-nick-sub').textContent = 'Minecraft nickname';
+      unlink.hidden = false;
+    } else {
+      $('tg-nick').textContent = 'Not linked';
+      $('tg-nick-sub').textContent = 'Join a server to link a nickname';
+      unlink.hidden = true;
+    }
+  }
+
+  $('tg-unlink').addEventListener('click', async () => {
+    const doUnlink = async () => {
+      $('tg-unlink').disabled = true;
+      const r = await api({ action: 'unlink' });
+      $('tg-unlink').disabled = false;
+      if (r.ok && r.data.success) setNick(null);
+    };
+    if (tg.showConfirm) {
+      tg.showConfirm('Unlink this nickname? Anyone will be able to claim it again.',
+        (ok) => { if (ok) doUnlink(); });
+    } else {
+      doUnlink();
+    }
+  });
+
   /* --- boot --- */
 
   (async () => {
     const { data } = await api({ action: 'auth' });
     if (!data.success) { show('tg-outside'); return; }
     $('tg-mail').textContent = data.tgName || 'Telegram';
+    setNick(data.mcNick || null);
     wireScan();
 
     /* opened from a startapp deep link or a web_app button (#mc_<token>) */

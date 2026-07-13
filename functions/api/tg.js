@@ -3,6 +3,7 @@ import {
 } from '../../lib/api.js';
 import {
   loadJoin, decideJoin, joinMeta, joinMetaLines, tgDeletePrev, tgStoreMsg,
+  getTgNick, unlinkTgNick,
 } from './mc.js';
 
 /* Telegram bot: Minecraft join approvals, tied to Telegram only —
@@ -192,7 +193,12 @@ export async function onRequestPost({ request, env }) {
   if (!tgUser) return json({ success: false, error: 'unauthorized' }, 401);
 
   if (action === 'auth') {
-    return json({ success: true, tgName: tgName(tgUser) });
+    return json({ success: true, tgName: tgName(tgUser), mcNick: await getTgNick(env, tgUser.id) });
+  }
+
+  if (action === 'unlink') {
+    const nick = await unlinkTgNick(env, tgUser.id);
+    return json({ success: true, unlinked: nick });
   }
 
   if (action === 'approve' || action === 'deny') {
@@ -244,6 +250,7 @@ export async function onRequestGet({ request, env }) {
     const tgWiped = await wipe('_auth/tg/');
     const linksWiped = await wipe('_auth/tglink/');
     const nicksWiped = await wipe('_auth/mcnick/');
+    await wipe('_auth/mctg/');
     /* clear the mirror fields left on user records by older builds */
     let usersCleared = 0;
     let cursor;

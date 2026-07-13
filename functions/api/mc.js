@@ -23,6 +23,30 @@ const NICK_RE = /^[A-Za-z0-9_]{3,16}$/;
 
 const key = (token) => `_auth/mc/${token}.json`;
 const nickKey = (nick) => `_auth/mcnick/${nick.toLowerCase()}.json`;
+/* reverse index so a Telegram user can see / unlink their nickname */
+const tgNickKey = (tgId) => `_auth/mctg/${tgId}.json`;
+
+/* the nickname currently linked to this Telegram, or null */
+export async function getTgNick(env, tgId) {
+  if (!tgId) return null;
+  const obj = await env.KILIW_FILES.get(tgNickKey(tgId));
+  if (!obj) return null;
+  const data = await obj.json().catch(() => null);
+  return (data && data.nick) || null;
+}
+
+/* unlink the nickname from this Telegram (frees it for anyone) */
+export async function unlinkTgNick(env, tgId) {
+  const nick = await getTgNick(env, tgId);
+  if (!nick) return null;
+  const bindObj = await env.KILIW_FILES.get(nickKey(nick));
+  const bind = bindObj ? await bindObj.json().catch(() => null) : null;
+  if (bind && bind.tgId === tgId) {
+    await env.KILIW_FILES.delete(nickKey(nick)).catch(() => {});
+  }
+  await env.KILIW_FILES.delete(tgNickKey(tgId)).catch(() => {});
+  return nick;
+}
 
 function serverAuthed(request, env) {
   const auth = request.headers.get('Authorization') || '';
@@ -193,6 +217,14 @@ export async function decideJoin(env, token, who, approve) {
     await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
       tgId: who.tgId,
       tgUsername: who.tgUsername || '',
+      created: Date.now(),
+    }));
+  }
+
+  /* keep the reverse index fresh so the mini app can show the nick */
+  if (who.tgId) {
+    await env.KILIW_FILES.put(tgNickKey(who.tgId), JSON.stringify({
+      nick: data.nick,
       created: Date.now(),
     }));
   }
