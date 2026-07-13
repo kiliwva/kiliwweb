@@ -172,7 +172,7 @@
     /* continuously ease the frame toward its target for buttery motion */
     const tick = () => {
       if (!cur || !tgt) { raf = 0; return; }
-      const k = 0.18;
+      const k = 0.24;
       let da = tgt.a - cur.a;
       da = ((da + 180) % 360 + 360) % 360 - 180; /* shortest rotation */
       const settled = Math.abs(tgt.x - cur.x) + Math.abs(tgt.y - cur.y)
@@ -289,7 +289,9 @@
                 hit = { text: codes[0].rawValue, corners: codes[0].cornerPoints };
               }
             } else if (window.jsQR) {
-              const w = Math.min(video.videoWidth, 1280);
+              /* keep the live decode light so it doesn't starve the
+                 animation frames; 640px reads screen codes fine */
+              const w = Math.min(video.videoWidth, 640);
               const h = Math.round(video.videoHeight * (w / video.videoWidth));
               canvas.width = w;
               canvas.height = h;
