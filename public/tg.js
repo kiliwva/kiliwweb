@@ -175,18 +175,33 @@
       video.srcObject = null;
     };
 
-    /* the aiming corners rest in the middle until a code is found */
-    const centerFrame = () => {
-      const s = Math.min(window.innerWidth * 0.62, 260);
-      frame.classList.remove('invalid');
-      frame.style.left = `${(window.innerWidth - s) / 2}px`;
-      frame.style.top = `${(window.innerHeight - s) / 2}px`;
-      frame.style.width = `${s}px`;
-      frame.style.height = `${s}px`;
+    const cornerEls = frame.querySelectorAll('.corner'); /* order TL, TR, BR, BL */
+
+    /* place the four L-brackets on the given screen points (in TL,TR,BR,BL
+       order); each rotates to follow the code's tilt */
+    const placeCorners = (pts, valid) => {
+      frame.classList.toggle('invalid', !valid);
+      const ang = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x) * 180 / Math.PI;
+      pts.forEach((p, i) => {
+        const c = cornerEls[i];
+        c.style.left = `${p.x}px`;
+        c.style.top = `${p.y}px`;
+        c.style.transform = `rotate(${ang + 90 * i}deg)`;
+      });
     };
 
-    /* move the orange corners to hug the detected QR (whole-screen aim) */
-    const aimAt = (corners, valid) => {
+    /* the aiming corners rest as a square in the middle until a code is found */
+    const centerFrame = () => {
+      const s = Math.min(window.innerWidth * 0.6, 250);
+      const x = (window.innerWidth - s) / 2;
+      const y = (window.innerHeight - s) / 2;
+      placeCorners([
+        { x, y }, { x: x + s, y }, { x: x + s, y: y + s }, { x, y: y + s },
+      ], true);
+    };
+
+    /* map native video corner points to on-screen pixels (object-fit: cover) */
+    const toScreen = (corners) => {
       const cw = overlay.clientWidth;
       const ch = overlay.clientHeight;
       const vw = video.videoWidth || cw;
@@ -194,18 +209,23 @@
       const coverScale = Math.max(cw / vw, ch / vh);
       const dx = (cw - vw * coverScale) / 2;
       const dy = (ch - vh * coverScale) / 2;
-      const xs = corners.map((p) => p.x * coverScale + dx);
-      const ys = corners.map((p) => p.y * coverScale + dy);
-      const pad = 12;
-      const x = Math.min(...xs) - pad;
-      const y = Math.min(...ys) - pad;
-      const w = Math.max(...xs) - Math.min(...xs) + pad * 2;
-      const h = Math.max(...ys) - Math.min(...ys) + pad * 2;
-      frame.classList.toggle('invalid', !valid);
-      frame.style.left = `${x}px`;
-      frame.style.top = `${y}px`;
-      frame.style.width = `${w}px`;
-      frame.style.height = `${h}px`;
+      return corners.map((p) => ({ x: p.x * coverScale + dx, y: p.y * coverScale + dy }));
+    };
+
+    /* corners snap onto the code's real (possibly tilted) corners */
+    const aimAt = (corners, valid) => {
+      const pts = toScreen(corners);
+      const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+      const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+      /* nudge each corner slightly outward so the brackets frame the code */
+      const out = pts.map((p) => {
+        const vx = p.x - cx;
+        const vy = p.y - cy;
+        const d = Math.hypot(vx, vy) || 1;
+        const k = (d + 10) / d;
+        return { x: cx + vx * k, y: cy + vy * k };
+      });
+      placeCorners(out, valid);
     };
 
     /* found our code: the corners snap onto it, then open confirmation */
