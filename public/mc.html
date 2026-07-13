@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>Join the server — K-ID</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=99">
+  <style>
+    .mc-card { text-align: center; }
+    .mc-ico {
+      width: 56px; height: 56px;
+      margin: 6px auto 18px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 16px;
+      color: #E8A38B;
+      background: rgba(217, 119, 87, 0.10);
+      border: 1px solid rgba(217, 119, 87, 0.2);
+    }
+    .mc-ico svg { width: 26px; height: 26px; }
+    .mc-strong { font-weight: 800; color: var(--text); }
+    .mc-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+    .mc-ok { font-size: 42px; margin: 10px 0 6px; }
+    .mc-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <div class="scene">
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+
+    <main class="card mc-card">
+      <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
+
+      <div id="mc-loading"><p class="subtitle">One moment…</p></div>
+
+      <div id="mc-ask" hidden>
+        <span class="mc-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+        </span>
+        <h1 class="title" style="font-size:24px">Join the server?</h1>
+        <p class="subtitle">Let <span class="mc-strong" id="mc-server"></span> log you in as
+          <span class="mc-strong" id="mc-nick"></span>?<br>
+          Signed in as <span class="mc-strong" id="mc-mail"></span>.</p>
+        <div class="mc-actions">
+          <button type="button" class="submit" id="mc-approve">Yes, that&rsquo;s me</button>
+          <button type="button" class="ghost-btn" id="mc-deny">Deny</button>
+        </div>
+        <p class="mc-note">The first approval ties this nickname to your K-ID —
+          nobody else will be able to join under it.</p>
+      </div>
+
+      <div id="mc-done" hidden>
+        <p class="mc-ok">✓</p>
+        <h1 class="title" style="font-size:24px">You're in</h1>
+        <p class="subtitle">Switch back to Minecraft — the server is unfreezing you.</p>
+      </div>
+
+      <div id="mc-denied" hidden>
+        <h1 class="title" style="font-size:24px">Denied</h1>
+        <p class="subtitle">The join was rejected. You can close this page.</p>
+      </div>
+
+      <div id="mc-taken" hidden>
+        <h1 class="title" style="font-size:24px">Nickname taken</h1>
+        <p class="subtitle">This nickname is tied to a different K-ID account.
+          Sign in with that account or pick another nickname in the game.</p>
+      </div>
+
+      <div id="mc-login" hidden>
+        <h1 class="title" style="font-size:24px">Sign in first</h1>
+        <p class="subtitle">Sign in to your K-ID, then open the link from the game chat again.</p>
+        <div class="mc-actions">
+          <a class="submit" style="display:block;text-decoration:none" href="/login">Sign in</a>
+        </div>
+      </div>
+
+      <div id="mc-bad" hidden>
+        <h1 class="title" style="font-size:24px">Link expired</h1>
+        <p class="subtitle">Rejoin the server to get a fresh link in the chat.</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (async () => {
+      const panes = ['mc-loading', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-login', 'mc-bad'];
+      const show = (id) => panes.forEach((s) => { document.getElementById(s).hidden = s !== id; });
+      const token = (window.location.hash || '').slice(1);
+      if (!/^[0-9a-f]{24,64}$/.test(token)) { show('mc-bad'); return; }
+
+      const [me, info] = await Promise.all([
+        fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null),
+      ]);
+      if (!info || info.status !== 'pending') { show('mc-bad'); return; }
+      if (!me || !me.email) { show('mc-login'); return; }
+
+      document.getElementById('mc-server').textContent = info.server;
+      document.getElementById('mc-nick').textContent = info.nick;
+      document.getElementById('mc-mail').textContent = me.email;
+      show('mc-ask');
+
+      document.getElementById('mc-deny').addEventListener('click', async () => {
+        await fetch('/api/mc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'deny', token }),
+        }).catch(() => null);
+        show('mc-denied');
+      });
+
+      document.getElementById('mc-approve').addEventListener('click', async () => {
+        const btn = document.getElementById('mc-approve');
+        btn.disabled = true;
+        const res = await fetch('/api/mc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve', token }),
+        }).catch(() => null);
+        const data = res ? await res.json().catch(() => ({})) : {};
+        if (res && res.ok && data.success) {
+          show('mc-done');
+        } else if (data.error === 'nick-taken') {
+          show('mc-taken');
+        } else {
+          btn.disabled = false;
+          show('mc-bad');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

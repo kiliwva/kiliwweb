@@ -1,0 +1,26 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.kiliw'
+version = '1.0.0'
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+    maven { url = 'https://jitpack.io' }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:1.21.1-R0.1-SNAPSHOT'
+    // optional premium-skip integration
+    compileOnly 'com.github.games647:fastlogin.bukkit:1.11'
+}
+
+jar {
+    archiveBaseName = 'KidAuth'
+}

@@ -1,0 +1,19 @@
+# K-ID auth — https://id.kiliw.com
+
+# Where the Kiliw API lives. Leave as is unless you self-host.
+api-url: "https://id.kiliw.com"
+
+# The MC_API_KEY secret from the Cloudflare dashboard (Workers ->
+# Settings -> Variables and Secrets). The plugin refuses to work
+# without it.
+api-key: ""
+
+# Shown to players on the approval page ("Let <server-name> log you in...").
+server-name: "My Kiliw server"
+
+# Kick players who have not approved the link after this many seconds.
+auth-timeout-seconds: 240
+
+# Remember a successful sign-in for the same nick + IP this long.
+# 0 = ask on every join.
+remember-hours: 12

@@ -1,0 +1,7 @@
+name: KidAuth
+version: 1.0.0
+main: com.kiliw.kid.KidAuthPlugin
+api-version: '1.21'
+description: K-ID sign-in for offline-mode servers (id.kiliw.com)
+author: Kiliw
+softdepend: [FastLogin]
