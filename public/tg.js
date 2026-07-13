@@ -106,8 +106,11 @@
     });
   }
 
+  /* returns { token } for our code, { invalid: true } for some other QR,
+     or null when no QR is found at all */
   async function decodeImage(file) {
     if (!window.jsQR) return null;
+    let sawQr = false;
     try {
       const im = await loadImage(file);
       /* try a big and a small render: photos decode better downscaled,
@@ -124,12 +127,13 @@
         const img = ctx.getImageData(0, 0, w, h);
         const hit = window.jsQR(img.data, w, h);
         if (hit) {
+          sawQr = true;
           const token = tokenFrom(hit.data);
-          if (token) return token;
+          if (token) return { token };
         }
       }
     } catch (e) { /* not an image */ }
-    return null;
+    return sawQr ? { invalid: true } : null;
   }
 
   /* --- the in-app scanner: our own camera view + file picker --- */
@@ -173,8 +177,14 @@
       y: p.y * coverScale + dy,
     });
 
-    /* draw the "locked on" box over the detected QR */
-    const drawBox = (corners) => {
+    const clearHl = () => {
+      hlCtx.setTransform(1, 0, 0, 1, 0, 0);
+      hlCtx.clearRect(0, 0, hl.width, hl.height);
+    };
+
+    /* draw corner brackets over the detected QR (orange = valid,
+       red = not one of ours) */
+    const drawBox = (corners, valid) => {
       const cw = overlay.clientWidth;
       const ch = overlay.clientHeight;
       const dpr = window.devicePixelRatio || 1;
@@ -188,15 +198,15 @@
       const dx = (cw - vw * coverScale) / 2;
       const dy = (ch - vh * coverScale) / 2;
       const pts = corners.map((p) => mapPoint(p, coverScale, dx, dy));
-      /* subtle fill so the locked code reads as "captured" */
+      const stroke = valid ? '#F2A47B' : '#E5484D';
+      const fill = valid ? 'rgba(242, 164, 123, .18)' : 'rgba(229, 72, 77, .18)';
       hlCtx.beginPath();
       pts.forEach((p, i) => (i ? hlCtx.lineTo(p.x, p.y) : hlCtx.moveTo(p.x, p.y)));
       hlCtx.closePath();
-      hlCtx.fillStyle = 'rgba(242, 164, 123, .18)';
+      hlCtx.fillStyle = fill;
       hlCtx.fill();
-      /* corner brackets snapping onto the code (no moving line) */
       const lerp = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-      hlCtx.strokeStyle = '#F2A47B';
+      hlCtx.strokeStyle = stroke;
       hlCtx.lineWidth = 5;
       hlCtx.lineCap = 'round';
       hlCtx.lineJoin = 'round';
@@ -213,19 +223,31 @@
       });
     };
 
-    /* found a code: aim at it, then open the confirmation */
+    /* found our code: aim at it, then open the confirmation */
     const lockOnto = (token, corners) => {
       locked = true;
       scanning = false;
       frame.hidden = true;
-      if (corners) drawBox(corners);
+      if (corners) drawBox(corners, true);
       statusEl.textContent = 'Found it';
       setTimeout(() => {
-        const s = stream;
         stop();
-        if (!s) { /* already stopped */ }
         openToken(token);
       }, 420);
+    };
+
+    /* some other QR: aim at it in red, say invalid, then keep scanning */
+    let coolUntil = 0;
+    const showInvalid = (corners) => {
+      if (corners) drawBox(corners, false);
+      statusEl.textContent = 'Invalid QR code';
+      coolUntil = Date.now() + 1400;
+      setTimeout(() => {
+        if (scanning && Date.now() >= coolUntil - 20) {
+          clearHl();
+          statusEl.textContent = 'Point at the code';
+        }
+      }, 1400);
     };
 
     async function scanLoop() {
@@ -236,7 +258,7 @@
         try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { detector = null; }
       }
       while (scanning) {
-        if (video.readyState >= 2) {
+        if (video.readyState >= 2 && Date.now() >= coolUntil) {
           try {
             let hit = null; /* { text, corners(native px) } */
             if (detector) {
@@ -265,7 +287,7 @@
             if (hit) {
               const token = tokenFrom(hit.text);
               if (token) { lockOnto(token, hit.corners); return; }
-              statusEl.textContent = 'Not a K-MCID code';
+              showInvalid(hit.corners);
             }
           } catch (e) { /* keep scanning */ }
         }
@@ -333,10 +355,12 @@
       input.value = '';
       if (!file) return;
       statusEl.textContent = 'Scanning the image…';
-      const token = await decodeImage(file);
-      if (token) {
+      const res = await decodeImage(file);
+      if (res && res.token) {
         stop();
-        openToken(token);
+        openToken(res.token);
+      } else if (res && res.invalid) {
+        statusEl.textContent = 'Invalid QR code';
       } else {
         statusEl.textContent = 'No code found in that image — try another';
       }
