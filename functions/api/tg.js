@@ -24,6 +24,11 @@ import { approveLogin } from './mclogin.js';
 
 const botReady = (env) => Boolean(env.TG_BOT_TOKEN && env.TG_BOT_USERNAME);
 
+/* Mini-app URL with a version query so Telegram's webview reloads the
+   page instead of serving a stale cached script. Bump on tg.js changes. */
+const MINIAPP_V = '152';
+const miniApp = (origin, hash) => `${origin}/tg?v=${MINIAPP_V}${hash ? `#${hash}` : ''}`;
+
 /* id.<domain> origin (or the same origin in single-host dev) */
 function idOrigin(request) {
   const url = new URL(request.url);
@@ -139,7 +144,7 @@ async function handleStart(env, bot, origin, msg, param) {
         + (meta.length ? `\n\n${meta.join('\n')}` : '')
         + '\n\nOpen to review and confirm.',
       reply_markup: { inline_keyboard: [
-        [{ text: 'Review & confirm', web_app: { url: `${origin}/tg#mc_${token}` } }],
+        [{ text: 'Review & confirm', web_app: { url: miniApp(origin, `mc_${token}`) } }],
       ] },
     });
     return;
@@ -151,7 +156,7 @@ async function handleStart(env, bot, origin, msg, param) {
     await sendTracked(env, bot, chatId, {
       text: `Panel sign-in\n\nSomeone is signing in to the K-MCID panel as ${tgName(from)}.\n\nOpen to confirm — only approve if this is you.`,
       reply_markup: { inline_keyboard: [
-        [{ text: 'Review & confirm', web_app: { url: `${origin}/tg#login_${token}` } }],
+        [{ text: 'Review & confirm', web_app: { url: miniApp(origin, `login_${token}`) } }],
       ] },
     });
     return;
@@ -161,7 +166,7 @@ async function handleStart(env, bot, origin, msg, param) {
   await sendTracked(env, bot, chatId, {
     text: 'Welcome to K-MCID.\n\nWhen you join a Minecraft server, the sign-in request appears here — nothing to set up. The first approval ties your nickname to this Telegram, so no one else can join under it.\n\nYou can also scan a sign-in code shown on a computer screen:',
     reply_markup: { inline_keyboard: [[
-      { text: 'Scan a code', web_app: { url: `${origin}/tg` } },
+      { text: 'Scan a code', web_app: { url: miniApp(origin) } },
     ]] },
   });
 }
@@ -322,7 +327,7 @@ export async function onRequestGet({ request, env }) {
       allowed_updates: ['message'],
     });
     const menu = await bot.call('setChatMenuButton', {
-      menu_button: { type: 'web_app', text: 'Scan', web_app: { url: `${origin}/tg` } },
+      menu_button: { type: 'web_app', text: 'Scan', web_app: { url: miniApp(origin) } },
     });
     const commands = await bot.call('setMyCommands', {
       commands: [{ command: 'start', description: 'Minecraft sign-in' }],
