@@ -8,8 +8,11 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Statistic;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -81,6 +84,8 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     private String serverName;
     private int timeoutSeconds;
     private long rememberMillis;
+    private boolean statsEnabled;
+    private int statsIntervalSeconds;
 
     private record Pending(String token, String poll, BukkitTask pollTask, BukkitTask timeoutTask,
                            boolean gaveMap, ItemStack offhandPrev) { }
@@ -95,12 +100,19 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         serverName = getConfig().getString("server-name", "Minecraft server");
         timeoutSeconds = getConfig().getInt("auth-timeout-seconds", 240);
         rememberMillis = getConfig().getLong("remember-hours", 12) * 60L * 60L * 1000L;
+        statsEnabled = getConfig().getBoolean("stats-enabled", true);
+        statsIntervalSeconds = Math.max(3, getConfig().getInt("stats-interval-seconds", 10));
 
         if (apiKey.isBlank()) {
             getLogger().severe("api-key is empty — set it in config.yml (the MC_API_KEY from your Kiliw dashboard).");
         }
         Bukkit.getPluginManager().registerEvents(this, this);
         FastLoginHook.tryRegister(this);
+
+        if (statsEnabled) {
+            long period = statsIntervalSeconds * 20L;
+            Bukkit.getScheduler().runTaskTimer(this, this::pushStats, period, period);
+        }
         getLogger().info("K-ID auth enabled, endpoint: " + apiUrl);
     }
 
@@ -413,14 +425,94 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        loginIps.remove(e.getPlayer().getName().toLowerCase());
-        Pending p = pending.remove(e.getPlayer().getUniqueId());
+        Player player = e.getPlayer();
+        loginIps.remove(player.getName().toLowerCase());
+        Pending p = pending.remove(player.getUniqueId());
         if (p != null) {
             p.pollTask().cancel();
             p.timeoutTask().cancel();
-            restoreOffhand(e.getPlayer(), p);
-            e.getPlayer().setInvulnerable(false);
+            restoreOffhand(player, p);
+            player.setInvulnerable(false);
+        } else if (statsEnabled && !apiKey.isBlank()) {
+            /* one final snapshot marking them offline */
+            JsonArray players = new JsonArray();
+            players.add(snapshot(player, false));
+            JsonObject payload = new JsonObject();
+            payload.addProperty("action", "stats");
+            payload.add("players", players);
+            final String body = gson.toJson(payload);
+            Bukkit.getScheduler().runTaskAsynchronously(this, () -> api("POST", "/api/mc", body, null));
         }
+    }
+
+    /* ---------- player statistics ---------- */
+
+    /** collect every online player's snapshot on the main thread, then
+     *  ship it to the web app asynchronously */
+    private void pushStats() {
+        if (!statsEnabled || apiKey.isBlank()) return;
+        JsonArray players = new JsonArray();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (pending.containsKey(p.getUniqueId())) continue; /* still signing in */
+            players.add(snapshot(p, true));
+        }
+        if (players.isEmpty()) return;
+        JsonObject payload = new JsonObject();
+        payload.addProperty("action", "stats");
+        payload.add("players", players);
+        final String body = gson.toJson(payload);
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> api("POST", "/api/mc", body, null));
+    }
+
+    private long stat(Player p, Statistic s) {
+        try {
+            return p.getStatistic(s);
+        } catch (RuntimeException e) {
+            return 0;
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private JsonObject snapshot(Player p, boolean online) {
+        JsonObject o = new JsonObject();
+        o.addProperty("nick", p.getName());
+        o.addProperty("uuid", p.getUniqueId().toString());
+        o.addProperty("online", online);
+        Location loc = p.getLocation();
+        o.addProperty("world", loc.getWorld() != null ? loc.getWorld().getName() : "");
+        o.addProperty("x", (int) Math.floor(loc.getX()));
+        o.addProperty("y", (int) Math.floor(loc.getY()));
+        o.addProperty("z", (int) Math.floor(loc.getZ()));
+        o.addProperty("health", Math.round(p.getHealth()));
+        o.addProperty("maxHealth", (int) Math.round(p.getMaxHealth()));
+        o.addProperty("food", p.getFoodLevel());
+        o.addProperty("level", p.getLevel());
+        o.addProperty("gamemode", p.getGameMode().name());
+        o.addProperty("ping", p.getPing());
+        o.addProperty("playMinutes", stat(p, Statistic.PLAY_ONE_MINUTE) / 1200);
+        o.addProperty("deaths", stat(p, Statistic.DEATHS));
+        o.addProperty("mobKills", stat(p, Statistic.MOB_KILLS));
+        o.addProperty("playerKills", stat(p, Statistic.PLAYER_KILLS));
+        o.addProperty("jumps", stat(p, Statistic.JUMP));
+        o.addProperty("distanceKm", Math.round(stat(p, Statistic.WALK_ONE_CM) / 1000.0) / 100.0);
+        o.addProperty("sessions", stat(p, Statistic.LEAVE_GAME));
+        o.addProperty("firstPlayed", p.getFirstPlayed());
+        o.addProperty("lastPlayed", System.currentTimeMillis());
+
+        JsonArray inv = new JsonArray();
+        PlayerInventory pi = p.getInventory();
+        ItemStack[] contents = pi.getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack it = contents[i];
+            if (it == null || it.getType() == Material.AIR) continue;
+            JsonObject item = new JsonObject();
+            item.addProperty("slot", i);
+            item.addProperty("type", it.getType().getKey().getKey()); /* e.g. "diamond_sword" */
+            item.addProperty("amount", it.getAmount());
+            inv.add(item);
+        }
+        o.add("inventory", inv);
+        return o;
     }
 
     /* ---------- tiny HTTP helper ---------- */

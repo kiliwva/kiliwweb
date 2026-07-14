@@ -17,3 +17,10 @@ auth-timeout-seconds: 240
 # Remember a successful sign-in for the same nick + IP this long.
 # 0 = ask on every join.
 remember-hours: 12
+
+# Send player statistics (coords, vitals, inventory, play stats) to the
+# web app so players can see them in the Telegram bot. Set false to disable.
+stats-enabled: true
+
+# How often to push the online players' stats, in seconds.
+stats-interval-seconds: 10

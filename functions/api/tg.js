@@ -3,7 +3,7 @@ import {
 } from '../../lib/api.js';
 import {
   loadJoin, decideJoin, joinMeta, joinMetaLines, tgDeletePrev, tgStoreMsg,
-  getTgNick, unlinkTgNick,
+  getTgNick, unlinkTgNick, getMcStats,
 } from './mc.js';
 
 /* Telegram bot: Minecraft join approvals, tied to Telegram only —
@@ -199,6 +199,12 @@ export async function onRequestPost({ request, env }) {
   if (action === 'unlink') {
     const nick = await unlinkTgNick(env, tgUser.id);
     return json({ success: true, unlinked: nick });
+  }
+
+  if (action === 'stats') {
+    const nick = await getTgNick(env, tgUser.id);
+    if (!nick) return json({ success: true, nick: null, stats: null });
+    return json({ success: true, nick, stats: await getMcStats(env, nick) });
   }
 
   if (action === 'approve' || action === 'deny') {

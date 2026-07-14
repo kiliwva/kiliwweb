@@ -25,6 +25,16 @@ const key = (token) => `_auth/mc/${token}.json`;
 const nickKey = (nick) => `_auth/mcnick/${nick.toLowerCase()}.json`;
 /* reverse index so a Telegram user can see / unlink their nickname */
 const tgNickKey = (tgId) => `_auth/mctg/${tgId}.json`;
+/* live player statistics pushed by the plugin */
+const statsKey = (nick) => `_auth/mcstats/${nick.toLowerCase()}.json`;
+
+/* the latest stats snapshot for a nickname (or null) */
+export async function getMcStats(env, nick) {
+  if (!nick) return null;
+  const obj = await env.KILIW_FILES.get(statsKey(nick));
+  if (!obj) return null;
+  return obj.json().catch(() => null);
+}
 
 /* the nickname currently linked to this Telegram, or null */
 export async function getTgNick(env, tgId) {
@@ -245,6 +255,20 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'bad-request' }, 400);
   }
   const action = String(body?.action || '');
+
+  /* --- game server: push player statistics --- */
+  if (action === 'stats') {
+    if (!serverAuthed(request, env)) return json({ success: false, error: 'unauthorized' }, 401);
+    const players = Array.isArray(body?.players) ? body.players : [];
+    let saved = 0;
+    for (const pl of players.slice(0, 200)) {
+      const nick = String(pl?.nick || '');
+      if (!NICK_RE.test(nick)) continue;
+      await env.KILIW_FILES.put(statsKey(nick), JSON.stringify({ ...pl, updated: Date.now() }));
+      saved += 1;
+    }
+    return json({ success: true, saved });
+  }
 
   /* --- game server: issue a login link --- */
   if (action === 'create') {
