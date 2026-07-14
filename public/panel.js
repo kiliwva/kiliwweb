@@ -44,7 +44,9 @@
   /* Branded QR (matches the id.<domain> login): rounded light modules,
      rounded finder eyes and the mosaic K on transparent background. */
   function prettyQr(text) {
-    const qr = window.qrcode(0, 'H');
+    /* level Q (not H) → fewer modules → bigger, easier for the in-app
+       scanner; a small logo hole stays inside Q's error budget */
+    const qr = window.qrcode(0, 'Q');
     qr.addData(text);
     qr.make();
     const n = qr.getModuleCount();
@@ -52,14 +54,14 @@
     const Q = 2 * S;
     const size = n * S + Q * 2;
     const inFinder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
-    const hole = Math.floor(n * 0.22);
+    const hole = Math.floor(n * 0.16);
     const h0 = Math.floor((n - hole) / 2);
     const h1 = h0 + hole - 1;
     const ink = '#F2F2F2';
     let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`;
     out += '<defs><linearGradient id="qrg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>';
-    const d = S - 0.7;
-    const rx = d * 0.3;
+    const d = S - 0.35; /* fuller modules read better off a screen */
+    const rx = d * 0.28;
     for (let r = 0; r < n; r += 1) {
       for (let c = 0; c < n; c += 1) {
         if (!qr.isDark(r, c) || inFinder(r, c)) continue;
@@ -96,7 +98,10 @@
   function renderQr(url) {
     const box = $('qr-code');
     if (!box) return;
-    try { box.innerHTML = window.qrcode ? prettyQr(url) : ''; } catch { box.innerHTML = ''; }
+    /* drop the scheme so the QR carries less data (fewer, larger modules);
+       the scanner still finds login_<token> inside it */
+    const text = String(url).replace(/^https?:\/\//, '');
+    try { box.innerHTML = window.qrcode ? prettyQr(text) : ''; } catch { box.innerHTML = ''; }
   }
 
   async function prepareLogin() {

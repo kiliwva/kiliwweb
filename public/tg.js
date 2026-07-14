@@ -357,9 +357,11 @@
               if (codes.length) {
                 hit = { text: codes[0].rawValue, corners: codes[0].cornerPoints };
               }
-            } else if (window.jsQR) {
-              /* keep the live decode light so it doesn't starve the
-                 animation frames; 640px reads screen codes fine */
+            }
+            /* jsQR fallback runs even when a native detector exists but
+               missed — it tries both polarities, so light-on-dark /
+               stylized codes (like the panel QR) still read */
+            if (!hit && window.jsQR) {
               const w = Math.min(video.videoWidth, 640);
               const h = Math.round(video.videoHeight * (w / video.videoWidth));
               canvas.width = w;
