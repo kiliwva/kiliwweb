@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=148">
+  <link rel="stylesheet" href="styles.css?v=149">
   <style>
     html, body { background: #0C0C0C; }
     body { min-height: 100dvh; }
@@ -82,8 +82,8 @@
     .pnl-row span { font-size: 12.5px; color: var(--muted); }
     .pnl-id { font-family: ui-monospace, monospace; font-size: 14px; color: var(--text); }
     .pnl-build { text-align: center; margin-top: 30px; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: rgba(255,255,255,.28); }
-    .qr-box { display: inline-block; margin: 6px auto 4px; padding: 14px; background: #fff; border-radius: 16px; }
-    .qr-box canvas { display: block; width: 250px; height: 250px; image-rendering: pixelated; }
+    .qr-box { display: inline-block; margin: 10px auto 6px; }
+    #qr-code svg { display: block; width: 260px; height: 260px; }
   </style>
 </head>
 <body>
@@ -116,7 +116,7 @@
       <!-- computers: scan the QR with the bot's in-app scanner -->
       <div id="login-qr" hidden>
         <p class="subtitle">Open the <b>K-MCID</b> bot on your phone, tap <b>Scan a code</b>, and point it at this QR.</p>
-        <div class="qr-box"><canvas id="qr-canvas" width="250" height="250"></canvas></div>
+        <div class="qr-box"><div id="qr-code"></div></div>
         <p class="mc-status" id="qr-status">Waiting for the scan…</p>
         <p class="mc-note" id="login-bot-qr"></p>
       </div>
@@ -180,9 +180,10 @@
       </div>
     </div>
 
-    <p class="pnl-build" id="pnl-build">KW-100</p>
+    <p class="pnl-build" id="pnl-build">KW-101</p>
   </div>
 
-  <script src="panel.js?v=148"></script>
+  <script src="vendor/qrcode.min.js"></script>
+  <script src="panel.js?v=149"></script>
 </body>
 </html>

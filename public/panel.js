@@ -41,23 +41,62 @@
   const isComputer = window.matchMedia('(pointer: fine)').matches
     && !window.matchMedia('(pointer: coarse)').matches;
 
-  function renderQr(rows) {
-    const canvas = $('qr-canvas');
-    if (!canvas || !rows || !rows.length) return;
-    const n = rows.length;
-    const quiet = 2;
-    const size = canvas.width;
-    const scale = Math.floor(size / (n + quiet * 2));
-    const off = Math.floor((size - scale * n) / 2);
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = '#000';
+  /* Branded QR (matches the id.<domain> login): rounded light modules,
+     rounded finder eyes and the mosaic K on transparent background. */
+  function prettyQr(text) {
+    const qr = window.qrcode(0, 'H');
+    qr.addData(text);
+    qr.make();
+    const n = qr.getModuleCount();
+    const S = 8;
+    const Q = 2 * S;
+    const size = n * S + Q * 2;
+    const inFinder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+    const hole = Math.floor(n * 0.22);
+    const h0 = Math.floor((n - hole) / 2);
+    const h1 = h0 + hole - 1;
+    const ink = '#F2F2F2';
+    let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`;
+    out += '<defs><linearGradient id="qrg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>';
+    const d = S - 0.7;
+    const rx = d * 0.3;
     for (let r = 0; r < n; r += 1) {
       for (let c = 0; c < n; c += 1) {
-        if (rows[r][c] === '1') ctx.fillRect(off + c * scale, off + r * scale, scale, scale);
+        if (!qr.isDark(r, c) || inFinder(r, c)) continue;
+        if (r >= h0 && r <= h1 && c >= h0 && c <= h1) continue;
+        out += `<rect x="${(Q + c * S + 0.35).toFixed(2)}" y="${(Q + r * S + 0.35).toFixed(2)}" width="${d}" height="${d}" rx="${rx.toFixed(1)}" fill="${ink}"/>`;
       }
     }
+    const rr = (x, y, w, h, r) => `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 -${r} ${r}h${-(w - 2 * r)}a${r} ${r} 0 0 1 -${r} -${r}v${-(h - 2 * r)}a${r} ${r} 0 0 1 ${r} -${r}Z`;
+    const eye = (x, y) => {
+      const o = 7 * S; const i = 5 * S; const p = 3 * S;
+      return `<path fill-rule="evenodd" fill="${ink}" d="${rr(x, y, o, o, 2.4 * S)}${rr(x + S, y + S, i, i, 1.7 * S)}"/><rect x="${x + 2 * S}" y="${y + 2 * S}" width="${p}" height="${p}" rx="${1.1 * S}" fill="${ink}"/>`;
+    };
+    out += eye(Q, Q) + eye(Q + (n - 7) * S, Q) + eye(Q, Q + (n - 7) * S);
+    const tile = hole * S;
+    const tx = Q + h0 * S;
+    const ty = Q + h0 * S;
+    const mScale = (tile * 0.66) / 17.1;
+    const mw = 12.6 * mScale;
+    const ox = tx + (tile - mw) / 2 - 5.7 * mScale;
+    const oy = ty + tile * 0.17 - 3.45 * mScale;
+    const cell = (cx, cy, grad) => {
+      const px = (ox + cx * mScale).toFixed(1);
+      const py = (oy + cy * mScale).toFixed(1);
+      const wl = (3.6 * mScale).toFixed(1);
+      const cr = (1.1 * mScale).toFixed(1);
+      return `<rect x="${px}" y="${py}" width="${wl}" height="${wl}" rx="${cr}" fill="${grad ? 'url(#qrg)' : '#F2F2F2'}"/>`;
+    };
+    out += cell(5.7, 3.45) + cell(5.7, 7.95) + cell(5.7, 12.45) + cell(5.7, 16.95);
+    out += cell(10.2, 7.95, 1) + cell(14.7, 3.45, 1) + cell(10.2, 12.45, 1) + cell(14.7, 16.95, 1);
+    out += '</svg>';
+    return out;
+  }
+
+  function renderQr(url) {
+    const box = $('qr-code');
+    if (!box) return;
+    try { box.innerHTML = window.qrcode ? prettyQr(url) : ''; } catch { box.innerHTML = ''; }
   }
 
   async function prepareLogin() {
@@ -73,7 +112,7 @@
     loginToken = r.token;
     loginPoll = r.poll;
     if (isComputer) {
-      renderQr(r.qr);
+      renderQr(r.botUrl);
       $('login-bot-qr').textContent = r.bot ? `Bot: @${r.bot}` : '';
       $('qr-status').textContent = 'Waiting for the scan…';
     } else {
