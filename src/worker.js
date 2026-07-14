@@ -38,6 +38,7 @@ import * as oauth from '../functions/api/oauth.js';
 import * as qr from '../functions/api/qr.js';
 import * as mc from '../functions/api/mc.js';
 import * as tg from '../functions/api/tg.js';
+import * as mclogin from '../functions/api/mclogin.js';
 import { handleShare } from '../functions/share.js';
 import { handleDirect, handlePresignedUpload } from '../functions/direct.js';
 import { json, purgeExpiredAccounts } from '../lib/api.js';
@@ -79,6 +80,7 @@ const ROUTES = {
   '/api/qr': qr,
   '/api/mc': mc,
   '/api/tg': tg,
+  '/api/mclogin': mclogin,
 };
 
 function dispatch(mod, context) {
