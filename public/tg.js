@@ -141,6 +141,20 @@
     return m ? m[1] : null;
   };
 
+  /* a scanned/opened QR is either a Minecraft join or a web-panel login */
+  const classifyQr = (text) => {
+    const mc = tokenFrom(text);
+    if (mc) return { kind: 'mc', token: mc };
+    const lg = loginFrom(text);
+    if (lg) return { kind: 'login', token: lg };
+    return null;
+  };
+
+  const openParsed = (parsed) => {
+    if (parsed.kind === 'login') openLogin(parsed.token);
+    else openToken(parsed.token);
+  };
+
   /* --- confirming a web-panel sign-in (mcid.<domain>) --- */
   let myName = 'Telegram';
 
@@ -169,8 +183,8 @@
     });
   }
 
-  /* returns { token } for our code, { invalid: true } for some other QR,
-     or null when no QR is found at all */
+  /* returns { kind, token } for one of our codes, { invalid: true } for
+     some other QR, or null when no QR is found at all */
   async function decodeImage(file) {
     if (!window.jsQR) return null;
     let sawQr = false;
@@ -191,8 +205,8 @@
         const hit = window.jsQR(img.data, w, h);
         if (hit) {
           sawQr = true;
-          const token = tokenFrom(hit.data);
-          if (token) return { token };
+          const parsed = classifyQr(hit.data);
+          if (parsed) return parsed;
         }
       }
     } catch (e) { /* not an image */ }
@@ -300,7 +314,7 @@
     };
 
     /* found our code: the corners snap onto it, then open confirmation */
-    const lockOnto = (token, corners) => {
+    const lockOnto = (parsed, corners) => {
       locked = true;
       scanning = false;
       if (corners) aimAt(corners, true);
@@ -308,7 +322,7 @@
       statusEl.textContent = 'Found it';
       setTimeout(() => {
         stop();
-        openToken(token);
+        openParsed(parsed);
       }, 460);
     };
 
@@ -364,8 +378,8 @@
               }
             }
             if (hit) {
-              const token = tokenFrom(hit.text);
-              if (token) { lockOnto(token, hit.corners); return; }
+              const parsed = classifyQr(hit.text);
+              if (parsed) { lockOnto(parsed, hit.corners); return; }
               showInvalid(hit.corners);
             }
           } catch (e) { /* keep scanning */ }
@@ -438,7 +452,7 @@
       if (res && res.token) {
         haptic.impact('medium');
         stop();
-        openToken(res.token);
+        openParsed(res);
       } else if (res && res.invalid) {
         haptic.notify('error');
         statusEl.textContent = 'Invalid QR code';

@@ -3,6 +3,27 @@ import {
   createMcidSession, getMcidSession, destroyMcidSession, isMcidAdmin, isMcidAdminNick,
 } from '../../lib/api.js';
 import { getTgNick, unlinkTgNick } from './mc.js';
+import qrcode from '../../lib/qrcode.js';
+
+/* QR module matrix ("1" dark / "0" light rows) for a URL, drawn by the
+   desktop panel so it can be scanned with the bot's in-app scanner */
+function qrMatrix(url) {
+  try {
+    const q = qrcode(0, 'M');
+    q.addData(url);
+    q.make();
+    const n = q.getModuleCount();
+    const rows = [];
+    for (let r = 0; r < n; r += 1) {
+      let row = '';
+      for (let c = 0; c < n; c += 1) row += q.isDark(r, c) ? '1' : '0';
+      rows.push(row);
+    }
+    return rows;
+  } catch {
+    return null;
+  }
+}
 
 /* Telegram web-login for the panel at mcid.<domain>.
 
@@ -62,13 +83,15 @@ export async function onRequestPost({ request, env }) {
     await env.KILIW_FILES.put(loginKey(token), JSON.stringify({
       poll, status: 'pending', created: Date.now(), expires: Date.now() + LOGIN_TTL,
     }));
+    const botUrl = `https://t.me/${uname}?start=login_${token}`;
     return json({
       success: true,
       token,
       poll,
       bot: uname,
-      botUrl: `https://t.me/${uname}?start=login_${token}`,
+      botUrl,
       tgUrl: `tg://resolve?domain=${uname}&start=login_${token}`,
+      qr: qrMatrix(botUrl),
       ttl: LOGIN_TTL,
     });
   }

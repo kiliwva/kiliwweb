@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=147">
+  <link rel="stylesheet" href="styles.css?v=148">
   <style>
     html, body { background: #0C0C0C; }
     body { min-height: 100dvh; }
@@ -82,6 +82,8 @@
     .pnl-row span { font-size: 12.5px; color: var(--muted); }
     .pnl-id { font-family: ui-monospace, monospace; font-size: 14px; color: var(--text); }
     .pnl-build { text-align: center; margin-top: 30px; font-size: 11px; font-weight: 700; letter-spacing: .5px; color: rgba(255,255,255,.28); }
+    .qr-box { display: inline-block; margin: 6px auto 4px; padding: 14px; background: #fff; border-radius: 16px; }
+    .qr-box canvas { display: block; width: 250px; height: 250px; image-rendering: pixelated; }
   </style>
 </head>
 <body>
@@ -101,11 +103,23 @@
     <div id="view-login" class="pnl-card" hidden>
       <span class="tg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></span>
       <h1>Sign in</h1>
-      <p class="subtitle">Log in with the K-MCID Telegram bot. You confirm the sign-in inside Telegram.</p>
-      <a class="mc-act" id="btn-login">Sign in with Telegram</a>
-      <p class="mc-status" id="login-status"></p>
-      <p class="mc-note" id="login-bot"></p>
-      <p class="mc-note"><a id="btn-login-web" target="_blank" rel="noopener" style="color:#E8A38B;text-decoration:underline">Not opening? Open via t.me</a></p>
+
+      <!-- phones: open the bot directly -->
+      <div id="login-mobile" hidden>
+        <p class="subtitle">Log in with the K-MCID Telegram bot. You confirm the sign-in inside Telegram.</p>
+        <a class="mc-act" id="btn-login">Sign in with Telegram</a>
+        <p class="mc-status" id="login-status"></p>
+        <p class="mc-note" id="login-bot"></p>
+        <p class="mc-note"><a id="btn-login-web" target="_blank" rel="noopener" style="color:#E8A38B;text-decoration:underline">Not opening? Open via t.me</a></p>
+      </div>
+
+      <!-- computers: scan the QR with the bot's in-app scanner -->
+      <div id="login-qr" hidden>
+        <p class="subtitle">Open the <b>K-MCID</b> bot on your phone, tap <b>Scan a code</b>, and point it at this QR.</p>
+        <div class="qr-box"><canvas id="qr-canvas" width="250" height="250"></canvas></div>
+        <p class="mc-status" id="qr-status">Waiting for the scan…</p>
+        <p class="mc-note" id="login-bot-qr"></p>
+      </div>
     </div>
 
     <!-- waiting for bot confirmation -->
@@ -166,9 +180,9 @@
       </div>
     </div>
 
-    <p class="pnl-build" id="pnl-build">KW-99</p>
+    <p class="pnl-build" id="pnl-build">KW-100</p>
   </div>
 
-  <script src="panel.js?v=147"></script>
+  <script src="panel.js?v=148"></script>
 </body>
 </html>

@@ -36,26 +36,55 @@
   let loginPoll = null;
   let polling = false;
 
-  /* fetch a login token up front so the button is a real link the user
-     taps (opening a Telegram deep link after an await gets popup-blocked
-     on mobile — the click must navigate directly) */
+  /* a computer signs in only by QR (scanned with the bot's scanner); a
+     phone gets a button that opens the bot directly */
+  const isComputer = window.matchMedia('(pointer: fine)').matches
+    && !window.matchMedia('(pointer: coarse)').matches;
+
+  function renderQr(rows) {
+    const canvas = $('qr-canvas');
+    if (!canvas || !rows || !rows.length) return;
+    const n = rows.length;
+    const quiet = 2;
+    const size = canvas.width;
+    const scale = Math.floor(size / (n + quiet * 2));
+    const off = Math.floor((size - scale * n) / 2);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#000';
+    for (let r = 0; r < n; r += 1) {
+      for (let c = 0; c < n; c += 1) {
+        if (rows[r][c] === '1') ctx.fillRect(off + c * scale, off + r * scale, scale, scale);
+      }
+    }
+  }
+
   async function prepareLogin() {
-    $('login-status').textContent = 'Preparing…';
+    if (isComputer) { $('login-qr').hidden = false; $('login-mobile').hidden = true; } else { $('login-mobile').hidden = false; $('login-qr').hidden = true; }
+    const statusEl = isComputer ? $('qr-status') : $('login-status');
+    statusEl.textContent = 'Preparing…';
     const r = await post('/api/mclogin', { action: 'start' });
     if (!r.success) {
-      $('login-status').textContent = r.error === 'not-configured'
+      statusEl.textContent = r.error === 'not-configured'
         ? 'The bot is not configured yet.' : 'Could not reach the bot — reload the page.';
       return;
     }
     loginToken = r.token;
     loginPoll = r.poll;
-    /* primary button opens the Telegram app directly (tg://) — most
-       reliable when t.me web is throttled; t.me is the fallback link */
-    $('btn-login').href = r.tgUrl || r.botUrl;
-    $('btn-login-web').href = r.botUrl;
-    $('bot-link').href = r.botUrl;
-    $('login-bot').textContent = r.bot ? `Bot: @${r.bot}` : '';
-    $('login-status').textContent = 'Tap to open Telegram, then confirm there.';
+    if (isComputer) {
+      renderQr(r.qr);
+      $('login-bot-qr').textContent = r.bot ? `Bot: @${r.bot}` : '';
+      $('qr-status').textContent = 'Waiting for the scan…';
+    } else {
+      /* primary button opens the Telegram app directly (tg://) — most
+         reliable when t.me web is throttled; t.me is the fallback link */
+      $('btn-login').href = r.tgUrl || r.botUrl;
+      $('btn-login-web').href = r.botUrl;
+      $('bot-link').href = r.botUrl;
+      $('login-bot').textContent = r.bot ? `Bot: @${r.bot}` : '';
+      $('login-status').textContent = 'Tap to open Telegram, then confirm there.';
+    }
     if (!polling) { polling = true; pollLogin(); }
   }
 
