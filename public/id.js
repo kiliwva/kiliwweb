@@ -427,7 +427,10 @@ $('ses-others').addEventListener('click', async () => {
           if (detector) {
             const codes = await detector.detect(video);
             if (codes.length && found(codes[0].rawValue)) return;
-          } else if (window.jsQR) {
+          }
+          /* jsQR runs even when a native detector exists but missed, so a
+             stylized or light-on-dark code still reads */
+          if (window.jsQR) {
             const w = Math.min(video.videoWidth, 1280);
             const h = Math.round(video.videoHeight * (w / video.videoWidth));
             canvas.width = w;

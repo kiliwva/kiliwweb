@@ -1,7 +1,13 @@
 import {
   json, storageReady, getSession, getUser, createSession, randomHex,
-  afterAuthRedirect,
+  afterAuthRedirect, getCookie,
 } from '../../lib/api.js';
+
+/* a Minecraft join link parks its token here so sign-in returns to /mc */
+function mcNextRedirect(request) {
+  const t = getCookie(request, 'kiliw_next');
+  return t && /^[0-9a-f]{24,64}$/.test(t) ? `/mc#${t}` : null;
+}
 
 /* QR sign-in: a computer shows a QR, a signed-in phone scans and
    approves, the computer's poll turns into a session.
@@ -88,7 +94,7 @@ export async function onRequestGet({ request, env }) {
 
   const { cookie } = await createSession(env, data.email, request);
   return json(
-    { success: true, status: 'ok', redirect: afterAuthRedirect(request) },
+    { success: true, status: 'ok', redirect: mcNextRedirect(request) || afterAuthRedirect(request) },
     200,
     { 'Set-Cookie': cookie },
   );

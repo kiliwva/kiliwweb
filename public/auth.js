@@ -427,6 +427,33 @@ function prettyQr(text) {
   return out;
 }
 
+/* A plain, standard-polarity QR (dark modules on a white card with the
+   full 4-module quiet zone). Phone cameras and the site's own scanner use
+   BarcodeDetector, which reads normal QRs reliably but often refuses the
+   inverted, stylized one above — so the sign-in QR stays this shape. */
+function plainQr(text) {
+  const qr = window.qrcode(0, 'M');
+  qr.addData(text);
+  qr.make();
+  const n = qr.getModuleCount();
+  const S = 8;
+  const Q = 4 * S; /* quiet zone: 4 modules, per spec */
+  const size = n * S + Q * 2;
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`;
+  out += `<rect width="${size}" height="${size}" rx="16" fill="#ffffff"/>`;
+  out += '<path fill="#0C0C0C" d="';
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (!qr.isDark(r, c)) continue;
+      const x = Q + c * S;
+      const y = Q + r * S;
+      out += `M${x} ${y}h${S}v${S}h${-S}z`;
+    }
+  }
+  out += '"/></svg>';
+  return out;
+}
+
 
 (() => {
   const link = document.getElementById('qr-link');
@@ -469,7 +496,7 @@ function prettyQr(text) {
       return;
     }
     if (window.qrcode) {
-      box.innerHTML = prettyQr(`${window.location.origin}/qr#${data.token}`);
+      box.innerHTML = plainQr(`${window.location.origin}/qr#${data.token}`);
     }
     pollTimer = setInterval(async () => {
       try {
