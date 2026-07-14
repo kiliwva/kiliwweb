@@ -34,32 +34,36 @@
 
   let loginToken = null;
   let loginPoll = null;
+  let polling = false;
 
-  async function startLogin() {
-    $('login-status').textContent = 'Opening the bot…';
+  /* fetch a login token up front so the button is a real link the user
+     taps (opening a Telegram deep link after an await gets popup-blocked
+     on mobile — the click must navigate directly) */
+  async function prepareLogin() {
+    $('login-status').textContent = 'Preparing…';
     const r = await post('/api/mclogin', { action: 'start' });
     if (!r.success) {
       $('login-status').textContent = r.error === 'not-configured'
-        ? 'The bot is not configured yet.' : 'Could not start. Try again.';
+        ? 'The bot is not configured yet.' : 'Could not reach the bot — reload the page.';
       return;
     }
     loginToken = r.token;
     loginPoll = r.poll;
+    $('btn-login').href = r.botUrl;
     $('bot-link').href = r.botUrl;
-    show('view-wait');
-    $('wait-status').textContent = '';
-    window.open(r.botUrl, '_blank', 'noopener');
-    pollLogin();
+    $('login-status').textContent = 'Tap to open Telegram, then confirm there.';
+    if (!polling) { polling = true; pollLogin(); }
   }
 
   async function pollLogin() {
-    if (!loginToken) return;
+    if (!loginToken) { polling = false; return; }
     const d = await getJSON(`/api/mclogin?token=${loginToken}&poll=${loginPoll}`);
     if (d.status === 'ok') { window.location.reload(); return; }
     if (d.status === 'expired' || d.success === false) {
+      /* token aged out — quietly get a fresh one and keep waiting */
       loginToken = null;
-      $('login-status').textContent = 'Sign-in expired. Try again.';
-      show('view-login');
+      polling = false;
+      prepareLogin();
       return;
     }
     setTimeout(pollLogin, 2000);
@@ -179,7 +183,11 @@
 
   /* ---------- boot ---------- */
 
-  $('btn-login').addEventListener('click', startLogin);
+  /* tapping the link opens Telegram (native navigation); we just move to
+     the waiting screen so the browser tab shows progress */
+  $('btn-login').addEventListener('click', () => {
+    if (loginToken) show('view-wait');
+  });
   $('pnl-logout').addEventListener('click', async () => {
     await post('/api/mclogin', { action: 'logout' });
     window.location.reload();
@@ -188,7 +196,7 @@
 
   (async () => {
     const me = await getJSON('/api/mclogin?me=1');
-    if (!me.authed) { show('view-login'); return; }
+    if (!me.authed) { show('view-login'); prepareLogin(); return; }
     $('pnl-user').hidden = false;
     $('pnl-username').textContent = me.tgUsername ? `@${me.tgUsername}` : `id ${me.tgId}`;
     if (me.admin) { show('view-mod'); loadMod(); }
