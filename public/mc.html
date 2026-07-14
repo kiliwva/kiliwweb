@@ -7,7 +7,7 @@
   <title>Join the server — K-ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=161">
+  <link rel="stylesheet" href="styles.css?v=162">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -53,10 +53,8 @@
         <div class="mc-actions">
           <a class="submit" id="mc-open-btn" style="display:block;text-decoration:none">Open Telegram</a>
         </div>
-        <p class="mc-note">Not opening?
-          <a id="mc-open-web" rel="noopener" style="color:#E8A38B;text-decoration:underline">open via t.me</a></p>
         <div class="mc-qr" id="mc-qr"></div>
-        <p class="mc-note" id="mc-qr-note" hidden>No Telegram on this computer? Scan this with your phone.</p>
+        <p class="mc-note" id="mc-qr-note" hidden>No Telegram on this computer? Scan this with your phone to open the bot.</p>
       </div>
 
       <div id="mc-bad" hidden>
@@ -78,22 +76,20 @@
       const info = await fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null);
       if (!info || info.status !== 'pending' || !info.bot) { show('mc-bad'); return; }
 
-      /* tg:// opens the Telegram app directly (works even when t.me web is
-         throttled); t.me stays as a fallback link */
+      /* everything opens the Telegram app directly via tg:// — t.me is
+         not used anywhere (it is blocked in some regions) */
       const tgUrl = `tg://resolve?domain=${info.bot}&start=mc_${token}`;
-      const webUrl = `https://t.me/${info.bot}?start=mc_${token}`;
       $('mc-server').textContent = info.server;
       $('mc-nick').textContent = info.nick;
       $('mc-open-btn').href = tgUrl;
-      $('mc-open-web').href = webUrl;
       show('mc-open');
 
-      /* on-screen QR so a computer without Telegram can be scanned with a
-         phone (the phone opens the bot and confirms) */
+      /* on-screen QR (also tg://) so a computer without Telegram can be
+         scanned with a phone — the phone opens the bot and confirms */
       if (window.qrcode) {
         try {
           const q = window.qrcode(0, 'M');
-          q.addData(webUrl);
+          q.addData(tgUrl);
           q.make();
           const n = q.getModuleCount();
           const S = 6;
@@ -110,6 +106,11 @@
           $('mc-qr-note').hidden = false;
         } catch (e) { /* no QR is fine, the button still works */ }
       }
+
+      /* the link "leads to the bot": try to launch the app straight away.
+         If there is no Telegram here, nothing happens and the button + QR
+         stay on screen. */
+      setTimeout(() => { try { window.location.href = tgUrl; } catch (e) { /* keep button + QR */ } }, 500);
     })();
   </script>
 </body>

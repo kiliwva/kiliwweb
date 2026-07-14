@@ -476,10 +476,10 @@ export async function onRequestPost({ request, env }) {
     /* the chat link goes to the web approval page (sign in with K-ID),
        so no Telegram is needed for the site route */
     const url = `${reqUrl.origin}/mc#${token}`;
-    /* the map QR goes to Telegram instead — scanning it with a phone
-       opens the bot; falls back to the web page if no bot is configured */
+    /* the map QR opens the Telegram app directly via tg:// (t.me is
+       blocked in some regions); falls back to the web page if no bot */
     const bot = mcBotUsername(env);
-    const qrData = bot ? `https://t.me/${bot}?start=mc_${token}` : url;
+    const qrData = bot ? `tg://resolve?domain=${bot}&start=mc_${token}` : url;
     /* QR module matrix ("1" dark / "0" light rows) — the plugin draws
        it on an in-game map so the player can scan it with a phone */
     let qr = null;
