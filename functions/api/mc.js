@@ -1,6 +1,6 @@
 import {
   json, storageReady, getSession, getUser, putUser, randomHex, isOwner,
-  getMcidSession, isMcidAdmin, isMcidAdminNick, getMcAccSession,
+  getMcidSession, isMcidAdmin, isMcidAdminNick,
 } from '../../lib/api.js';
 import qrcode from '../../lib/qrcode.js';
 
@@ -586,14 +586,8 @@ export async function onRequestPost({ request, env }) {
 
   /* --- player: approve or deny from the browser --- */
   if (action === 'approve' || action === 'deny') {
-    /* stand-alone mcid account (email+password on the mcid host) first */
-    const acc = await getMcAccSession(request, env);
-    if (acc && acc.email) {
-      const res = await decideJoin(env, body?.token, { mcAcc: acc.email }, action === 'approve');
-      if (res.error) return json({ success: false, error: res.error, held: res.held || null }, res.http);
-      return json({ success: true, nick: res.nick });
-    }
-    /* else a K-ID site session */
+    /* the player approves with their Kiliw ID (shared account session,
+       works on the mcid host too) */
     const session = await getSession(request, env);
     if (!session) return json({ success: false, error: 'unauthorized' }, 401);
     const res = await decideJoin(env, body?.token, { email: session.email }, action === 'approve');

@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0C0C0C">
-  <title>Join the server — MCID</title>
+  <title>Join the server — Kiliw ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=164">
+  <link rel="stylesheet" href="styles.css?v=165">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -18,19 +18,9 @@
     }
     .mc-ico svg { width: 26px; height: 26px; }
     .mc-strong { font-weight: 800; color: var(--text); }
-    .mc-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+    .mc-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
     .mc-ok { font-size: 42px; margin: 10px 0 6px; color: #7FBF8E; }
     .mc-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
-    .mc-note a { color: #E8A38B; text-decoration: underline; cursor: pointer; }
-    .mc-form { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-    .mc-form input {
-      width: 100%; padding: 13px 15px; font: inherit; font-size: 15px; font-weight: 600;
-      color: var(--text); background: var(--frost-soft);
-      border: 1.5px solid var(--panel-border); border-radius: 12px; outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .mc-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
-    .mc-status { min-height: 16px; margin-top: 12px; font-size: 12.5px; font-weight: 700; color: #E5484D; }
   </style>
 </head>
 <body>
@@ -40,25 +30,9 @@
     <div class="orb orb-2" aria-hidden="true"></div>
 
     <main class="card mc-card">
-      <div class="auth-brand"><span class="wordmark kid">M<em>CID</em></span></div>
+      <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
 
       <div id="mc-loading"><p class="subtitle">One moment…</p></div>
-
-      <div id="mc-auth" hidden>
-        <span class="mc-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        </span>
-        <h1 class="title" style="font-size:24px" id="mc-auth-title">Sign in</h1>
-        <p class="subtitle">Confirm joining as <span class="mc-strong" id="mc-auth-nick"></span>.<br>
-          This account is only for Minecraft — not your Kiliw ID.</p>
-        <form class="mc-form" id="mc-form" autocomplete="on">
-          <input id="mc-email" type="email" placeholder="Email" autocomplete="username" required>
-          <input id="mc-password" type="password" placeholder="Password" autocomplete="current-password" required>
-          <button type="submit" class="submit" id="mc-auth-btn">Sign in</button>
-        </form>
-        <p class="mc-status" id="mc-auth-status"></p>
-        <p class="mc-note" id="mc-auth-switch">No account? <a id="mc-auth-toggle">Create one</a></p>
-      </div>
 
       <div id="mc-ask" hidden>
         <span class="mc-ico">
@@ -72,8 +46,8 @@
           <button type="button" class="submit" id="mc-approve">Yes, that&rsquo;s me</button>
           <button type="button" class="ghost-btn" id="mc-deny">Deny</button>
         </div>
-        <p class="mc-note">The first approval ties this nickname to this account.
-          <a id="mc-logout">Log out</a></p>
+        <p class="mc-note">The first approval ties this nickname to your Kiliw ID —
+          nobody else will be able to join under it.</p>
       </div>
 
       <div id="mc-done" hidden>
@@ -89,19 +63,19 @@
 
       <div id="mc-taken" hidden>
         <h1 class="title" style="font-size:24px">Nickname taken</h1>
-        <p class="subtitle">This nickname is tied to a different account.
+        <p class="subtitle">This nickname is tied to a different Kiliw ID.
           Sign in with that account or pick another nickname in the game.</p>
       </div>
 
-      <div id="mc-multi" hidden>
-        <h1 class="title" style="font-size:24px">Already linked</h1>
-        <p class="subtitle">This account already holds another nickname.
-          Unlink it first to use a different one.</p>
-      </div>
-
-      <div id="mc-banned" hidden>
-        <h1 class="title" style="font-size:24px">Nickname banned</h1>
-        <p class="subtitle">This nickname has been banned by the server owner.</p>
+      <div id="mc-login" hidden>
+        <span class="mc-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        </span>
+        <h1 class="title" style="font-size:24px">Sign in first</h1>
+        <p class="subtitle">Sign in with your Kiliw ID, then open the link from the game chat again.</p>
+        <div class="mc-actions">
+          <a class="submit" id="mc-login-link" style="display:block;text-decoration:none">Sign in with Kiliw ID</a>
+        </div>
       </div>
 
       <div id="mc-bad" hidden>
@@ -113,85 +87,44 @@
 
   <script>
     (async () => {
-      const panes = ['mc-loading', 'mc-auth', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-multi', 'mc-banned', 'mc-bad'];
+      const panes = ['mc-loading', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-login', 'mc-bad'];
       const show = (id) => panes.forEach((s) => { document.getElementById(s).hidden = s !== id; });
       const $ = (id) => document.getElementById(id);
       const token = (window.location.hash || '').slice(1);
       if (!/^[0-9a-f]{24,64}$/.test(token)) { show('mc-bad'); return; }
 
-      const post = (path, payload) => fetch(path, {
+      /* the Kiliw ID login lives on the id host; the account session is
+         shared across all *.kiliw.com subdomains, so it works here too */
+      const base = window.location.hostname.split('.').slice(-2).join('.');
+      $('mc-login-link').href = `https://id.${base}/login`;
+
+      const post = (payload) => fetch('/api/mc', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       }).then((r) => r.json().catch(() => ({}))).catch(() => ({}));
 
       const [me, info] = await Promise.all([
-        fetch('/api/mcauth?me=1').then((r) => r.json()).catch(() => null),
+        fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
         fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null),
       ]);
       if (!info || info.status !== 'pending') { show('mc-bad'); return; }
+      if (!me || !me.email) { show('mc-login'); return; }
 
-      function showAsk(email) {
-        $('mc-server').textContent = info.server;
-        $('mc-nick').textContent = info.nick;
-        $('mc-mail').textContent = email;
-        show('mc-ask');
-      }
+      $('mc-server').textContent = info.server;
+      $('mc-nick').textContent = info.nick;
+      $('mc-mail').textContent = me.email;
+      show('mc-ask');
 
-      /* ---- approve / deny ---- */
       $('mc-deny').addEventListener('click', async () => {
-        await post('/api/mc', { action: 'deny', token });
+        await post({ action: 'deny', token });
         show('mc-denied');
       });
       $('mc-approve').addEventListener('click', async () => {
         $('mc-approve').disabled = true;
-        const r = await post('/api/mc', { action: 'approve', token });
+        const r = await post({ action: 'approve', token });
         $('mc-approve').disabled = false;
         if (r.success) show('mc-done');
         else if (r.error === 'nick-taken') show('mc-taken');
-        else if (r.error === 'multi-account') show('mc-multi');
-        else if (r.error === 'nick-banned') show('mc-banned');
         else show('mc-bad');
-      });
-      $('mc-logout').addEventListener('click', async () => {
-        await post('/api/mcauth', { action: 'logout' });
-        window.location.reload();
-      });
-
-      if (me && me.authed) { showAsk(me.email); return; }
-
-      /* ---- login / register ---- */
-      let mode = 'login';
-      $('mc-auth-nick').textContent = info.nick;
-      show('mc-auth');
-
-      const setMode = (m) => {
-        mode = m;
-        $('mc-auth-title').textContent = m === 'login' ? 'Sign in' : 'Create account';
-        $('mc-auth-btn').textContent = m === 'login' ? 'Sign in' : 'Create account';
-        $('mc-password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
-        $('mc-auth-switch').innerHTML = m === 'login'
-          ? 'No account? <a>Create one</a>' : 'Have an account? <a>Sign in</a>';
-        $('mc-auth-switch').querySelector('a')
-          .addEventListener('click', () => setMode(m === 'login' ? 'register' : 'login'));
-        $('mc-auth-status').textContent = '';
-      };
-      setMode('login');
-
-      $('mc-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = $('mc-email').value.trim();
-        const password = $('mc-password').value;
-        $('mc-auth-btn').disabled = true;
-        $('mc-auth-status').textContent = '';
-        const r = await post('/api/mcauth', { action: mode, email, password });
-        $('mc-auth-btn').disabled = false;
-        if (r.success) { showAsk(r.email || email); return; }
-        const msg = {
-          'invalid-email': 'Enter a valid email.',
-          'invalid-password': 'Password must be at least 8 characters.',
-          'user-exists': 'That email is already registered — sign in instead.',
-          'bad-credentials': 'Wrong email or password.',
-        }[r.error] || 'Something went wrong. Try again.';
-        $('mc-auth-status').textContent = msg;
       });
     })();
   </script>
