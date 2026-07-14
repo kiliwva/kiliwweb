@@ -195,6 +195,22 @@ export async function decideJoin(env, token, who, approve) {
       await env.KILIW_FILES.put(key(token), JSON.stringify(data));
       return { error: 'nick-taken', http: 409 };
     }
+  } else {
+    /* Anti-multiaccounting: one Telegram (or one K-ID account) may hold
+       only a single nickname. Claiming a fresh nick while already tied
+       to another one is refused — the player must unlink the old nick
+       first. Re-approving an already-owned nick skips this (bind above). */
+    let held = null;
+    if (who.tgId) held = await getTgNick(env, who.tgId);
+    if (!held && who.email) {
+      const u = await getUser(env, who.email);
+      held = (u && u.mcNick) || null;
+    }
+    if (held && held.toLowerCase() !== data.nick.toLowerCase()) {
+      data.status = 'denied';
+      await env.KILIW_FILES.put(key(token), JSON.stringify(data));
+      return { error: 'multi-account', http: 409, held };
+    }
   }
 
   if (who.email) {
@@ -309,7 +325,7 @@ export async function onRequestPost({ request, env }) {
     const session = await getSession(request, env);
     if (!session) return json({ success: false, error: 'unauthorized' }, 401);
     const res = await decideJoin(env, body?.token, { email: session.email }, action === 'approve');
-    if (res.error) return json({ success: false, error: res.error }, res.http);
+    if (res.error) return json({ success: false, error: res.error, held: res.held || null }, res.http);
     return json({ success: true, nick: res.nick });
   }
 

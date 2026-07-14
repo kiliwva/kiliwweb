@@ -203,7 +203,7 @@ export async function onRequestPost({ request, env }) {
 
   if (action === 'approve' || action === 'deny') {
     const res = await decideJoin(env, String(body?.token || ''), whoFrom(tgUser), action === 'approve');
-    if (res.error) return json({ success: false, error: res.error }, res.http);
+    if (res.error) return json({ success: false, error: res.error, held: res.held || null }, res.http);
     return json({ success: true, denied: Boolean(res.denied), nick: res.nick });
   }
 

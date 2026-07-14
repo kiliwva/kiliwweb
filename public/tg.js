@@ -5,8 +5,16 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const PANES = ['tg-loading', 'tg-outside', 'tg-home', 'tg-ask',
-    'tg-done', 'tg-denied', 'tg-taken', 'tg-bad'];
+    'tg-done', 'tg-denied', 'tg-taken', 'tg-multi', 'tg-bad'];
   const show = (id) => PANES.forEach((p) => { $(p).hidden = p !== id; });
+
+  /* the nickname currently tied to this Telegram (one per account) */
+  let linkedNick = null;
+
+  const showMulti = (held) => {
+    $('tg-multi-nick').textContent = held || linkedNick || 'another nickname';
+    show('tg-multi');
+  };
 
   const SVG_HEAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
   const META_ICONS = {
@@ -80,13 +88,27 @@
     } else {
       metaEl.hidden = true;
     }
+
+    /* one Telegram = one nickname: warn up-front when this request is for
+       a different nick than the one already linked, and block approval */
+    const mismatch = linkedNick && linkedNick.toLowerCase() !== String(data.nick).toLowerCase();
+    const warnEl = $('tg-ask-warn');
+    warnEl.hidden = !mismatch;
+    if (mismatch) {
+      warnEl.textContent = `Your Telegram is already linked to ${linkedNick}. `
+        + 'Approving is blocked — unlink it first to switch nicknames.';
+    }
+    $('tg-ask-note').hidden = Boolean(mismatch);
+    $('tg-approve').disabled = Boolean(mismatch);
     show('tg-ask');
 
     $('tg-approve').onclick = async () => {
+      if ($('tg-approve').disabled) return;
       $('tg-approve').disabled = true;
       const r = await api({ action: 'approve', token });
       $('tg-approve').disabled = false;
       if (r.ok && r.data.success) { haptic.notify('success'); show('tg-done'); }
+      else if (r.data.error === 'multi-account') { haptic.notify('error'); showMulti(r.data.held); }
       else if (r.data.error === 'nick-taken') { haptic.notify('error'); show('tg-taken'); }
       else { haptic.notify('error'); show('tg-bad'); }
     };
@@ -394,10 +416,12 @@
   }
 
   $('tg-back').addEventListener('click', home);
+  $('tg-multi-manage').addEventListener('click', home);
 
   /* --- linked Minecraft nickname --- */
 
   function setNick(nick) {
+    linkedNick = nick || null;
     const unlink = $('tg-unlink');
     if (nick) {
       $('tg-nick').textContent = nick;
