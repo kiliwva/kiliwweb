@@ -439,10 +439,43 @@
 
   const tile = (k, v) => `<div class="st-tile"><div class="k">${k}</div><div class="v">${v}</div></div>`;
 
+  const HEART = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+  const FOOD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.45 15.4c-2.13.65-4.3.32-5.7-1.1-2.29-2.27-1.76-6.5 1.17-9.42 2.93-2.93 7.15-3.46 9.43-1.18 1.41 1.41 1.74 3.57 1.1 5.71-1.4-.51-2.93-.27-4.11.91-1.18 1.18-1.42 2.71-.91 4.11z"/><path d="m11.25 15.6-2.16 2.16a2.5 2.5 0 1 1-4.56 1.73 2.49 2.49 0 0 1-1.41-4.24 2.5 2.5 0 0 1 3.14-.32l2.16-2.16"/></svg>';
+
+  /* a row of half-fillable pips (hearts / drumsticks) */
+  const pipRow = (kind, svg, value, max) => {
+    const pips = Math.ceil(max / 2);
+    let out = '';
+    for (let i = 0; i < pips; i += 1) {
+      const fill = Math.max(0, Math.min(1, (value - i * 2) / 2));
+      out += `<span class="st-pip ${kind}"><span class="bg">${svg}</span>`
+        + `<span class="fg" style="width:${fill * 100}%">${svg}</span></span>`;
+    }
+    return `<div class="st-icons">${out}</div>`;
+  };
+
+  /* stable pastel color from an item id, as a stand-in icon */
+  const hashColor = (s) => {
+    let h = 0;
+    for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) & 0xffff;
+    return `hsl(${h % 360} 55% 62%)`;
+  };
+
+  const accordion = (title, arr, unit) => {
+    if (!Array.isArray(arr) || !arr.length) return '';
+    const total = arr.reduce((s, e) => s + Number(e.count || 0), 0);
+    const rows = arr.map((e) => `<div class="acc-row"><span>${pretty(e.type)}</span>`
+      + `<span class="rc">${fmtNum(e.count)}${unit ? ` ${unit}` : ''}</span></div>`).join('');
+    return `<div class="acc"><button type="button" class="acc-head">${title}`
+      + `<span class="cnt">${fmtNum(total)}${unit ? ` ${unit}` : ''}</span>`
+      + '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>'
+      + `</button><div class="acc-body">${rows}</div></div>`;
+  };
+
   function renderStats(nick, st) {
     $('st-name').textContent = st?.nick || nick;
     const skin = $('st-skin');
-    const id = st && (st.uuid || st.nick) ? (st.uuid || st.nick) : nick;
+    const id = (st && (st.uuid || st.nick)) || nick;
     skin.src = `https://mc-heads.net/avatar/${encodeURIComponent(id)}/72`;
     skin.onerror = () => { skin.onerror = null; skin.src = `https://mc-heads.net/avatar/${encodeURIComponent(nick)}/72`; };
 
@@ -451,22 +484,24 @@
       ? `<span class="dot ${online ? 'on' : 'off'}"></span>${online ? 'Online' : `Offline · ${fmtAgo(st.updated)}`}`
       : '<span class="dot off"></span>No data yet';
 
-    const vitals = $('st-vitals');
+    /* hearts / food / xp */
+    const vis = $('st-vis');
+    if (st) {
+      const maxHp = st.maxHealth || 20;
+      vis.innerHTML = pipRow('st-heart', HEART, st.health, maxHp)
+        + pipRow('st-food', FOOD, st.food, 20)
+        + `<div class="st-xp"><div class="bar"><i style="width:${Math.round((st.xpProgress || 0) * 100)}%"></i></div>`
+        + `<span class="lvl">Level ${st.level || 0}</span></div>`;
+      vis.hidden = false;
+    } else {
+      vis.hidden = true;
+    }
+
     const loc = $('st-loc');
     if (st && online) {
-      vitals.innerHTML = [
-        tile('Health', `${st.health}/${st.maxHealth} ♥`),
-        tile('Food', `${st.food}/20`),
-        tile('Level', st.level),
-        tile('Ping', `${st.ping} ms`),
-        tile('Mode', pretty(st.gamemode)),
-        tile('World', pretty(st.world)),
-      ].join('');
-      vitals.hidden = false;
-      loc.innerHTML = `📍 X ${fmtNum(st.x)} · Y ${fmtNum(st.y)} · Z ${fmtNum(st.z)}`;
+      loc.innerHTML = `📍 X ${fmtNum(st.x)} · Y ${fmtNum(st.y)} · Z ${fmtNum(st.z)} · ${pretty(st.world)}`;
       loc.hidden = false;
     } else {
-      vitals.hidden = true;
       loc.hidden = true;
     }
 
@@ -474,36 +509,56 @@
     if (st) {
       game.innerHTML = [
         tile('Playtime', fmtTime(st.playMinutes)),
+        online ? tile('Ping', `${st.ping} ms`) : tile('Mode', pretty(st.gamemode)),
         tile('Deaths', fmtNum(st.deaths)),
-        tile('Mob kills', fmtNum(st.mobKills)),
         tile('Player kills', fmtNum(st.playerKills)),
-        tile('Distance', `${fmtNum(st.distanceKm)} km`),
-        tile('Jumps', fmtNum(st.jumps)),
+        tile('Mob kills', fmtNum(st.mobKills)),
+        tile('Sessions', fmtNum(st.sessions)),
       ].join('');
       game.hidden = false;
     } else {
       game.hidden = true;
     }
 
+    /* expandable categories */
+    $('st-acc').innerHTML = st
+      ? accordion('Distance travelled', st.distances, 'blocks')
+        + accordion('Blocks broken', st.blocksBroken)
+        + accordion('Mobs killed', st.mobsKilled)
+        + accordion('Items used', st.itemsUsed)
+      : '';
+
     const inv = $('st-inv');
     const items = (st && Array.isArray(st.inventory)) ? st.inventory : [];
     if (!st) {
+      inv.className = 'st-inv-msg';
       inv.innerHTML = '<span class="st-empty">Join the server once so it can collect your stats.</span>';
     } else if (!items.length) {
+      inv.className = 'st-inv-msg';
       inv.innerHTML = '<span class="st-empty">Inventory is empty.</span>';
     } else {
-      inv.innerHTML = items
-        .map((it) => `<span class="st-chip">${pretty(it.type)}${it.amount > 1 ? ` <span class="n">×${it.amount}</span>` : ''}</span>`)
-        .join('');
+      inv.className = 'st-inv';
+      inv.innerHTML = items.map((it) => {
+        const name = pretty(it.type);
+        const initials = name.replace(/[^A-Za-z ]/g, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+        return `<div class="st-slot"><span class="ic" style="background:${hashColor(it.type)}">${initials}</span>`
+          + `<span class="nm">${name}</span>${it.amount > 1 ? `<span class="amt">${it.amount}</span>` : ''}</div>`;
+      }).join('');
     }
     $('st-inv-cap').hidden = false;
   }
+
+  $('st-acc').addEventListener('click', (e) => {
+    const head = e.target.closest('.acc-head');
+    if (head) head.parentElement.classList.toggle('open');
+  });
 
   async function loadStats() {
     show('tg-stats');
     $('st-name').textContent = '…';
     $('st-status').textContent = '';
-    ['st-vitals', 'st-loc', 'st-game'].forEach((i) => { $(i).hidden = true; });
+    ['st-vis', 'st-loc', 'st-game'].forEach((i) => { $(i).hidden = true; });
+    $('st-acc').innerHTML = '';
     $('st-inv').innerHTML = '';
     const { data } = await api({ action: 'stats' });
     if (!data.success) { home(); return; }

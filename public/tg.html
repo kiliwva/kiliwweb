@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=136">
+  <link rel="stylesheet" href="styles.css?v=137">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; }
@@ -90,14 +90,65 @@
       font-size: 13px; font-weight: 600; color: #cfc9c2;
     }
     .st-cap { margin: 20px 0 8px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-    .st-inv { display: flex; flex-wrap: wrap; gap: 7px; }
-    .st-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 10px; border-radius: 9px;
-      border: 1px solid var(--line); background: rgba(255,255,255,.02);
-      font-size: 12.5px; color: var(--text);
+
+    /* hearts / food / xp */
+    .st-vis { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .st-icons { display: flex; flex-wrap: wrap; gap: 2px; }
+    .st-pip { position: relative; width: 17px; height: 17px; }
+    .st-pip .bg, .st-pip .fg { position: absolute; inset: 0; }
+    .st-pip .bg svg { width: 17px; height: 17px; }
+    .st-pip .fg { overflow: hidden; }
+    .st-pip .fg svg { width: 17px; height: 17px; }
+    .st-heart .bg { color: #37211f; }
+    .st-heart .fg { color: #ff4d4d; }
+    .st-food .bg { color: #33291c; }
+    .st-food .fg { color: #d98a3a; }
+    .st-xp { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+    .st-xp .bar { flex: 1; height: 10px; border-radius: 6px; background: #232120; overflow: hidden; }
+    .st-xp .bar i { display: block; height: 100%; background: linear-gradient(90deg, #6fd06f, #8ae08a); }
+    .st-xp .lvl { font-size: 13px; font-weight: 800; color: #8ae08a; min-width: 62px; text-align: right; }
+
+    /* expandable statistics */
+    #st-acc { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .acc { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .acc-head {
+      width: 100%; appearance: none; border: 0; cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+      background: transparent; color: var(--text);
+      padding: 13px 14px; font: inherit; font-size: 14px; font-weight: 600;
     }
-    .st-chip .n { color: #E8A38B; font-weight: 800; }
+    .acc-head .cnt { margin-left: auto; font-size: 13px; font-weight: 800; color: #E8A38B; }
+    .acc-head .chev { width: 18px; height: 18px; color: var(--muted); transition: transform .18s ease; flex: none; }
+    .acc.open .acc-head .chev { transform: rotate(180deg); }
+    .acc-body { display: none; padding: 0 14px 12px; }
+    .acc.open .acc-body { display: block; }
+    .acc-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 7px 0; font-size: 13px; color: #cfc9c2;
+      border-top: 1px solid rgba(255,255,255,.05);
+    }
+    .acc-row .rc { font-weight: 800; color: var(--text); }
+
+    /* inventory grid */
+    .st-inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+    .st-slot {
+      border: 1px solid var(--line); border-radius: 10px;
+      background: rgba(255,255,255,.02);
+      padding: 9px 8px 8px; min-height: 62px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+      text-align: center; position: relative;
+    }
+    .st-slot .ic {
+      width: 26px; height: 26px; border-radius: 7px; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; color: #16120E;
+    }
+    .st-slot .nm { font-size: 10.5px; font-weight: 600; color: #cfc9c2; line-height: 1.15; max-height: 26px; overflow: hidden; }
+    .st-slot .amt {
+      position: absolute; right: 5px; bottom: 4px;
+      font-size: 11px; font-weight: 800; color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,.9);
+    }
     .st-empty { font-size: 13px; color: var(--muted); }
 
     .tg-meta {
@@ -218,10 +269,11 @@
             <span id="st-status"></span>
           </div>
         </div>
-        <div class="st-grid" id="st-vitals"></div>
+        <div class="st-vis" id="st-vis"></div>
         <div class="st-line" id="st-loc" hidden></div>
         <p class="st-cap">Statistics</p>
         <div class="st-grid" id="st-game"></div>
+        <div id="st-acc"></div>
         <p class="st-cap" id="st-inv-cap">Inventory</p>
         <div class="st-inv" id="st-inv"></div>
         <div class="tg-actions">
@@ -284,10 +336,10 @@
       <button type="button" class="scan-ic" id="scan-file" aria-label="From file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"/><path d="m22 13-1.3-1.3a2.4 2.4 0 0 0-3.4 0L11 18"/><circle cx="12" cy="8" r="1.6"/><rect x="6" y="2" width="16" height="16" rx="2.5"/></svg></button>
       <button type="button" class="scan-ic" id="scan-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M15 9l-6 6M9 9l6 6"/></svg></button>
     </div>
-    <p class="scan-build">KW-8E</p>
+    <p class="scan-build">KW-8F</p>
   </div>
 
   <script src="vendor/jsqr.min.js"></script>
-  <script src="tg.js?v=136"></script>
+  <script src="tg.js?v=137"></script>
 </body>
 </html>
