@@ -2,8 +2,14 @@ import {
   json, hashPassword, timingSafeEqualHex, createSession, verifyTurnstile, afterAuthRedirect,
   storageReady, getUser, putUser, verifyTotp, wipeAccount,
   createCaptchaTicket, checkCaptchaTicket, deleteCaptchaTicket,
-  mailReady, sendEmail, sixDigitCode, buildCodeEmail,
+  mailReady, sendEmail, sixDigitCode, buildCodeEmail, getCookie,
 } from '../../lib/api.js';
+
+/* a Minecraft join link parks its token here so login returns to /mc */
+function mcNextRedirect(request) {
+  const t = getCookie(request, 'kiliw_next');
+  return t && /^[0-9a-f]{24,64}$/.test(t) ? `/mc#${t}` : null;
+}
 
 const LOGIN_CODE_TTL = 10 * 60 * 1000;
 const LOGIN_CODE_COOLDOWN = 60 * 1000;
@@ -128,7 +134,7 @@ export async function onRequestPost({ request, env }) {
 
   const { cookie } = await createSession(env, email, request);
   return json(
-    { success: true, redirect: afterAuthRedirect(request), restored },
+    { success: true, redirect: mcNextRedirect(request) || afterAuthRedirect(request), restored },
     200,
     { 'Set-Cookie': cookie },
   );

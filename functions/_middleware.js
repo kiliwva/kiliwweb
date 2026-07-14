@@ -88,10 +88,15 @@ export async function onRequest(context) {
   const isIdHost = host.startsWith('id.');
   const isMcidHost = host.startsWith('mcid.');
 
-  /* mcid.<domain>: the Telegram-login panel (moderation + player cabinet).
-     The page itself decides what to show from /api/mclogin?me=1, so we
-     just serve it at the root and let assets/API through. */
+  /* mcid.<domain>: the Minecraft host. The moderation panel lives at the
+     root; /login shows the same Kiliw ID sign-in window as the id host so
+     the /mc join page can sign the player in without leaving mcid. */
   if (isMcidHost) {
+    if (isLogin) {
+      return session
+        ? Response.redirect(new URL('/', url).toString(), 302)
+        : authPage();
+    }
     if (isRoot) return env.ASSETS.fetch(new URL('/panel', url));
     return next();
   }

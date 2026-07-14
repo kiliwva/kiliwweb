@@ -7,7 +7,7 @@
   <title>Join the server — Kiliw ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=165">
+  <link rel="stylesheet" href="styles.css?v=166">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -67,17 +67,6 @@
           Sign in with that account or pick another nickname in the game.</p>
       </div>
 
-      <div id="mc-login" hidden>
-        <span class="mc-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-        </span>
-        <h1 class="title" style="font-size:24px">Sign in first</h1>
-        <p class="subtitle">Sign in with your Kiliw ID, then open the link from the game chat again.</p>
-        <div class="mc-actions">
-          <a class="submit" id="mc-login-link" style="display:block;text-decoration:none">Sign in with Kiliw ID</a>
-        </div>
-      </div>
-
       <div id="mc-bad" hidden>
         <h1 class="title" style="font-size:24px">Link expired</h1>
         <p class="subtitle">Rejoin the server to get a fresh link in the chat.</p>
@@ -87,16 +76,11 @@
 
   <script>
     (async () => {
-      const panes = ['mc-loading', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-login', 'mc-bad'];
+      const panes = ['mc-loading', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-bad'];
       const show = (id) => panes.forEach((s) => { document.getElementById(s).hidden = s !== id; });
       const $ = (id) => document.getElementById(id);
       const token = (window.location.hash || '').slice(1);
       if (!/^[0-9a-f]{24,64}$/.test(token)) { show('mc-bad'); return; }
-
-      /* the Kiliw ID login lives on the id host; the account session is
-         shared across all *.kiliw.com subdomains, so it works here too */
-      const base = window.location.hostname.split('.').slice(-2).join('.');
-      $('mc-login-link').href = `https://id.${base}/login`;
 
       const post = (payload) => fetch('/api/mc', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
@@ -107,7 +91,17 @@
         fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null),
       ]);
       if (!info || info.status !== 'pending') { show('mc-bad'); return; }
-      if (!me || !me.email) { show('mc-login'); return; }
+
+      /* not signed in → open the Kiliw ID login window right here (mcid
+         host); remember this token so login returns straight to confirm */
+      if (!me || !me.email) {
+        const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `kiliw_next=${token}; Path=/; Max-Age=600; SameSite=Lax${secure}`;
+        window.location.replace('/login');
+        return;
+      }
+      /* signed in: drop any stray return cookie */
+      document.cookie = 'kiliw_next=; Path=/; Max-Age=0; SameSite=Lax';
 
       $('mc-server').textContent = info.server;
       $('mc-nick').textContent = info.nick;
