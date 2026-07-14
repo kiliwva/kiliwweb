@@ -11,8 +11,17 @@
   /* the nickname currently tied to this Telegram (one per account) */
   let linkedNick = null;
 
-  const showMulti = (held) => {
-    $('tg-multi-nick').textContent = held || linkedNick || 'another nickname';
+  const showMulti = (held, reason) => {
+    const nick = held || linkedNick || 'another nickname';
+    if (reason === 'device') {
+      $('tg-multi-title').textContent = 'Computer already registered';
+      $('tg-multi-sub').textContent = `This computer is already registered to ${nick}. `
+        + 'Only one account per computer — unlink it first to sign in under a different nickname.';
+    } else {
+      $('tg-multi-title').textContent = 'Already linked';
+      $('tg-multi-sub').textContent = `Your Telegram is tied to ${nick}. `
+        + 'One Telegram can hold only one nickname. Unlink it first to sign in under a different one.';
+    }
     show('tg-multi');
   };
 
@@ -108,7 +117,8 @@
       const r = await api({ action: 'approve', token });
       $('tg-approve').disabled = false;
       if (r.ok && r.data.success) { haptic.notify('success'); show('tg-done'); }
-      else if (r.data.error === 'multi-account') { haptic.notify('error'); showMulti(r.data.held); }
+      else if (r.data.error === 'device-taken') { haptic.notify('error'); showMulti(r.data.held, 'device'); }
+      else if (r.data.error === 'multi-account') { haptic.notify('error'); showMulti(r.data.held, 'telegram'); }
       else if (r.data.error === 'nick-taken') { haptic.notify('error'); show('tg-taken'); }
       else { haptic.notify('error'); show('tg-bad'); }
     };

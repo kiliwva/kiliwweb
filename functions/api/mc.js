@@ -20,11 +20,32 @@ import qrcode from '../../lib/qrcode.js';
 const MC_TTL = 5 * 60 * 1000;
 const TOKEN_RE = /^[0-9a-f]{24}$/;
 const NICK_RE = /^[A-Za-z0-9_]{3,16}$/;
+const DEVICE_RE = /^[0-9a-f]{16,64}$/;
 
 const key = (token) => `_auth/mc/${token}.json`;
 const nickKey = (nick) => `_auth/mcnick/${nick.toLowerCase()}.json`;
 /* reverse index so a Telegram user can see / unlink their nickname */
 const tgNickKey = (tgId) => `_auth/mctg/${tgId}.json`;
+/* machine signature -> the nick registered on that computer */
+const deviceKey = (sig) => `_auth/mcdev/${sig}.json`;
+
+/* Anti-multiaccounting at the computer level: has this machine
+   signature already been claimed by a *different, still-active* nick?
+   Returns that nick, or null. If the owning nick was unlinked since,
+   the stale record is freed so the computer can be used again. */
+async function deviceOwner(env, sig, nick) {
+  if (!sig) return null;
+  const obj = await env.KILIW_FILES.get(deviceKey(sig));
+  const rec = obj ? await obj.json().catch(() => null) : null;
+  if (!rec || !rec.nick) return null;
+  if (rec.nick.toLowerCase() === String(nick).toLowerCase()) return null;
+  const stillBound = await env.KILIW_FILES.get(nickKey(rec.nick));
+  if (!stillBound) {
+    await env.KILIW_FILES.delete(deviceKey(sig)).catch(() => {});
+    return null;
+  }
+  return rec.nick;
+}
 
 /* the nickname currently linked to this Telegram, or null */
 export async function getTgNick(env, tgId) {
@@ -211,6 +232,14 @@ export async function decideJoin(env, token, who, approve) {
       await env.KILIW_FILES.put(key(token), JSON.stringify(data));
       return { error: 'multi-account', http: 409, held };
     }
+    /* computer-level: refuse a fresh nick from a machine already
+       registered to a different, still-active nickname */
+    const machineOwner = await deviceOwner(env, data.device, data.nick);
+    if (machineOwner) {
+      data.status = 'denied';
+      await env.KILIW_FILES.put(key(token), JSON.stringify(data));
+      return { error: 'device-taken', http: 409, held: machineOwner };
+    }
   }
 
   if (who.email) {
@@ -245,6 +274,17 @@ export async function decideJoin(env, token, who, approve) {
     }));
   }
 
+  /* register this computer to the nick so no second account can be made
+     from it (freed automatically when the nick is later unlinked) */
+  if (data.device) {
+    await env.KILIW_FILES.put(deviceKey(data.device), JSON.stringify({
+      nick: data.nick,
+      ip: data.ip || '',
+      tgId: who.tgId || null,
+      created: Date.now(),
+    })).catch(() => {});
+  }
+
   data.status = 'approved';
   data.email = who.email || null;
   data.tgId = who.tgId || null;
@@ -269,6 +309,12 @@ export async function onRequestPost({ request, env }) {
     const server = String(body?.server || '').slice(0, 48) || 'Minecraft server';
     if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
     const ip = String(body?.ip || '').slice(0, 45);
+    const device = String(body?.device || '').toLowerCase();
+    const dev = DEVICE_RE.test(device) ? device : '';
+    /* computer-level hard block: reject before issuing a code if this
+       machine already belongs to a different, still-active nick */
+    const machineOwner = await deviceOwner(env, dev, nick);
+    if (machineOwner) return json({ success: false, error: 'device-taken', held: machineOwner }, 409);
     const geo = await lookupGeo(env, ip);
     const token = randomHex(12);
     const poll = randomHex(32);
@@ -278,6 +324,7 @@ export async function onRequestPost({ request, env }) {
       server,
       ip,
       geo,
+      device: dev,
       status: 'pending',
       expires: Date.now() + MC_TTL,
     }));

@@ -1,5 +1,6 @@
 package com.kiliw.kid;
 
+import com.destroystokyo.paper.ClientOption;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -113,6 +114,47 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         return player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : "";
     }
 
+    /* ---------- machine signature (anti-multiaccounting) ----------
+
+       There is no true hardware id in the Minecraft protocol, so we
+       build the most stable machine-level fingerprint the server can
+       observe: connecting IP + client brand + language + a few client
+       settings. It is deliberately independent of the nickname, so the
+       same computer produces the same signature under any nick. */
+    private String machineSig(Player player, String ip) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(ip == null ? "" : ip).append('|');
+        append(sb, () -> player.getClientBrandName());
+        append(sb, () -> player.locale());
+        append(sb, () -> player.getClientOption(ClientOption.VIEW_DISTANCE));
+        append(sb, () -> player.getClientOption(ClientOption.MAIN_HAND));
+        append(sb, () -> player.getClientOption(ClientOption.SKIN_PARTS).getRaw());
+        append(sb, () -> player.getClientOption(ClientOption.CHAT_COLORS_ENABLED));
+        return sha256Hex(sb.toString());
+    }
+
+    private static void append(StringBuilder sb, java.util.concurrent.Callable<?> get) {
+        try {
+            Object v = get.call();
+            sb.append(v == null ? "?" : v);
+        } catch (Exception e) {
+            sb.append('?');
+        }
+        sb.append('|');
+    }
+
+    private static String sha256Hex(String s) {
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-256")
+                .digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : d) hex.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
+            return hex.substring(0, 32);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     /* ---------- join: freeze and hand out the link ---------- */
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -134,6 +176,7 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         player.sendMessage(Component.text("Verifying your K-ID…", NamedTextColor.GRAY));
 
         String joinIp = ipOf(player);
+        String device = machineSig(player, joinIp);
         getLogger().info("K-ID sign-in for " + player.getName() + " from IP: "
             + (joinIp.isBlank() ? "(unknown)" : joinIp));
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
@@ -141,8 +184,18 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                 "action", "create",
                 "nick", player.getName(),
                 "server", serverName,
-                "ip", joinIp
+                "ip", joinIp,
+                "device", device
             )), null);
+            /* this computer already belongs to a different account */
+            if (res != null && res.has("error") && "device-taken".equals(res.get("error").getAsString())) {
+                String held = res.has("held") && !res.get("held").isJsonNull() ? res.get("held").getAsString() : null;
+                Bukkit.getScheduler().runTask(this, () -> player.kick(Component.text(
+                    held != null
+                        ? "This computer is already registered to \"" + held + "\".\nOnly one account per computer."
+                        : "This computer is already registered to another account.")));
+                return;
+            }
             if (res == null || !res.has("token")) {
                 Bukkit.getScheduler().runTask(this, () ->
                     player.kick(Component.text("K-ID auth is unavailable right now. Try again in a minute.")));

@@ -251,6 +251,7 @@ export async function onRequestGet({ request, env }) {
     const linksWiped = await wipe('_auth/tglink/');
     const nicksWiped = await wipe('_auth/mcnick/');
     await wipe('_auth/mctg/');
+    const devicesWiped = await wipe('_auth/mcdev/');
     /* clear the mirror fields left on user records by older builds */
     let usersCleared = 0;
     let cursor;
@@ -274,6 +275,7 @@ export async function onRequestGet({ request, env }) {
       telegramBindings: tgWiped,
       pendingLinkCodes: linksWiped,
       minecraftNicks: nicksWiped,
+      devices: devicesWiped,
       usersCleared,
     });
   }
