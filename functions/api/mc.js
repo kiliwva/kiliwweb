@@ -173,7 +173,7 @@ async function tgNotify(env, chatId, data, token, origin) {
       + '\n\nOpen to review and confirm.',
     reply_markup: { inline_keyboard: [
       /* ?v defeats Telegram's mini-app webview cache; keep in sync with tg.js */
-      [{ text: 'Review & confirm', web_app: { url: `${origin}/tg?v=152#mc_${token}` } }],
+      [{ text: 'Review & confirm', web_app: { url: `${origin}/tg?v=160#mc_${token}` } }],
     ] },
   };
   await tgDeletePrev(env, chatId);

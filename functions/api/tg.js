@@ -26,7 +26,7 @@ const botReady = (env) => Boolean(env.TG_BOT_TOKEN && env.TG_BOT_USERNAME);
 
 /* Mini-app URL with a version query so Telegram's webview reloads the
    page instead of serving a stale cached script. Bump on tg.js changes. */
-const MINIAPP_V = '152';
+const MINIAPP_V = '160';
 const miniApp = (origin, hash) => `${origin}/tg?v=${MINIAPP_V}${hash ? `#${hash}` : ''}`;
 
 /* id.<domain> origin (or the same origin in single-host dev) */
