@@ -5,7 +5,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const PANES = ['tg-loading', 'tg-outside', 'tg-home', 'tg-ask',
-    'tg-done', 'tg-denied', 'tg-taken', 'tg-bad', 'tg-stats'];
+    'tg-done', 'tg-denied', 'tg-taken', 'tg-bad'];
   const show = (id) => PANES.forEach((p) => { $(p).hidden = p !== id; });
 
   const SVG_HEAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
@@ -403,115 +403,12 @@
       $('tg-nick').textContent = nick;
       $('tg-nick-sub').textContent = 'Minecraft nickname';
       unlink.hidden = false;
-      $('tg-stats-btn').hidden = false;
     } else {
       $('tg-nick').textContent = 'Not linked';
       $('tg-nick-sub').textContent = 'Join a server to link a nickname';
       unlink.hidden = true;
-      $('tg-stats-btn').hidden = true;
     }
   }
-
-  /* --- player statistics --- */
-
-  const pretty = (id) => String(id || '')
-    .replace(/_/g, ' ')
-    .replace(/^\w/, (c) => c.toUpperCase());
-
-  const fmtNum = (n) => Number(n || 0).toLocaleString('en-US');
-
-  const fmtTime = (min) => {
-    const m = Math.max(0, Math.round(min || 0));
-    if (m < 60) return `${m}m`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ${m % 60}m`;
-    return `${Math.floor(h / 24)}d ${h % 24}h`;
-  };
-
-  const fmtAgo = (ts) => {
-    if (!ts) return '—';
-    const s = Math.max(0, (Date.now() - ts) / 1000);
-    if (s < 90) return 'just now';
-    if (s < 3600) return `${Math.round(s / 60)}m ago`;
-    if (s < 86400) return `${Math.round(s / 3600)}h ago`;
-    return `${Math.round(s / 86400)}d ago`;
-  };
-
-  const tile = (k, v) => `<div class="st-tile"><div class="k">${k}</div><div class="v">${v}</div></div>`;
-
-  function renderStats(nick, st) {
-    $('st-name').textContent = st?.nick || nick;
-    const skin = $('st-skin');
-    const id = st && (st.uuid || st.nick) ? (st.uuid || st.nick) : nick;
-    skin.src = `https://mc-heads.net/avatar/${encodeURIComponent(id)}/72`;
-    skin.onerror = () => { skin.onerror = null; skin.src = `https://mc-heads.net/avatar/${encodeURIComponent(nick)}/72`; };
-
-    const online = Boolean(st && st.online);
-    $('st-status').innerHTML = st
-      ? `<span class="dot ${online ? 'on' : 'off'}"></span>${online ? 'Online' : `Offline · ${fmtAgo(st.updated)}`}`
-      : '<span class="dot off"></span>No data yet';
-
-    const vitals = $('st-vitals');
-    const loc = $('st-loc');
-    if (st && online) {
-      vitals.innerHTML = [
-        tile('Health', `${st.health}/${st.maxHealth} ♥`),
-        tile('Food', `${st.food}/20`),
-        tile('Level', st.level),
-        tile('Ping', `${st.ping} ms`),
-        tile('Mode', pretty(st.gamemode)),
-        tile('World', pretty(st.world)),
-      ].join('');
-      vitals.hidden = false;
-      loc.innerHTML = `📍 X ${fmtNum(st.x)} · Y ${fmtNum(st.y)} · Z ${fmtNum(st.z)}`;
-      loc.hidden = false;
-    } else {
-      vitals.hidden = true;
-      loc.hidden = true;
-    }
-
-    const game = $('st-game');
-    if (st) {
-      game.innerHTML = [
-        tile('Playtime', fmtTime(st.playMinutes)),
-        tile('Deaths', fmtNum(st.deaths)),
-        tile('Mob kills', fmtNum(st.mobKills)),
-        tile('Player kills', fmtNum(st.playerKills)),
-        tile('Distance', `${fmtNum(st.distanceKm)} km`),
-        tile('Jumps', fmtNum(st.jumps)),
-      ].join('');
-      game.hidden = false;
-    } else {
-      game.hidden = true;
-    }
-
-    const inv = $('st-inv');
-    const items = (st && Array.isArray(st.inventory)) ? st.inventory : [];
-    if (!st) {
-      inv.innerHTML = '<span class="st-empty">Join the server once so it can collect your stats.</span>';
-    } else if (!items.length) {
-      inv.innerHTML = '<span class="st-empty">Inventory is empty.</span>';
-    } else {
-      inv.innerHTML = items
-        .map((it) => `<span class="st-chip">${pretty(it.type)}${it.amount > 1 ? ` <span class="n">×${it.amount}</span>` : ''}</span>`)
-        .join('');
-    }
-    $('st-inv-cap').hidden = false;
-  }
-
-  async function loadStats() {
-    show('tg-stats');
-    $('st-name').textContent = '…';
-    $('st-status').textContent = '';
-    ['st-vitals', 'st-loc', 'st-game'].forEach((i) => { $(i).hidden = true; });
-    $('st-inv').innerHTML = '';
-    const { data } = await api({ action: 'stats' });
-    if (!data.success) { home(); return; }
-    renderStats(data.nick, data.stats);
-  }
-
-  $('tg-stats-btn').addEventListener('click', loadStats);
-  $('st-back').addEventListener('click', home);
 
   $('tg-unlink').addEventListener('click', async () => {
     const doUnlink = async () => {

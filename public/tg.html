@@ -7,7 +7,7 @@
   <title>K-MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=136">
+  <link rel="stylesheet" href="styles.css?v=135">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body { background: #0C0C0C; }
@@ -62,43 +62,6 @@
 
     .tg-note { margin-top: 14px; font-size: 12px; color: var(--muted); }
     .tg-ok { font-size: 40px; margin: 4px 0 8px; color: #7FBF8E; }
-
-    /* stats screen */
-    #tg-stats { text-align: left; }
-    .st-head { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
-    .st-head img {
-      width: 72px; height: 72px; border-radius: 14px;
-      background: #201d1a; image-rendering: pixelated;
-      border: 1px solid var(--line);
-    }
-    .st-head b { display: block; font-size: 18px; font-weight: 800; color: var(--text); }
-    .st-head span { font-size: 12.5px; font-weight: 600; color: var(--muted); }
-    .st-head span .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
-    .st-head span .dot.on { background: #7FBF8E; }
-    .st-head span .dot.off { background: #6a6a70; }
-    .st-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px;
-    }
-    .st-tile {
-      border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
-    }
-    .st-tile .k { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
-    .st-tile .v { font-size: 16px; font-weight: 800; color: var(--text); margin-top: 3px; }
-    .st-line {
-      margin-top: 12px; padding: 10px 12px;
-      border: 1px solid var(--line); border-radius: 12px;
-      font-size: 13px; font-weight: 600; color: #cfc9c2;
-    }
-    .st-cap { margin: 20px 0 8px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-    .st-inv { display: flex; flex-wrap: wrap; gap: 7px; }
-    .st-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 10px; border-radius: 9px;
-      border: 1px solid var(--line); background: rgba(255,255,255,.02);
-      font-size: 12.5px; color: var(--text);
-    }
-    .st-chip .n { color: #E8A38B; font-weight: 800; }
-    .st-empty { font-size: 13px; color: var(--muted); }
 
     .tg-meta {
       margin-top: 16px; padding: 4px 0;
@@ -205,27 +168,7 @@
         </div>
         <div class="tg-actions">
           <button type="button" class="tg-btn" id="tg-scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>Scan a code</button>
-          <button type="button" class="tg-btn ghost" id="tg-stats-btn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>My stats</button>
           <input type="file" id="tg-file" accept="image/*" hidden>
-        </div>
-      </div>
-
-      <div id="tg-stats" hidden>
-        <div class="st-head">
-          <img id="st-skin" alt="" width="72" height="72">
-          <div>
-            <b id="st-name"></b>
-            <span id="st-status"></span>
-          </div>
-        </div>
-        <div class="st-grid" id="st-vitals"></div>
-        <div class="st-line" id="st-loc" hidden></div>
-        <p class="st-cap">Statistics</p>
-        <div class="st-grid" id="st-game"></div>
-        <p class="st-cap" id="st-inv-cap">Inventory</p>
-        <div class="st-inv" id="st-inv"></div>
-        <div class="tg-actions">
-          <button type="button" class="tg-btn ghost" id="st-back">Back</button>
         </div>
       </div>
 
@@ -284,10 +227,10 @@
       <button type="button" class="scan-ic" id="scan-file" aria-label="From file"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22H4a2 2 0 0 1-2-2V6"/><path d="m22 13-1.3-1.3a2.4 2.4 0 0 0-3.4 0L11 18"/><circle cx="12" cy="8" r="1.6"/><rect x="6" y="2" width="16" height="16" rx="2.5"/></svg></button>
       <button type="button" class="scan-ic" id="scan-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M15 9l-6 6M9 9l6 6"/></svg></button>
     </div>
-    <p class="scan-build">KW-8E</p>
+    <p class="scan-build">KW-8D</p>
   </div>
 
   <script src="vendor/jsqr.min.js"></script>
-  <script src="tg.js?v=136"></script>
+  <script src="tg.js?v=135"></script>
 </body>
 </html>
