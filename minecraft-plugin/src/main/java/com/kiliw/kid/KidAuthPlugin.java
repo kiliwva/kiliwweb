@@ -54,11 +54,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * On join the player is frozen and receives a one-time K-ID link in
  * chat. Approving the link on id.kiliw.com unfreezes them; a denial
  * or a timeout kicks them. The first approval binds the nickname to
- * the K-ID account, so nobody else can join under it.
- *
- * Premium (Mojang-authenticated) players are skipped when FastLogin
- * is installed: its auto-login marks the session premium before our
- * join handler runs.
+ * the K-ID account, so nobody else can join under it. Every player
+ * signs in through K-MCID — there is no premium bypass.
  */
 public final class KidAuthPlugin extends JavaPlugin implements Listener {
 
@@ -73,8 +70,6 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     private final Map<String, Remembered> remembered = new ConcurrentHashMap<>();
     /** nick(lower) -> connecting IP, captured at pre-login (most reliable) */
     private final Map<String, String> loginIps = new ConcurrentHashMap<>();
-    /** premium players marked by FastLogin */
-    private final Map<UUID, Boolean> premium = new ConcurrentHashMap<>();
 
     private String apiUrl;
     private String apiKey;
@@ -100,12 +95,7 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
             getLogger().severe("api-key is empty — set it in config.yml (the MC_API_KEY from your Kiliw dashboard).");
         }
         Bukkit.getPluginManager().registerEvents(this, this);
-        FastLoginHook.tryRegister(this);
         getLogger().info("K-ID auth enabled, endpoint: " + apiUrl);
-    }
-
-    void markPremium(UUID id) {
-        premium.put(id, Boolean.TRUE);
     }
 
     /* ---------- capture the connecting IP as early as possible ---------- */
@@ -128,11 +118,6 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-
-        if (premium.remove(player.getUniqueId()) != null) {
-            player.sendMessage(Component.text("Licensed account — welcome back!", NamedTextColor.GREEN));
-            return;
-        }
 
         Remembered r = remembered.get(player.getName().toLowerCase());
         String address = ipOf(player);

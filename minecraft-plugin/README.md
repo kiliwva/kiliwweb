@@ -10,8 +10,8 @@ sign in with their K-ID:
 
 Approving in the bot unfreezes them; a denial or timeout kicks them.
 The first approval ties the nickname to the K-ID account, so nobody
-else can join under that nick. With FastLogin installed, licensed
-(Mojang-authenticated) players skip the whole thing.
+else can join under that nick. Every player signs in this way — there
+is no premium bypass.
 
 The Telegram side needs `TG_BOT_TOKEN` + `TG_BOT_USERNAME` secrets on
 the worker; without them the chat link and the QR fall back to the web
@@ -35,7 +35,6 @@ The jar lands in `build/libs/KidAuth-1.0.0.jar`.
 3. Put the same value into `plugins/KidAuth/config.yml` -> `api-key`,
    set `server-name`, restart.
 4. `server.properties`: `online-mode=false`.
-5. Optional: install FastLogin so licensed players skip K-ID.
 
 ## Notes
 
