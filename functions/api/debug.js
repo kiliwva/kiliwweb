@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env }) {
   const limits = planLimits(user, env);
 
   return json({
-    build: 159,
+    build: 160,
     email: session.email,
     userRecordFound: Boolean(user),
     avatarField: user?.avatar ?? null,

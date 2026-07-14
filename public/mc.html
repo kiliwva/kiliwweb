@@ -7,7 +7,7 @@
   <title>Join the server — K-ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=158">
+  <link rel="stylesheet" href="styles.css?v=159">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -37,45 +37,18 @@
 
       <div id="mc-loading"><p class="subtitle">One moment…</p></div>
 
-      <div id="mc-ask" hidden>
+      <div id="mc-open" hidden>
         <span class="mc-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
         </span>
-        <h1 class="title" style="font-size:24px">Join the server?</h1>
-        <p class="subtitle">Let <span class="mc-strong" id="mc-server"></span> log you in as
-          <span class="mc-strong" id="mc-nick"></span>?<br>
-          Signed in as <span class="mc-strong" id="mc-mail"></span>.</p>
+        <h1 class="title" style="font-size:24px">Confirm in Telegram</h1>
+        <p class="subtitle"><span class="mc-strong" id="mc-server"></span> wants to log you in as
+          <span class="mc-strong" id="mc-nick"></span>.<br>Open the bot and approve.</p>
         <div class="mc-actions">
-          <button type="button" class="submit" id="mc-approve">Yes, that&rsquo;s me</button>
-          <button type="button" class="ghost-btn" id="mc-deny">Deny</button>
+          <a class="submit" id="mc-open-btn" style="display:block;text-decoration:none">Open Telegram</a>
         </div>
-        <p class="mc-note">The first approval ties this nickname to your K-ID —
-          nobody else will be able to join under it.</p>
-      </div>
-
-      <div id="mc-done" hidden>
-        <p class="mc-ok">✓</p>
-        <h1 class="title" style="font-size:24px">You're in</h1>
-        <p class="subtitle">Switch back to Minecraft — the server is unfreezing you.</p>
-      </div>
-
-      <div id="mc-denied" hidden>
-        <h1 class="title" style="font-size:24px">Denied</h1>
-        <p class="subtitle">The join was rejected. You can close this page.</p>
-      </div>
-
-      <div id="mc-taken" hidden>
-        <h1 class="title" style="font-size:24px">Nickname taken</h1>
-        <p class="subtitle">This nickname is tied to a different K-ID account.
-          Sign in with that account or pick another nickname in the game.</p>
-      </div>
-
-      <div id="mc-login" hidden>
-        <h1 class="title" style="font-size:24px">Sign in first</h1>
-        <p class="subtitle">Sign in to your K-ID, then open the link from the game chat again.</p>
-        <div class="mc-actions">
-          <a class="submit" style="display:block;text-decoration:none" href="/login">Sign in</a>
-        </div>
+        <p class="mc-note">Not opening?
+          <a id="mc-open-web" rel="noopener" style="color:#E8A38B;text-decoration:underline">open via t.me</a></p>
       </div>
 
       <div id="mc-bad" hidden>
@@ -87,51 +60,27 @@
 
   <script>
     (async () => {
-      const panes = ['mc-loading', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-login', 'mc-bad'];
+      const panes = ['mc-loading', 'mc-open', 'mc-bad'];
       const show = (id) => panes.forEach((s) => { document.getElementById(s).hidden = s !== id; });
       const $ = (id) => document.getElementById(id);
       const token = (window.location.hash || '').slice(1);
       if (!/^[0-9a-f]{24,64}$/.test(token)) { show('mc-bad'); return; }
 
-      const [me, info] = await Promise.all([
-        fetch('/api/me').then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null),
-      ]);
-      if (!info || info.status !== 'pending') { show('mc-bad'); return; }
-      if (!me || !me.email) { show('mc-login'); return; }
+      const info = await fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null);
+      if (!info || info.status !== 'pending' || !info.bot) { show('mc-bad'); return; }
 
+      /* tg:// opens the Telegram app directly (works even when t.me web is
+         throttled); t.me stays as a fallback link */
+      const tgUrl = `tg://resolve?domain=${info.bot}&start=mc_${token}`;
+      const webUrl = `https://t.me/${info.bot}?start=mc_${token}`;
       $('mc-server').textContent = info.server;
       $('mc-nick').textContent = info.nick;
-      $('mc-mail').textContent = me.email;
-      show('mc-ask');
+      $('mc-open-btn').href = tgUrl;
+      $('mc-open-web').href = webUrl;
+      show('mc-open');
 
-      $('mc-deny').addEventListener('click', async () => {
-        await fetch('/api/mc', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'deny', token }),
-        }).catch(() => null);
-        show('mc-denied');
-      });
-
-      document.getElementById('mc-approve').addEventListener('click', async () => {
-        const btn = document.getElementById('mc-approve');
-        btn.disabled = true;
-        const res = await fetch('/api/mc', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'approve', token }),
-        }).catch(() => null);
-        const data = res ? await res.json().catch(() => ({})) : {};
-        if (res && res.ok && data.success) {
-          show('mc-done');
-        } else if (data.error === 'nick-taken') {
-          show('mc-taken');
-        } else {
-          btn.disabled = false;
-          show('mc-bad');
-        }
-      });
+      /* best-effort: try to launch the app straight away */
+      setTimeout(() => { try { window.location.href = tgUrl; } catch (e) { /* keep the button */ } }, 400);
     })();
   </script>
 </body>
