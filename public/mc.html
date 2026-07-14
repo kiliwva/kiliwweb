@@ -7,7 +7,7 @@
   <title>Join the server — K-ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=160">
+  <link rel="stylesheet" href="styles.css?v=161">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -24,6 +24,12 @@
     .mc-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
     .mc-ok { font-size: 42px; margin: 10px 0 6px; }
     .mc-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+    .mc-qr {
+      display: none; width: 168px; height: 168px; margin: 22px auto 4px;
+      padding: 12px; background: #fff; border-radius: 16px;
+    }
+    .mc-qr.on { display: block; }
+    .mc-qr svg { display: block; width: 100%; height: 100%; }
   </style>
 </head>
 <body>
@@ -49,6 +55,8 @@
         </div>
         <p class="mc-note">Not opening?
           <a id="mc-open-web" rel="noopener" style="color:#E8A38B;text-decoration:underline">open via t.me</a></p>
+        <div class="mc-qr" id="mc-qr"></div>
+        <p class="mc-note" id="mc-qr-note" hidden>No Telegram on this computer? Scan this with your phone.</p>
       </div>
 
       <div id="mc-bad" hidden>
@@ -58,6 +66,7 @@
     </main>
   </div>
 
+  <script src="vendor/qrcode.min.js"></script>
   <script>
     (async () => {
       const panes = ['mc-loading', 'mc-open', 'mc-bad'];
@@ -79,8 +88,28 @@
       $('mc-open-web').href = webUrl;
       show('mc-open');
 
-      /* best-effort: try to launch the app straight away */
-      setTimeout(() => { try { window.location.href = tgUrl; } catch (e) { /* keep the button */ } }, 400);
+      /* on-screen QR so a computer without Telegram can be scanned with a
+         phone (the phone opens the bot and confirms) */
+      if (window.qrcode) {
+        try {
+          const q = window.qrcode(0, 'M');
+          q.addData(webUrl);
+          q.make();
+          const n = q.getModuleCount();
+          const S = 6;
+          const Q = 4 * S;
+          const size = n * S + Q * 2;
+          let path = '';
+          for (let r = 0; r < n; r += 1) {
+            for (let c = 0; c < n; c += 1) {
+              if (q.isDark(r, c)) path += `M${Q + c * S} ${Q + r * S}h${S}v${S}h${-S}z`;
+            }
+          }
+          $('mc-qr').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}"><path fill="#0C0C0C" d="${path}"/></svg>`;
+          $('mc-qr').classList.add('on');
+          $('mc-qr-note').hidden = false;
+        } catch (e) { /* no QR is fine, the button still works */ }
+      }
     })();
   </script>
 </body>
