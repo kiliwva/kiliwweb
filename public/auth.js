@@ -26,8 +26,6 @@ window.onTurnstileLoad = function () {
       theme: 'dark',
       language: 'en',
       callback: () => setSubmitEnabled(form, true),
-      'expired-callback': () => setSubmitEnabled(form, false),
-      'error-callback': () => setSubmitEnabled(form, false),
     });
     widgets.set(form, widgetId);
   });
@@ -38,12 +36,13 @@ function setSubmitEnabled(form, enabled) {
   form.querySelector('.submit').disabled = !enabled;
 }
 
+/* Turnstile is best-effort: the button is never held hostage to it. Where
+   the challenge cannot load (some regions, or a host not yet added to the
+   widget) the form still submits and the server verifies the token only
+   when one is present. */
 function resetTurnstile(form) {
   const id = widgets.get(form);
-  if (id !== undefined && window.turnstile) {
-    turnstile.reset(id);
-    setSubmitEnabled(form, false);
-  }
+  if (id !== undefined && window.turnstile) turnstile.reset(id);
 }
 
 /* ---------- Tabs ---------- */
@@ -147,11 +146,9 @@ let captchaCtx = null; /* 2FA ticket: code retries skip the captcha */
 async function handleSubmit(form, kind) {
   if (!validateForm(form)) return;
 
+  /* Turnstile is best-effort: send its token when the widget has one, but
+     never block the submit on it — the server verifies only when present */
   const token = window.turnstile ? turnstile.getResponse(widgets.get(form)) : '';
-  if (!token && !captchaCtx) {
-    setSubmitEnabled(form, false);
-    return;
-  }
 
   const submitBtn = form.querySelector('.submit');
   submitBtn.classList.add('loading');
@@ -361,8 +358,7 @@ async function requestLoginEmailCode() {
     body.ctx = captchaCtx;
   } else {
     const token = window.turnstile ? turnstile.getResponse(widgets.get(formLogin)) : '';
-    if (!token) { showFormError(formLogin, KiliwUI.t('auth.generic')); return; }
-    body.token = token;
+    if (token) body.token = token;
   }
   try {
     const res = await fetch('/api/login', {

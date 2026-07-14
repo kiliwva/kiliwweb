@@ -7,7 +7,7 @@
   <title>Join the server — Kiliw ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=167">
+  <link rel="stylesheet" href="styles.css?v=169">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -19,8 +19,28 @@
     .mc-ico svg { width: 26px; height: 26px; }
     .mc-strong { font-weight: 800; color: var(--text); }
     .mc-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
-    .mc-ok { font-size: 42px; margin: 10px 0 6px; color: #7FBF8E; }
     .mc-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+    /* animated coral success check (same as the Telegram bot) */
+    .mc-check {
+      width: 82px; height: 82px; display: block; margin: 6px auto 12px;
+      animation: mc-check-pop .38s cubic-bezier(.22, 1, .36, 1) both;
+    }
+    .mc-check-circle {
+      fill: none; stroke: #D97757; stroke-width: 3;
+      stroke-dasharray: 151; stroke-dashoffset: 151;
+      animation: mc-check-draw .5s cubic-bezier(.65, 0, .45, 1) forwards;
+    }
+    .mc-check-mark {
+      fill: none; stroke: #F2A47B; stroke-width: 4;
+      stroke-linecap: round; stroke-linejoin: round;
+      stroke-dasharray: 40; stroke-dashoffset: 40;
+      animation: mc-check-draw .34s cubic-bezier(.65, 0, .45, 1) .42s forwards;
+    }
+    @keyframes mc-check-draw { to { stroke-dashoffset: 0; } }
+    @keyframes mc-check-pop {
+      from { transform: scale(.6); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -51,7 +71,10 @@
       </div>
 
       <div id="mc-done" hidden>
-        <p class="mc-ok">✓</p>
+        <svg class="mc-check" viewBox="0 0 52 52" aria-hidden="true">
+          <circle class="mc-check-circle" cx="26" cy="26" r="24"/>
+          <path class="mc-check-mark" d="M15 27l7.5 7.5L38 19"/>
+        </svg>
         <h1 class="title" style="font-size:24px">You're in</h1>
         <p class="subtitle">Switch back to Minecraft — the server is unfreezing you.</p>
       </div>

@@ -69,9 +69,12 @@ export async function onRequestPost({ request, env }) {
      captcha token (Turnstile tokens are single-use) */
   const ctx = String(body?.ctx || '');
   const ticketOk = ctx ? await checkCaptchaTicket(env, ctx, email) : false;
-  if (!ticketOk) {
+  /* Turnstile is best-effort: reject a token that fails, but let requests
+     through where the widget could not load (some regions / hosts) so
+     sign-in is never wedged. A bad code still gets nobody in. */
+  if (!ticketOk && body?.token) {
     const ip = request.headers.get('CF-Connecting-IP') || '';
-    const captcha = await verifyTurnstile(env, body?.token, ip);
+    const captcha = await verifyTurnstile(env, body.token, ip);
     if (!captcha.ok) {
       return json({ success: false, error: 'captcha', detail: captcha.codes }, 403);
     }

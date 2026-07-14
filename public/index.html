@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=168">
+  <link rel="stylesheet" href="styles.css?v=169">
   <!-- Cloudflare Turnstile -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onTurnstileLoad" async defer></script>
   <style>
@@ -339,6 +339,16 @@
         <h1 class="rl-title">Log in to K-ID</h1>
         <p class="rl-sub">Don&rsquo;t have an account? <a class="link" href="#" id="go-register">Sign up</a>.</p>
 
+        <div class="rl-socials">
+          <a class="rl-social" data-provider="github" href="/api/oauth?start=1&amp;provider=github">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.68 21.96c.53.1.72-.23.72-.5v-1.96c-2.92.63-3.54-1.24-3.54-1.24-.48-1.21-1.17-1.54-1.17-1.54-.95-.65.07-.64.07-.64 1.06.08 1.61 1.08 1.61 1.08.94 1.6 2.46 1.14 3.06.87.1-.68.37-1.14.66-1.4-2.33-.27-4.79-1.17-4.79-5.2 0-1.14.41-2.08 1.08-2.81-.1-.27-.47-1.34.1-2.79 0 0 .89-.28 2.9 1.08a10.1 10.1 0 0 1 5.29 0c2-1.36 2.89-1.08 2.89-1.08.58 1.45.22 2.52.11 2.79.67.73 1.08 1.67 1.08 2.81 0 4.04-2.46 4.92-4.81 5.18.38.33.72.97.72 1.96v2.9c0 .28.19.61.73.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
+            <span>Log in with GitHub</span>
+            <b class="rl-last" hidden>Last used</b>
+          </a>
+        </div>
+
+        <div class="rl-or" aria-hidden="true"><span>or</span></div>
+
         <label class="rl-label" for="login-email">Email</label>
         <input class="rl-input" type="email" id="login-email" name="email" autocomplete="email webauthn" required>
 
@@ -354,7 +364,7 @@
 
         <div class="turnstile-slot" data-turnstile></div>
 
-        <button type="submit" class="submit" disabled>Continue</button>
+        <button type="submit" class="submit">Continue</button>
 
         <div class="rl-alt-row">
           <button type="button" class="rl-pk-link" id="passkey-link" hidden>
@@ -372,6 +382,16 @@
         <h1 class="rl-title">Create your K-ID</h1>
         <p class="rl-sub">Already have an account? <a class="link" href="#" id="go-login">Log in</a>.</p>
 
+        <div class="rl-socials">
+          <a class="rl-social" data-provider="github" href="/api/oauth?start=1&amp;provider=github">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5A10.5 10.5 0 0 0 8.68 21.96c.53.1.72-.23.72-.5v-1.96c-2.92.63-3.54-1.24-3.54-1.24-.48-1.21-1.17-1.54-1.17-1.54-.95-.65.07-.64.07-.64 1.06.08 1.61 1.08 1.61 1.08.94 1.6 2.46 1.14 3.06.87.1-.68.37-1.14.66-1.4-2.33-.27-4.79-1.17-4.79-5.2 0-1.14.41-2.08 1.08-2.81-.1-.27-.47-1.34.1-2.79 0 0 .89-.28 2.9 1.08a10.1 10.1 0 0 1 5.29 0c2-1.36 2.89-1.08 2.89-1.08.58 1.45.22 2.52.11 2.79.67.73 1.08 1.67 1.08 2.81 0 4.04-2.46 4.92-4.81 5.18.38.33.72.97.72 1.96v2.9c0 .28.19.61.73.5A10.5 10.5 0 0 0 12 1.5Z"/></svg>
+            <span>Sign up with GitHub</span>
+            <b class="rl-last" hidden>Last used</b>
+          </a>
+        </div>
+
+        <div class="rl-or" aria-hidden="true"><span>or</span></div>
+
         <label class="rl-label" for="reg-email">Email</label>
         <input class="rl-input" type="email" id="reg-email" name="email" autocomplete="email" required>
         <p class="rl-sub" style="text-align:left;margin:10px 2px 0;font-size:13px">We&rsquo;ll email you a code to confirm it — no password to remember.</p>
@@ -379,7 +399,7 @@
 
         <div class="turnstile-slot" data-turnstile></div>
 
-        <button type="submit" class="submit" disabled data-i18n="btn.create">Create Account</button>
+        <button type="submit" class="submit" data-i18n="btn.create">Create Account</button>
 
         <p class="rl-terms">By signing up, you agree to our <a class="link" href="#">Terms</a> and <a class="link" href="#">Privacy Policy</a>.</p>
       </form>
@@ -404,12 +424,12 @@
 
     <footer class="auth-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-120</p>
+      <p class="auth-build">KW-121</p>
     </footer>
 
   </div>
 
-  <script src="ui.js?v=168"></script>
-  <script src="auth.js?v=168"></script>
+  <script src="ui.js?v=169"></script>
+  <script src="auth.js?v=169"></script>
 </body>
 </html>

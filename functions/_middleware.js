@@ -5,7 +5,9 @@
    - id.kiliw.com:      the shared K-ID account hub (root = profile)
    - *.workers.dev / *.pages.dev / localhost: auth and cloud on one host */
 
-import { getSession, authRedirect, afterAuthRedirect, isPlainHost } from '../lib/api.js';
+import {
+  getSession, authRedirect, afterAuthRedirect, isPlainHost, isMcidAdminEmail,
+} from '../lib/api.js';
 
 export async function onRequest(context) {
   const { request, env, next } = context;
@@ -88,16 +90,24 @@ export async function onRequest(context) {
   const isIdHost = host.startsWith('id.');
   const isMcidHost = host.startsWith('mcid.');
 
-  /* mcid.<domain>: the Minecraft host. The moderation panel lives at the
-     root; /login shows the same Kiliw ID sign-in window as the id host so
-     the /mc join page can sign the player in without leaving mcid. */
+  /* mcid.<domain>: the Minecraft host. Everything runs on the Kiliw ID
+     account — no Telegram. /login shows the same sign-in window as the id
+     host so the /mc join page can sign the player in without leaving mcid.
+     The root serves the moderation panel to Minecraft admins; a signed-in
+     non-admin is sent to their account, a signed-out visitor to sign-in. */
   if (isMcidHost) {
     if (isLogin) {
       return session
         ? Response.redirect(new URL('/', url).toString(), 302)
         : authPage();
     }
-    if (isRoot) return env.ASSETS.fetch(new URL('/panel', url));
+    if (isRoot) {
+      if (!session) return authPage();
+      if (isMcidAdminEmail(env, session.email)) {
+        return env.ASSETS.fetch(new URL('/mcid', url));
+      }
+      return Response.redirect(`${url.protocol}//id.${host.split('.').slice(-2).join('.')}/`, 302);
+    }
     return next();
   }
 

@@ -1,6 +1,6 @@
 import {
   json, storageReady, getSession, getUser, putUser, randomHex, isOwner,
-  getMcidSession, isMcidAdmin, isMcidAdminNick,
+  getMcidSession, isMcidAdmin, isMcidAdminNick, isMcidAdminEmail,
 } from '../../lib/api.js';
 import qrcode from '../../lib/qrcode.js';
 
@@ -348,12 +348,12 @@ export async function decideJoin(env, token, who, approve) {
   return { nick: data.nick };
 }
 
-/* the moderation panel is reachable two ways: the site owner (email
-   session on cloud.<domain>/mcid) or an admin Telegram (panel session
-   on mcid.<domain>) */
+/* the moderation panel is authorised by a Kiliw ID session whose email is
+   the owner or listed in MCID_ADMIN_EMAILS. A legacy admin Telegram panel
+   session is still honoured as a fallback. */
 async function isMcAdmin(request, env) {
   const session = await getSession(request, env);
-  if (session && isOwner(env, session.email)) return true;
+  if (session && isMcidAdminEmail(env, session.email)) return true;
   const mcid = await getMcidSession(request, env);
   if (!mcid) return false;
   if (isMcidAdmin(env, mcid.tgId)) return true;

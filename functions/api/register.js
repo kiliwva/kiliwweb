@@ -24,10 +24,14 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'invalid-email' }, 400);
   }
 
-  const ip = request.headers.get('CF-Connecting-IP') || '';
-  const captcha = await verifyTurnstile(env, body?.token, ip);
-  if (!captcha.ok) {
-    return json({ success: false, error: 'captcha', detail: captcha.codes }, 403);
+  /* Turnstile is best-effort: verify a token when the widget produced one,
+     but do not wedge sign-up where the challenge could not load */
+  if (body?.token) {
+    const ip = request.headers.get('CF-Connecting-IP') || '';
+    const captcha = await verifyTurnstile(env, body.token, ip);
+    if (!captcha.ok) {
+      return json({ success: false, error: 'captcha', detail: captcha.codes }, 403);
+    }
   }
 
   if (await getUser(env, email)) {
