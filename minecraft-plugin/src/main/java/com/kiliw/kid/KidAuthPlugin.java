@@ -19,6 +19,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -70,6 +71,8 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
     /** nick -> last successful auth, for the remember-session grace */
     private final Map<String, Remembered> remembered = new ConcurrentHashMap<>();
+    /** nick(lower) -> connecting IP, captured at pre-login (most reliable) */
+    private final Map<String, String> loginIps = new ConcurrentHashMap<>();
     /** premium players marked by FastLogin */
     private final Map<UUID, Boolean> premium = new ConcurrentHashMap<>();
 
@@ -105,6 +108,21 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         premium.put(id, Boolean.TRUE);
     }
 
+    /* ---------- capture the connecting IP as early as possible ---------- */
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        if (event.getAddress() != null) {
+            loginIps.put(event.getName().toLowerCase(), event.getAddress().getHostAddress());
+        }
+    }
+
+    private String ipOf(Player player) {
+        String ip = loginIps.get(player.getName().toLowerCase());
+        if (ip != null && !ip.isBlank()) return ip;
+        return player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : "";
+    }
+
     /* ---------- join: freeze and hand out the link ---------- */
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -117,7 +135,7 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         }
 
         Remembered r = remembered.get(player.getName().toLowerCase());
-        String address = player.getAddress() != null ? player.getAddress().getAddress().getHostAddress() : "";
+        String address = ipOf(player);
         if (r != null && r.until() > System.currentTimeMillis() && r.address().equals(address)) {
             player.sendMessage(Component.text("Session remembered — welcome back!", NamedTextColor.GREEN));
             return;
@@ -130,8 +148,9 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         player.setInvulnerable(true);
         player.sendMessage(Component.text("Verifying your K-ID…", NamedTextColor.GRAY));
 
-        String joinIp = player.getAddress() != null
-            ? player.getAddress().getAddress().getHostAddress() : "";
+        String joinIp = ipOf(player);
+        getLogger().info("K-ID sign-in for " + player.getName() + " from IP: "
+            + (joinIp.isBlank() ? "(unknown)" : joinIp));
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
             JsonObject res = api("POST", "/api/mc", gson.toJson(Map.of(
                 "action", "create",
@@ -216,10 +235,8 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
             player.setInvulnerable(false);
             switch (status) {
                 case "ok" -> {
-                    String address = player.getAddress() != null
-                        ? player.getAddress().getAddress().getHostAddress() : "";
                     remembered.put(player.getName().toLowerCase(),
-                        new Remembered(address, System.currentTimeMillis() + rememberMillis));
+                        new Remembered(ipOf(player), System.currentTimeMillis() + rememberMillis));
                     player.sendMessage(Component.text("Verified — have fun!", NamedTextColor.GREEN));
                 }
                 case "denied" -> player.kick(Component.text(
@@ -396,6 +413,7 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
+        loginIps.remove(e.getPlayer().getName().toLowerCase());
         Pending p = pending.remove(e.getPlayer().getUniqueId());
         if (p != null) {
             p.pollTask().cancel();
