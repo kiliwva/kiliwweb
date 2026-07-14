@@ -14,7 +14,8 @@
     return `${Math.round(d / 86400000)}d ago`;
   };
 
-  const tgLabel = (n) => (n.tgUsername ? `@${n.tgUsername}` : (n.tgId ? `tg:${n.tgId}` : (n.email || 'unlinked')));
+  const tgLabel = (n) => (n.mcAcc ? n.mcAcc
+    : (n.tgUsername ? `@${n.tgUsername}` : (n.tgId ? `tg:${n.tgId}` : (n.email || 'unlinked'))));
 
   let state = { nicks: [], devices: [], bans: [], requests: [] };
 

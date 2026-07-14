@@ -1,6 +1,6 @@
 import {
   json, storageReady, getSession, getUser, putUser, randomHex, isOwner,
-  getMcidSession, isMcidAdmin, isMcidAdminNick,
+  getMcidSession, isMcidAdmin, isMcidAdminNick, getMcAccSession,
 } from '../../lib/api.js';
 import qrcode from '../../lib/qrcode.js';
 
@@ -27,10 +27,24 @@ const key = (token) => `_auth/mc/${token}.json`;
 const nickKey = (nick) => `_auth/mcnick/${nick.toLowerCase()}.json`;
 /* reverse index so a Telegram user can see / unlink their nickname */
 const tgNickKey = (tgId) => `_auth/mctg/${tgId}.json`;
+/* reverse index for stand-alone mcid accounts (email -> nick) */
+const mcAccNickKey = (email) => `_auth/mcaccnick/${String(email).toLowerCase()}.json`;
+
+/* the nickname currently held by a stand-alone mcid account, or null */
+async function getMcAccNick(env, email) {
+  if (!email) return null;
+  const obj = await env.KILIW_FILES.get(mcAccNickKey(email));
+  if (!obj) return null;
+  const data = await obj.json().catch(() => null);
+  return (data && data.nick) || null;
+}
 /* machine signature -> the nick registered on that computer */
 const deviceKey = (sig) => `_auth/mcdev/${sig}.json`;
 /* owner-banned nicknames (blocked from signing in at all) */
 const banKey = (nick) => `_auth/mcban/${nick.toLowerCase()}.json`;
+/* one-shot "force re-login" flag: clears a player's remember-session so
+   the plugin makes them sign in again on their next join */
+const forceKey = (nick) => `_auth/mcforce/${nick.toLowerCase()}.json`;
 
 const isBanned = async (env, nick) => Boolean(await env.KILIW_FILES.get(banKey(nick)));
 
@@ -218,7 +232,7 @@ export async function decideJoin(env, token, who, approve) {
     return { denied: true, nick: data.nick };
   }
 
-  if (!who || (!who.email && !who.tgId)) return { error: 'unauthorized', http: 401 };
+  if (!who || (!who.email && !who.tgId && !who.mcAcc)) return { error: 'unauthorized', http: 401 };
 
   /* owner-banned nickname: refuse outright */
   if (await isBanned(env, data.nick)) {
@@ -233,7 +247,8 @@ export async function decideJoin(env, token, who, approve) {
   const bind = bindObj ? await bindObj.json().catch(() => null) : null;
   if (bind) {
     const owns = (bind.email && who.email && bind.email === who.email)
-      || (bind.tgId && who.tgId && bind.tgId === who.tgId);
+      || (bind.tgId && who.tgId && bind.tgId === who.tgId)
+      || (bind.mcAcc && who.mcAcc && bind.mcAcc === who.mcAcc);
     if (!owns) {
       data.status = 'denied';
       await env.KILIW_FILES.put(key(token), JSON.stringify(data));
@@ -250,6 +265,7 @@ export async function decideJoin(env, token, who, approve) {
       const u = await getUser(env, who.email);
       held = (u && u.mcNick) || null;
     }
+    if (!held && who.mcAcc) held = await getMcAccNick(env, who.mcAcc);
     if (held && held.toLowerCase() !== data.nick.toLowerCase()) {
       data.status = 'denied';
       await env.KILIW_FILES.put(key(token), JSON.stringify(data));
@@ -282,6 +298,14 @@ export async function decideJoin(env, token, who, approve) {
         created: (bind && bind.created) || Date.now(),
       }));
     }
+  } else if (who.mcAcc) {
+    if (!bind) {
+      await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
+        nick: data.nick,
+        mcAcc: who.mcAcc,
+        created: Date.now(),
+      }));
+    }
   } else if (!bind) {
     await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
       nick: data.nick,
@@ -294,6 +318,12 @@ export async function decideJoin(env, token, who, approve) {
   /* keep the reverse index fresh so the mini app can show the nick */
   if (who.tgId) {
     await env.KILIW_FILES.put(tgNickKey(who.tgId), JSON.stringify({
+      nick: data.nick,
+      created: Date.now(),
+    }));
+  }
+  if (who.mcAcc) {
+    await env.KILIW_FILES.put(mcAccNickKey(who.mcAcc), JSON.stringify({
       nick: data.nick,
       created: Date.now(),
     }));
@@ -313,6 +343,7 @@ export async function decideJoin(env, token, who, approve) {
   data.status = 'approved';
   data.email = who.email || null;
   data.tgId = who.tgId || null;
+  data.mcAcc = who.mcAcc || null;
   await env.KILIW_FILES.put(key(token), JSON.stringify(data));
   return { nick: data.nick };
 }
@@ -355,6 +386,7 @@ async function listMcAdmin(env) {
     tgId: (d && d.tgId) || null,
     tgUsername: (d && d.tgUsername) || null,
     email: (d && d.email) || null,
+    mcAcc: (d && d.mcAcc) || null,
     created: (d && d.created) || null,
   })).sort((a, b) => (b.created || 0) - (a.created || 0));
   const devices = devsRaw.map(({ id, d }) => ({
@@ -441,6 +473,14 @@ export async function onRequestPost({ request, env }) {
       return json({ success: true, ...(await listMcAdmin(env)) });
     }
 
+    /* force a player to sign in again next join (clears their remembered
+       session — the plugin checks this flag) */
+    if (action === 'admin-relogin') {
+      if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
+      await env.KILIW_FILES.put(forceKey(nick), JSON.stringify({ ts: Date.now() }));
+      return json({ success: true, ...(await listMcAdmin(env)) });
+    }
+
     /* let a player in (or reject) straight from the panel, WITHOUT tying
        the nick to any account — a pure admin override of one request */
     if (action === 'admin-approve' || action === 'admin-deny') {
@@ -499,13 +539,17 @@ export async function onRequestPost({ request, env }) {
     }));
     /* players approve through the Telegram bot; the site page /mc stays
        as a fallback when the bot is not configured */
+    /* the chat link + map QR go to the /mc approval page on the mcid host,
+       where the player signs in with a stand-alone mcid account (email +
+       password) — fully separate from the main K-ID accounts */
     const reqUrl = new URL(request.url);
-    /* the chat link goes to the web approval page (sign in with K-ID),
-       so no Telegram is needed for the site route */
-    const url = `${reqUrl.origin}/mc#${token}`;
-    /* the map QR encodes the same /mc page URL: the bot's in-app scanner
-       recognizes the /mc#<token> pattern, and a plain phone camera opens
-       the page which then launches the bot via tg:// (no t.me anywhere) */
+    const host = reqUrl.hostname;
+    const plainHost = host === 'localhost' || host === '127.0.0.1'
+      || host.endsWith('.workers.dev') || host.endsWith('.pages.dev');
+    const mcOrigin = plainHost
+      ? reqUrl.origin
+      : `https://mcid.${host.split('.').slice(-2).join('.')}`;
+    const url = `${mcOrigin}/mc#${token}`;
     const qrData = url;
     /* QR module matrix ("1" dark / "0" light rows) — the plugin draws
        it on an in-game map so the player can scan it with a phone */
@@ -542,6 +586,14 @@ export async function onRequestPost({ request, env }) {
 
   /* --- player: approve or deny from the browser --- */
   if (action === 'approve' || action === 'deny') {
+    /* stand-alone mcid account (email+password on the mcid host) first */
+    const acc = await getMcAccSession(request, env);
+    if (acc && acc.email) {
+      const res = await decideJoin(env, body?.token, { mcAcc: acc.email }, action === 'approve');
+      if (res.error) return json({ success: false, error: res.error, held: res.held || null }, res.http);
+      return json({ success: true, nick: res.nick });
+    }
+    /* else a K-ID site session */
     const session = await getSession(request, env);
     if (!session) return json({ success: false, error: 'unauthorized' }, 401);
     const res = await decideJoin(env, body?.token, { email: session.email }, action === 'approve');
@@ -581,6 +633,19 @@ export async function onRequestGet({ request, env }) {
       return json({ success: false, error: 'forbidden' }, 403);
     }
     return json({ success: true, ...(await listMcAdmin(env)) });
+  }
+
+  /* game server: is a forced re-login pending for this nick? (one-shot) */
+  const reloginNick = url.searchParams.get('relogin');
+  if (reloginNick !== null) {
+    if (!serverAuthed(request, env)) return json({ success: false, error: 'unauthorized' }, 401);
+    if (!NICK_RE.test(reloginNick)) return json({ success: true, force: false });
+    const obj = await env.KILIW_FILES.get(forceKey(reloginNick));
+    if (obj) {
+      await env.KILIW_FILES.delete(forceKey(reloginNick)).catch(() => {});
+      return json({ success: true, force: true });
+    }
+    return json({ success: true, force: false });
   }
 
   /* player page: what is being approved? */

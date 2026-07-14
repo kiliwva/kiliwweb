@@ -4,32 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#0C0C0C">
-  <title>Join the server — K-ID</title>
+  <title>Join the server — MCID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=163">
+  <link rel="stylesheet" href="styles.css?v=164">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
-      width: 56px; height: 56px;
-      margin: 6px auto 18px;
+      width: 56px; height: 56px; margin: 6px auto 18px;
       display: flex; align-items: center; justify-content: center;
-      border-radius: 16px;
-      color: #E8A38B;
-      background: rgba(217, 119, 87, 0.10);
-      border: 1px solid rgba(217, 119, 87, 0.2);
+      border-radius: 16px; color: #E8A38B;
+      background: rgba(217, 119, 87, 0.10); border: 1px solid rgba(217, 119, 87, 0.2);
     }
     .mc-ico svg { width: 26px; height: 26px; }
     .mc-strong { font-weight: 800; color: var(--text); }
-    .mc-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
-    .mc-ok { font-size: 42px; margin: 10px 0 6px; }
+    .mc-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+    .mc-ok { font-size: 42px; margin: 10px 0 6px; color: #7FBF8E; }
     .mc-note { margin-top: 14px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
-    .mc-qr {
-      display: none; width: 168px; height: 168px; margin: 22px auto 4px;
-      padding: 12px; background: #fff; border-radius: 16px;
+    .mc-note a { color: #E8A38B; text-decoration: underline; cursor: pointer; }
+    .mc-form { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .mc-form input {
+      width: 100%; padding: 13px 15px; font: inherit; font-size: 15px; font-weight: 600;
+      color: var(--text); background: var(--frost-soft);
+      border: 1.5px solid var(--panel-border); border-radius: 12px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
-    .mc-qr.on { display: block; }
-    .mc-qr svg { display: block; width: 100%; height: 100%; }
+    .mc-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+    .mc-status { min-height: 16px; margin-top: 12px; font-size: 12.5px; font-weight: 700; color: #E5484D; }
   </style>
 </head>
 <body>
@@ -39,22 +40,68 @@
     <div class="orb orb-2" aria-hidden="true"></div>
 
     <main class="card mc-card">
-      <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
+      <div class="auth-brand"><span class="wordmark kid">M<em>CID</em></span></div>
 
       <div id="mc-loading"><p class="subtitle">One moment…</p></div>
 
-      <div id="mc-open" hidden>
+      <div id="mc-auth" hidden>
         <span class="mc-ico">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </span>
-        <h1 class="title" style="font-size:24px">Confirm in Telegram</h1>
-        <p class="subtitle"><span class="mc-strong" id="mc-server"></span> wants to log you in as
-          <span class="mc-strong" id="mc-nick"></span>.<br>Open the bot and approve.</p>
+        <h1 class="title" style="font-size:24px" id="mc-auth-title">Sign in</h1>
+        <p class="subtitle">Confirm joining as <span class="mc-strong" id="mc-auth-nick"></span>.<br>
+          This account is only for Minecraft — not your Kiliw ID.</p>
+        <form class="mc-form" id="mc-form" autocomplete="on">
+          <input id="mc-email" type="email" placeholder="Email" autocomplete="username" required>
+          <input id="mc-password" type="password" placeholder="Password" autocomplete="current-password" required>
+          <button type="submit" class="submit" id="mc-auth-btn">Sign in</button>
+        </form>
+        <p class="mc-status" id="mc-auth-status"></p>
+        <p class="mc-note" id="mc-auth-switch">No account? <a id="mc-auth-toggle">Create one</a></p>
+      </div>
+
+      <div id="mc-ask" hidden>
+        <span class="mc-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+        </span>
+        <h1 class="title" style="font-size:24px">Join the server?</h1>
+        <p class="subtitle">Let <span class="mc-strong" id="mc-server"></span> log you in as
+          <span class="mc-strong" id="mc-nick"></span>?<br>
+          Signed in as <span class="mc-strong" id="mc-mail"></span>.</p>
         <div class="mc-actions">
-          <a class="submit" id="mc-open-btn" style="display:block;text-decoration:none">Open Telegram</a>
+          <button type="button" class="submit" id="mc-approve">Yes, that&rsquo;s me</button>
+          <button type="button" class="ghost-btn" id="mc-deny">Deny</button>
         </div>
-        <div class="mc-qr" id="mc-qr"></div>
-        <p class="mc-note" id="mc-qr-note" hidden>No Telegram on this computer? Scan this with your phone to open the bot.</p>
+        <p class="mc-note">The first approval ties this nickname to this account.
+          <a id="mc-logout">Log out</a></p>
+      </div>
+
+      <div id="mc-done" hidden>
+        <p class="mc-ok">✓</p>
+        <h1 class="title" style="font-size:24px">You're in</h1>
+        <p class="subtitle">Switch back to Minecraft — the server is unfreezing you.</p>
+      </div>
+
+      <div id="mc-denied" hidden>
+        <h1 class="title" style="font-size:24px">Denied</h1>
+        <p class="subtitle">The join was rejected. You can close this page.</p>
+      </div>
+
+      <div id="mc-taken" hidden>
+        <h1 class="title" style="font-size:24px">Nickname taken</h1>
+        <p class="subtitle">This nickname is tied to a different account.
+          Sign in with that account or pick another nickname in the game.</p>
+      </div>
+
+      <div id="mc-multi" hidden>
+        <h1 class="title" style="font-size:24px">Already linked</h1>
+        <p class="subtitle">This account already holds another nickname.
+          Unlink it first to use a different one.</p>
+      </div>
+
+      <div id="mc-banned" hidden>
+        <h1 class="title" style="font-size:24px">Nickname banned</h1>
+        <p class="subtitle">This nickname has been banned by the server owner.</p>
       </div>
 
       <div id="mc-bad" hidden>
@@ -64,53 +111,88 @@
     </main>
   </div>
 
-  <script src="vendor/qrcode.min.js"></script>
   <script>
     (async () => {
-      const panes = ['mc-loading', 'mc-open', 'mc-bad'];
+      const panes = ['mc-loading', 'mc-auth', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-multi', 'mc-banned', 'mc-bad'];
       const show = (id) => panes.forEach((s) => { document.getElementById(s).hidden = s !== id; });
       const $ = (id) => document.getElementById(id);
       const token = (window.location.hash || '').slice(1);
       if (!/^[0-9a-f]{24,64}$/.test(token)) { show('mc-bad'); return; }
 
-      const info = await fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null);
-      if (!info || info.status !== 'pending' || !info.bot) { show('mc-bad'); return; }
+      const post = (path, payload) => fetch(path, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      }).then((r) => r.json().catch(() => ({}))).catch(() => ({}));
 
-      /* everything opens the Telegram app directly via tg:// — t.me is
-         not used anywhere (it is blocked in some regions) */
-      const tgUrl = `tg://resolve?domain=${info.bot}&start=mc_${token}`;
-      $('mc-server').textContent = info.server;
-      $('mc-nick').textContent = info.nick;
-      $('mc-open-btn').href = tgUrl;
-      show('mc-open');
+      const [me, info] = await Promise.all([
+        fetch('/api/mcauth?me=1').then((r) => r.json()).catch(() => null),
+        fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null),
+      ]);
+      if (!info || info.status !== 'pending') { show('mc-bad'); return; }
 
-      /* on-screen QR (also tg://) so a computer without Telegram can be
-         scanned with a phone — the phone opens the bot and confirms */
-      if (window.qrcode) {
-        try {
-          const q = window.qrcode(0, 'M');
-          q.addData(tgUrl);
-          q.make();
-          const n = q.getModuleCount();
-          const S = 6;
-          const Q = 4 * S;
-          const size = n * S + Q * 2;
-          let path = '';
-          for (let r = 0; r < n; r += 1) {
-            for (let c = 0; c < n; c += 1) {
-              if (q.isDark(r, c)) path += `M${Q + c * S} ${Q + r * S}h${S}v${S}h${-S}z`;
-            }
-          }
-          $('mc-qr').innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}"><path fill="#0C0C0C" d="${path}"/></svg>`;
-          $('mc-qr').classList.add('on');
-          $('mc-qr-note').hidden = false;
-        } catch (e) { /* no QR is fine, the button still works */ }
+      function showAsk(email) {
+        $('mc-server').textContent = info.server;
+        $('mc-nick').textContent = info.nick;
+        $('mc-mail').textContent = email;
+        show('mc-ask');
       }
 
-      /* the link "leads to the bot": try to launch the app straight away.
-         If there is no Telegram here, nothing happens and the button + QR
-         stay on screen. */
-      setTimeout(() => { try { window.location.href = tgUrl; } catch (e) { /* keep button + QR */ } }, 500);
+      /* ---- approve / deny ---- */
+      $('mc-deny').addEventListener('click', async () => {
+        await post('/api/mc', { action: 'deny', token });
+        show('mc-denied');
+      });
+      $('mc-approve').addEventListener('click', async () => {
+        $('mc-approve').disabled = true;
+        const r = await post('/api/mc', { action: 'approve', token });
+        $('mc-approve').disabled = false;
+        if (r.success) show('mc-done');
+        else if (r.error === 'nick-taken') show('mc-taken');
+        else if (r.error === 'multi-account') show('mc-multi');
+        else if (r.error === 'nick-banned') show('mc-banned');
+        else show('mc-bad');
+      });
+      $('mc-logout').addEventListener('click', async () => {
+        await post('/api/mcauth', { action: 'logout' });
+        window.location.reload();
+      });
+
+      if (me && me.authed) { showAsk(me.email); return; }
+
+      /* ---- login / register ---- */
+      let mode = 'login';
+      $('mc-auth-nick').textContent = info.nick;
+      show('mc-auth');
+
+      const setMode = (m) => {
+        mode = m;
+        $('mc-auth-title').textContent = m === 'login' ? 'Sign in' : 'Create account';
+        $('mc-auth-btn').textContent = m === 'login' ? 'Sign in' : 'Create account';
+        $('mc-password').autocomplete = m === 'login' ? 'current-password' : 'new-password';
+        $('mc-auth-switch').innerHTML = m === 'login'
+          ? 'No account? <a>Create one</a>' : 'Have an account? <a>Sign in</a>';
+        $('mc-auth-switch').querySelector('a')
+          .addEventListener('click', () => setMode(m === 'login' ? 'register' : 'login'));
+        $('mc-auth-status').textContent = '';
+      };
+      setMode('login');
+
+      $('mc-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = $('mc-email').value.trim();
+        const password = $('mc-password').value;
+        $('mc-auth-btn').disabled = true;
+        $('mc-auth-status').textContent = '';
+        const r = await post('/api/mcauth', { action: mode, email, password });
+        $('mc-auth-btn').disabled = false;
+        if (r.success) { showAsk(r.email || email); return; }
+        const msg = {
+          'invalid-email': 'Enter a valid email.',
+          'invalid-password': 'Password must be at least 8 characters.',
+          'user-exists': 'That email is already registered — sign in instead.',
+          'bad-credentials': 'Wrong email or password.',
+        }[r.error] || 'Something went wrong. Try again.';
+        $('mc-auth-status').textContent = msg;
+      });
     })();
   </script>
 </body>

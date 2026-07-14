@@ -139,7 +139,8 @@
   /* ---------- moderation ---------- */
 
   let modState = { nicks: [], devices: [], bans: [], requests: [] };
-  const tgLabel = (n) => (n.tgUsername ? `@${n.tgUsername}` : (n.tgId ? `tg:${n.tgId}` : (n.email || 'unlinked')));
+  const tgLabel = (n) => (n.mcAcc ? n.mcAcc
+    : (n.tgUsername ? `@${n.tgUsername}` : (n.tgId ? `tg:${n.tgId}` : (n.email || 'unlinked'))));
   const rowHtml = (name, meta, acts) => `<li class="mc-row"><div class="main">`
     + `<div class="name">${name}</div><div class="meta">${meta}</div></div>`
     + `<div class="mc-acts">${acts}</div></li>`;
