@@ -136,6 +136,90 @@ commands:
     usage: /clearinventory [player]
     aliases: [ci, clearinv]
     permission: kidauth.clearinventory
+  tp:
+    description: Teleport to a player (or one player to another)
+    usage: /tp <player> [target]
+    permission: kidauth.tp
+  tphere:
+    description: Teleport a player to you
+    usage: /tphere <player>
+    permission: kidauth.tphere
+  tpall:
+    description: Teleport everyone to you
+    permission: kidauth.tpall
+  top:
+    description: Teleport to the highest block
+    permission: kidauth.top
+  near:
+    description: List nearby players
+    usage: /near [radius]
+    permission: kidauth.near
+  time:
+    description: Set the world time
+    usage: /time <day|night|set n>
+    permission: kidauth.time
+  day:
+    description: Set time to day
+    permission: kidauth.time
+  night:
+    description: Set time to night
+    permission: kidauth.time
+  weather:
+    description: Set the weather
+    usage: /weather <clear|rain|storm>
+    permission: kidauth.weather
+  sun:
+    description: Clear the weather
+    permission: kidauth.weather
+  nick:
+    description: Set your display name
+    usage: /nick <name|off>
+    permission: kidauth.nick
+  afk:
+    description: Toggle AFK
+    permission: kidauth.afk
+  list:
+    description: List online players
+    aliases: [online, who]
+    permission: kidauth.list
+  broadcast:
+    description: Broadcast a message
+    usage: /broadcast <message>
+    aliases: [bc]
+    permission: kidauth.broadcast
+  more:
+    description: Fill the held stack
+    permission: kidauth.more
+  kill:
+    description: Kill a player
+    usage: /kill [player]
+    permission: kidauth.kill
+  suicide:
+    description: Kill yourself
+    permission: kidauth.suicide
+  gmc:
+    description: Creative mode
+    usage: /gmc [player]
+    permission: kidauth.gamemode
+  gms:
+    description: Survival mode
+    usage: /gms [player]
+    permission: kidauth.gamemode
+  gma:
+    description: Adventure mode
+    usage: /gma [player]
+    permission: kidauth.gamemode
+  gmsp:
+    description: Spectator mode
+    usage: /gmsp [player]
+    permission: kidauth.gamemode
+  ping:
+    description: Show your ping
+    permission: kidauth.ping
+  ext:
+    description: Extinguish fire
+    usage: /ext [player]
+    permission: kidauth.ext
 
 permissions:
   kidauth.sethome: { default: true }
@@ -170,4 +254,20 @@ permissions:
   kidauth.ban: { default: op }
   kidauth.unban: { default: op }
   kidauth.clearinventory: { default: op }
+  kidauth.tp: { default: op }
+  kidauth.tphere: { default: op }
+  kidauth.tpall: { default: op }
+  kidauth.top: { default: true }
+  kidauth.near: { default: true }
+  kidauth.time: { default: op }
+  kidauth.weather: { default: op }
+  kidauth.nick: { default: op }
+  kidauth.afk: { default: true }
+  kidauth.list: { default: true }
+  kidauth.broadcast: { default: op }
+  kidauth.more: { default: op }
+  kidauth.kill: { default: op }
+  kidauth.suicide: { default: true }
+  kidauth.ping: { default: true }
+  kidauth.ext: { default: op }
   kidauth.admin: { default: op }

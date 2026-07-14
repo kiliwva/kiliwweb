@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -25,9 +26,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,6 +60,8 @@ public final class EssentialsModule implements CommandExecutor, Listener {
     private final Map<UUID, UUID> replyTo = new ConcurrentHashMap<>();
     /** kit cooldowns: "<uuid>:<kit>" -> epoch millis when last claimed */
     private final Map<String, Long> kitUsed = new ConcurrentHashMap<>();
+    /** players currently marked AFK */
+    private final Set<UUID> afk = ConcurrentHashMap.newKeySet();
 
     private static final long TPA_TIMEOUT = 60_000L;
 
@@ -78,6 +83,10 @@ public final class EssentialsModule implements CommandExecutor, Listener {
         "kit", "kits", "msg", "reply",
         "workbench", "enderchest", "repair", "hat",
         "kick", "ban", "unban", "clearinventory",
+        "tp", "tphere", "tpall", "top", "near",
+        "time", "day", "night", "weather", "sun",
+        "nick", "afk", "list", "broadcast", "more",
+        "kill", "suicide", "gmc", "gms", "gma", "gmsp", "ping", "ext",
     };
 
     void register() {
@@ -180,6 +189,29 @@ public final class EssentialsModule implements CommandExecutor, Listener {
                 case "ban" -> ban(sender, args);
                 case "unban" -> unban(sender, args);
                 case "clearinventory" -> clearInventory(sender, args);
+                case "tp" -> tp(sender, args);
+                case "tphere" -> tphere(sender, args);
+                case "tpall" -> tpall(sender);
+                case "top" -> top(sender);
+                case "near" -> near(sender, args);
+                case "time" -> setTime(sender, args);
+                case "day" -> dayNight(sender, 1000, "Set to day.");
+                case "night" -> dayNight(sender, 13000, "Set to night.");
+                case "weather" -> weather(sender, args);
+                case "sun" -> weather(sender, new String[] { "clear" });
+                case "nick" -> nick(sender, args);
+                case "afk" -> afk(sender);
+                case "list" -> list(sender);
+                case "broadcast" -> broadcast(sender, args);
+                case "more" -> more(sender);
+                case "kill" -> kill(sender, args);
+                case "suicide" -> kill(sender, new String[0]);
+                case "gmc" -> gmShort(sender, GameMode.CREATIVE, args);
+                case "gms" -> gmShort(sender, GameMode.SURVIVAL, args);
+                case "gma" -> gmShort(sender, GameMode.ADVENTURE, args);
+                case "gmsp" -> gmShort(sender, GameMode.SPECTATOR, args);
+                case "ping" -> ping(sender);
+                case "ext" -> ext(sender, args);
                 default -> { return false; }
             }
         } catch (RuntimeException ex) {
@@ -593,5 +625,186 @@ public final class EssentialsModule implements CommandExecutor, Listener {
         BanList banList = Bukkit.getBanList(BanList.Type.NAME);
         banList.pardon(a[0]);
         ok(s, "Unbanned " + a[0] + ".");
+    }
+
+    /* ---------- teleport (operators) ---------- */
+
+    private void tp(CommandSender s, String[] a) {
+        if (a.length == 0) { err(s, "Usage: /tp <player> [target]"); return; }
+        Player from;
+        Player to;
+        if (a.length == 1) {
+            from = asPlayer(s);
+            if (from == null) { err(s, "Console must name two players."); return; }
+            to = Bukkit.getPlayerExact(a[0]);
+        } else {
+            from = Bukkit.getPlayerExact(a[0]);
+            to = Bukkit.getPlayerExact(a[1]);
+        }
+        if (from == null || to == null) { err(s, "Player not found."); return; }
+        remember(from);
+        from.teleport(to.getLocation());
+        ok(s, "Teleported " + from.getName() + " to " + to.getName() + ".");
+    }
+
+    private void tphere(CommandSender s, String[] a) {
+        Player me = asPlayer(s);
+        if (me == null) { err(s, "Players only."); return; }
+        if (a.length == 0) { err(s, "Usage: /tphere <player>"); return; }
+        Player t = Bukkit.getPlayerExact(a[0]);
+        if (t == null) { err(s, "Player not found."); return; }
+        remember(t);
+        t.teleport(me.getLocation());
+        ok(s, "Teleported " + t.getName() + " to you.");
+    }
+
+    private void tpall(CommandSender s) {
+        Player me = asPlayer(s);
+        if (me == null) { err(s, "Players only."); return; }
+        int n = 0;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (!p.equals(me)) { remember(p); p.teleport(me.getLocation()); n += 1; }
+        }
+        ok(s, "Teleported " + n + " player(s) to you.");
+    }
+
+    private void top(CommandSender s) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        Location loc = p.getLocation();
+        loc.setY(p.getWorld().getHighestBlockYAt(loc) + 1);
+        remember(p);
+        p.teleport(loc);
+        ok(s, "Teleported to the surface.");
+    }
+
+    private void near(CommandSender s, String[] a) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        double rad = 200;
+        if (a.length > 0) {
+            try { rad = Math.max(1, Double.parseDouble(a[0])); } catch (NumberFormatException ignored) { }
+        }
+        double r2 = rad * rad;
+        List<String> found = new ArrayList<>();
+        for (Player o : Bukkit.getOnlinePlayers()) {
+            if (o.equals(p) || !o.getWorld().equals(p.getWorld())) continue;
+            double dd = o.getLocation().distanceSquared(p.getLocation());
+            if (dd <= r2) found.add(o.getName() + " (" + (int) Math.sqrt(dd) + "m)");
+        }
+        info(s, found.isEmpty() ? "No players nearby." : "Nearby: " + String.join(", ", found));
+    }
+
+    /* ---------- time / weather (operators) ---------- */
+
+    private void setTime(CommandSender s, String[] a) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        if (a.length == 0) { err(s, "Usage: /time <day|night|set n>"); return; }
+        long t;
+        String v = a[0].toLowerCase(Locale.ROOT);
+        if (v.equals("day")) {
+            t = 1000;
+        } else if (v.equals("night")) {
+            t = 13000;
+        } else {
+            String num = v.equals("set") && a.length > 1 ? a[1] : v;
+            try { t = Long.parseLong(num); } catch (NumberFormatException e) { err(s, "Usage: /time <day|night|set n>"); return; }
+        }
+        p.getWorld().setTime(t);
+        ok(s, "Time set.");
+    }
+
+    private void dayNight(CommandSender s, long t, String label) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        p.getWorld().setTime(t);
+        ok(s, label);
+    }
+
+    private void weather(CommandSender s, String[] a) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        if (a.length == 0) { err(s, "Usage: /weather <clear|rain|storm>"); return; }
+        World w = p.getWorld();
+        switch (a[0].toLowerCase(Locale.ROOT)) {
+            case "clear", "sun" -> { w.setStorm(false); w.setThundering(false); }
+            case "rain" -> { w.setStorm(true); w.setThundering(false); }
+            case "storm", "thunder" -> { w.setStorm(true); w.setThundering(true); }
+            default -> { err(s, "Use clear, rain or storm."); return; }
+        }
+        ok(s, "Weather set.");
+    }
+
+    /* ---------- misc ---------- */
+
+    private void nick(CommandSender s, String[] a) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        if (a.length == 0) { err(s, "Usage: /nick <name|off>"); return; }
+        String name = a[0].equalsIgnoreCase("off") ? p.getName() : a[0];
+        p.displayName(Component.text(name));
+        p.playerListName(Component.text(name));
+        ok(s, a[0].equalsIgnoreCase("off") ? "Nickname reset." : "Nickname set to " + name + ".");
+    }
+
+    private void afk(CommandSender s) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        boolean now = afk.add(p.getUniqueId());
+        if (!now) afk.remove(p.getUniqueId());
+        Bukkit.broadcast(Component.text(p.getName() + (now ? " is now AFK" : " is no longer AFK"), NamedTextColor.GRAY));
+    }
+
+    private void list(CommandSender s) {
+        StringBuilder sb = new StringBuilder();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append(p.getName());
+            if (afk.contains(p.getUniqueId())) sb.append(" [AFK]");
+        }
+        info(s, "Online (" + Bukkit.getOnlinePlayers().size() + "): " + (sb.length() == 0 ? "nobody" : sb.toString()));
+    }
+
+    private void broadcast(CommandSender s, String[] a) {
+        if (a.length == 0) { err(s, "Usage: /broadcast <message>"); return; }
+        Bukkit.broadcast(Component.text("[Broadcast] " + String.join(" ", a), NamedTextColor.YELLOW));
+    }
+
+    private void more(CommandSender s) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        ItemStack it = p.getInventory().getItemInMainHand();
+        if (it == null || it.getType().isAir()) { err(s, "Hold an item."); return; }
+        it.setAmount(it.getMaxStackSize());
+        p.getInventory().setItemInMainHand(it);
+        ok(s, "Stack filled.");
+    }
+
+    private void kill(CommandSender s, String[] a) {
+        Player t = resolveTarget(s, a, 0);
+        if (t == null) return;
+        t.setHealth(0);
+        ok(s, t.equals(s) ? "Done." : "Killed " + t.getName() + ".");
+    }
+
+    private void ext(CommandSender s, String[] a) {
+        Player t = resolveTarget(s, a, 0);
+        if (t == null) return;
+        t.setFireTicks(0);
+        ok(s, "Extinguished " + t.getName() + ".");
+    }
+
+    private void ping(CommandSender s) {
+        Player p = asPlayer(s);
+        if (p == null) { err(s, "Players only."); return; }
+        info(s, "Your ping: " + p.getPing() + " ms");
+    }
+
+    private void gmShort(CommandSender s, GameMode mode, String[] a) {
+        Player t = resolveTarget(s, a, 0);
+        if (t == null) return;
+        t.setGameMode(mode);
+        ok(s, t.getName() + " is now in " + mode.name().toLowerCase(Locale.ROOT) + " mode.");
     }
 }

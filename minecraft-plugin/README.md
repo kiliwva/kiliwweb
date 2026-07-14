@@ -47,9 +47,14 @@ Alongside sign-in, the plugin ships a set of everyday commands:
 - **State (op):** `/heal`, `/feed`, `/fly`, `/god`, `/gamemode` (`/gm`),
   `/speed`, `/repair`
 - **Kits:** `/kit [name]`, `/kits` — defined under `kits:` in config.yml
-- **Chat:** `/msg` (`/w`, `/tell`), `/reply` (`/r`)
-- **Utility:** `/workbench` (`/wb`), `/enderchest` (`/ec`), `/hat`
-- **Moderation (op):** `/kick`, `/ban`, `/unban`, `/clearinventory` (`/ci`)
+- **Chat:** `/msg` (`/w`, `/tell`), `/reply` (`/r`), `/broadcast` (`/bc`, op),
+  `/list`, `/afk`, `/nick` (op)
+- **Teleport (op):** `/tp`, `/tphere`, `/tpall`; plus `/top`, `/near`
+- **World (op):** `/time` (`/day`, `/night`), `/weather` (`/sun`)
+- **Utility:** `/workbench` (`/wb`), `/enderchest` (`/ec`), `/hat`, `/ping`,
+  `/more` (op), `/ext` (op), `/gmc` `/gms` `/gma` `/gmsp` (op)
+- **Moderation (op):** `/kick`, `/ban`, `/unban`, `/clearinventory` (`/ci`),
+  `/kill`, `/suicide`
 
 Homes, warps and spawn are saved to `homes.yml` / `warps.yml` in the
 plugin folder; bans use the vanilla ban list. Permissions are the
