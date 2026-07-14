@@ -21,6 +21,16 @@ const LOGIN_TTL = 5 * 60 * 1000;
 const TOKEN_RE = /^[0-9a-f]{24}$/;
 const loginKey = (t) => `_auth/mclogin/${t}.json`;
 
+/* accept TG_BOT_USERNAME however it was pasted: bare name, @name, or a
+   full t.me URL — a malformed handle produces a dead t.me link */
+function botUsername(env) {
+  return String(env.TG_BOT_USERNAME || '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/^(t\.me|telegram\.me)\//i, '')
+    .replace(/^@/, '')
+    .trim();
+}
+
 /* mark a pending login as approved by this Telegram user */
 export async function approveLogin(env, token, tgUser) {
   if (!TOKEN_RE.test(String(token || ''))) return { error: 'bad-token' };
@@ -45,7 +55,8 @@ export async function onRequestPost({ request, env }) {
   const action = String(body?.action || '');
 
   if (action === 'start') {
-    if (!env.TG_BOT_USERNAME) return json({ success: false, error: 'not-configured' }, 503);
+    const uname = botUsername(env);
+    if (!uname) return json({ success: false, error: 'not-configured' }, 503);
     const token = randomHex(12);
     const poll = randomHex(32);
     await env.KILIW_FILES.put(loginKey(token), JSON.stringify({
@@ -55,7 +66,9 @@ export async function onRequestPost({ request, env }) {
       success: true,
       token,
       poll,
-      botUrl: `https://t.me/${env.TG_BOT_USERNAME}?start=login_${token}`,
+      bot: uname,
+      botUrl: `https://t.me/${uname}?start=login_${token}`,
+      tgUrl: `tg://resolve?domain=${uname}&start=login_${token}`,
       ttl: LOGIN_TTL,
     });
   }

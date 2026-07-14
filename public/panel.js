@@ -49,8 +49,12 @@
     }
     loginToken = r.token;
     loginPoll = r.poll;
-    $('btn-login').href = r.botUrl;
+    /* primary button opens the Telegram app directly (tg://) — most
+       reliable when t.me web is throttled; t.me is the fallback link */
+    $('btn-login').href = r.tgUrl || r.botUrl;
+    $('btn-login-web').href = r.botUrl;
     $('bot-link').href = r.botUrl;
+    $('login-bot').textContent = r.bot ? `Bot: @${r.bot}` : '';
     $('login-status').textContent = 'Tap to open Telegram, then confirm there.';
     if (!polling) { polling = true; pollLogin(); }
   }
