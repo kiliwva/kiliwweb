@@ -41,8 +41,9 @@
   const isComputer = window.matchMedia('(pointer: fine)').matches
     && !window.matchMedia('(pointer: coarse)').matches;
 
-  /* Plain, high-contrast QR: solid dark modules on a white rounded tile,
-     no logo — the most reliable thing for the in-app scanner to read. */
+  /* Plain white QR on a transparent background (no tile, no logo): the
+     simplest shape the in-app scanner can read, and the jsQR fallback
+     handles the light-on-dark polarity. */
   function simpleQr(text) {
     const qr = window.qrcode(0, 'M');
     qr.addData(text);
@@ -58,8 +59,7 @@
       }
     }
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`
-      + `<rect width="${size}" height="${size}" rx="${3 * S}" fill="#ffffff"/>`
-      + `<path fill="#0C0C0C" d="${path}"/></svg>`;
+      + `<path fill="#F2F2F2" d="${path}"/></svg>`;
   }
 
   function renderQr(url) {
