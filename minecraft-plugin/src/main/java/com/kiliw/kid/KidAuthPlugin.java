@@ -11,7 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Statistic;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.event.EventHandler;
@@ -48,9 +47,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -491,7 +487,6 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
         o.addProperty("maxHealth", (int) Math.round(p.getMaxHealth()));
         o.addProperty("food", p.getFoodLevel());
         o.addProperty("level", p.getLevel());
-        o.addProperty("xpProgress", p.getExp());
         o.addProperty("gamemode", p.getGameMode().name());
         o.addProperty("ping", p.getPing());
         o.addProperty("playMinutes", stat(p, Statistic.PLAY_ONE_MINUTE) / 1200);
@@ -517,89 +512,7 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
             inv.add(item);
         }
         o.add("inventory", inv);
-
-        o.add("distances", distanceStats(p));
-        o.add("blocksBroken", sortedTop(blockBrokenMap(p), 40));
-        o.add("mobsKilled", sortedTop(mobKilledMap(p), 40));
-        o.add("itemsUsed", sortedTop(itemUsedMap(p), 40));
         return o;
-    }
-
-    /** { type, count } array, highest first, non-zero, capped */
-    private JsonArray sortedTop(Map<String, Long> map, int cap) {
-        List<Map.Entry<String, Long>> list = new ArrayList<>(map.entrySet());
-        list.sort((a, b) -> Long.compare(b.getValue(), a.getValue()));
-        JsonArray arr = new JsonArray();
-        int n = 0;
-        for (Map.Entry<String, Long> e : list) {
-            if (n >= cap || e.getValue() <= 0) break;
-            JsonObject o = new JsonObject();
-            o.addProperty("type", e.getKey());
-            o.addProperty("count", e.getValue());
-            arr.add(o);
-            n++;
-        }
-        return arr;
-    }
-
-    private Map<String, Long> blockBrokenMap(Player p) {
-        Map<String, Long> m = new HashMap<>();
-        for (Material mat : Material.values()) {
-            if (!mat.isBlock()) continue;
-            try {
-                int v = p.getStatistic(Statistic.MINE_BLOCK, mat);
-                if (v > 0) m.put(mat.getKey().getKey(), (long) v);
-            } catch (RuntimeException ignored) { /* not a minable block */ }
-        }
-        return m;
-    }
-
-    private Map<String, Long> itemUsedMap(Player p) {
-        Map<String, Long> m = new HashMap<>();
-        for (Material mat : Material.values()) {
-            if (!mat.isItem()) continue;
-            try {
-                int v = p.getStatistic(Statistic.USE_ITEM, mat);
-                if (v > 0) m.put(mat.getKey().getKey(), (long) v);
-            } catch (RuntimeException ignored) { /* not a usable item */ }
-        }
-        return m;
-    }
-
-    private Map<String, Long> mobKilledMap(Player p) {
-        Map<String, Long> m = new HashMap<>();
-        for (EntityType t : EntityType.values()) {
-            try {
-                int v = p.getStatistic(Statistic.KILL_ENTITY, t);
-                if (v > 0) m.put(t.getKey().getKey(), (long) v);
-            } catch (RuntimeException ignored) { /* not a killable entity */ }
-        }
-        return m;
-    }
-
-    private void addDist(JsonArray arr, Player p, String label, Statistic s) {
-        long cm = stat(p, s);
-        if (cm <= 0) return;
-        JsonObject o = new JsonObject();
-        o.addProperty("type", label);
-        o.addProperty("count", cm / 100); /* cm -> blocks */
-        arr.add(o);
-    }
-
-    private JsonArray distanceStats(Player p) {
-        JsonArray arr = new JsonArray();
-        addDist(arr, p, "Walk", Statistic.WALK_ONE_CM);
-        addDist(arr, p, "Sprint", Statistic.SPRINT_ONE_CM);
-        addDist(arr, p, "Swim", Statistic.SWIM_ONE_CM);
-        addDist(arr, p, "Fall", Statistic.FALL_ONE_CM);
-        addDist(arr, p, "Climb", Statistic.CLIMB_ONE_CM);
-        addDist(arr, p, "Fly", Statistic.FLY_ONE_CM);
-        addDist(arr, p, "Elytra", Statistic.AVIATE_ONE_CM);
-        addDist(arr, p, "Boat", Statistic.BOAT_ONE_CM);
-        addDist(arr, p, "Minecart", Statistic.MINECART_ONE_CM);
-        addDist(arr, p, "Horse", Statistic.HORSE_ONE_CM);
-        addDist(arr, p, "Crouch", Statistic.CROUCH_ONE_CM);
-        return arr;
     }
 
     /* ---------- tiny HTTP helper ---------- */
