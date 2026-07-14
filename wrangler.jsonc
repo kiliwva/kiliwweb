@@ -26,7 +26,9 @@
     "OWNER_EMAIL": "denislybin3@gmail.com",
     // Minecraft nicks whose linked Telegram is a K-MCID panel admin
     // (comma-separated; the panel at mcid.<domain> checks this)
-    "MCID_ADMIN_NICKS": "kiliwva"
+    "MCID_ADMIN_NICKS": "kiliwva",
+    // Telegram IDs granted the K-MCID moderation panel (comma-separated)
+    "MCID_ADMINS": "8514996684"
   },
   // never wipe dashboard-added variables (OAuth client ids etc.) on deploy
   "keep_vars": true,
