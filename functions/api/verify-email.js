@@ -1,11 +1,17 @@
 import {
   json, storageReady, createSession, afterAuthRedirect, putUser, getUser,
   getPending, putPending, deletePending, sendEmail, verificationEmail, sixDigitCode,
-  timingSafeEqualHex,
+  timingSafeEqualHex, getCookie,
 } from '../../lib/api.js';
 
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN = 60 * 1000;
+
+/* a Minecraft join link parks its token here so sign-up returns to /mc */
+function mcNextRedirect(request) {
+  const t = getCookie(request, 'kiliw_next');
+  return t && /^[0-9a-f]{24,64}$/.test(t) ? `/mc#${t}` : null;
+}
 
 /* POST /api/verify-email
    { email, code }         → verify the code, create the account, sign in
@@ -53,14 +59,18 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'code-invalid' }, 403);
   }
 
-  /* verified: create the account (unless a race already did) and sign in */
+  /* verified: create the account (unless a race already did) and sign in.
+     Passwordless accounts carry no salt/hash; a legacy pending that still
+     has one keeps it so an in-flight sign-up survives the deploy. */
   if (!(await getUser(env, email))) {
-    await putUser(env, { email, salt: pending.salt, hash: pending.hash, created: Date.now() });
+    const record = { email, created: Date.now() };
+    if (pending.hash) { record.salt = pending.salt; record.hash = pending.hash; }
+    await putUser(env, record);
   }
   await deletePending(env, email);
   const { cookie } = await createSession(env, email, request);
   return json(
-    { success: true, redirect: afterAuthRedirect(request) },
+    { success: true, redirect: mcNextRedirect(request) || afterAuthRedirect(request) },
     200,
     { 'Set-Cookie': cookie },
   );

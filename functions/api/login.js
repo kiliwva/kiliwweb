@@ -1,8 +1,8 @@
 import {
-  json, hashPassword, timingSafeEqualHex, createSession, verifyTurnstile, afterAuthRedirect,
+  json, createSession, verifyTurnstile, afterAuthRedirect,
   storageReady, getUser, putUser, verifyTotp, wipeAccount,
   createCaptchaTicket, checkCaptchaTicket, deleteCaptchaTicket,
-  mailReady, sendEmail, sixDigitCode, buildCodeEmail, getCookie,
+  mailReady, sendEmail, sixDigitCode, buildCodeEmail, getCookie, timingSafeEqualHex,
 } from '../../lib/api.js';
 
 /* a Minecraft join link parks its token here so login returns to /mc */
@@ -19,13 +19,38 @@ function loginCodeEmail(code) {
   const { subject, html } = buildCodeEmail({
     subject: `${code} — your K-ID sign-in code`,
     intro: 'Someone is signing in to your Kiliw account. Enter this code to finish signing in.',
-    note: "If this wasn't you, someone knows your password — change it right away.",
+    note: "If this wasn't you, just ignore this email — nobody can sign in without the code.",
     code,
   });
-  const text = `Your K-ID sign-in code: ${code}\n\nIt expires in 10 minutes. If this wasn't you, change your password.`;
+  const text = `Your K-ID sign-in code: ${code}\n\nIt expires in 10 minutes. If this wasn't you, ignore this email.`;
   return { subject, text, html };
 }
 
+/* email a fresh sign-in code, respecting the resend cooldown */
+async function sendLoginCode(env, user, email) {
+  const now = Date.now();
+  if (!user.loginCode || now - (user.loginCode.lastSent || 0) >= LOGIN_CODE_COOLDOWN
+    || user.loginCode.expires < now) {
+    user.loginCode = {
+      code: sixDigitCode(),
+      expires: now + LOGIN_CODE_TTL,
+      attempts: 0,
+      lastSent: now,
+    };
+    await putUser(env, user);
+    const mail = loginCodeEmail(user.loginCode.code);
+    await sendEmail(env, email, mail.subject, mail.text, mail.html);
+  }
+}
+
+/* Passwordless sign-in. There is no password: the account proves itself
+   with a passkey (handled by /api/passkeys), a code from an authenticator
+   app, or a one-time code emailed to the address.
+
+   Step 1  POST { email, token }               → email a code, or ask for
+                                                  the authenticator code
+           POST { email, token, wantEmail:1 }  → force the emailed code
+   Step 2  POST { email, code, ctx }           → verify and sign in */
 export async function onRequestPost({ request, env }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
 
@@ -37,9 +62,10 @@ export async function onRequestPost({ request, env }) {
   }
 
   const email = String(body?.email || '').trim().toLowerCase();
-  const password = String(body?.password || '');
+  const code = String(body?.code || '').replace(/\s/g, '');
+  const wantEmail = Boolean(body?.wantEmail);
 
-  /* a 2FA retry carries the ticket issued below instead of a fresh
+  /* a code retry carries the ticket issued below instead of a fresh
      captcha token (Turnstile tokens are single-use) */
   const ctx = String(body?.ctx || '');
   const ticketOk = ctx ? await checkCaptchaTicket(env, ctx, email) : false;
@@ -53,70 +79,66 @@ export async function onRequestPost({ request, env }) {
 
   const user = email ? await getUser(env, email) : null;
   if (!user) return json({ success: false, error: 'invalid-credentials' }, 401);
-
-  const hash = await hashPassword(password, user.salt);
-  if (!timingSafeEqualHex(hash, user.hash)) {
-    return json({ success: false, error: 'invalid-credentials' }, 401);
-  }
   if (user.banned) return json({ success: false, error: 'banned' }, 403);
 
-  /* second factor: TOTP if enabled, otherwise an emailed code; a passkey
-     (offered by the client first) skips both */
-  if (user.totp) {
-    const code = String(body?.code || '');
-    if (!code) {
+  const hasTotp = Boolean(user.totp);
+  const hasPasskey = Boolean(user.passkeys && user.passkeys.length);
+  const canMail = mailReady(env);
+
+  /* step 1: no code yet — pick the challenge */
+  if (!code) {
+    /* an authenticator app is the primary factor when set up; the emailed
+       code is offered as a fallback the client can ask for */
+    if (hasTotp && !wantEmail) {
       return json({
         success: false,
         error: 'totp-required',
         ctx: ticketOk ? ctx : await createCaptchaTicket(env, email),
-        passkey: Boolean(user.passkeys && user.passkeys.length),
+        passkey: hasPasskey,
+        canEmail: canMail,
       }, 401);
     }
-    if (!(await verifyTotp(user.totp, code))) {
-      return json({ success: false, error: 'totp-invalid' }, 401);
-    }
-  } else if (mailReady(env)) {
-    const code = String(body?.code || '').replace(/\s/g, '');
-    if (!code) {
-      const now = Date.now();
-      if (!user.loginCode || now - (user.loginCode.lastSent || 0) >= LOGIN_CODE_COOLDOWN
-        || user.loginCode.expires < now) {
-        user.loginCode = {
-          code: sixDigitCode(),
-          expires: now + LOGIN_CODE_TTL,
-          attempts: 0,
-          lastSent: now,
-        };
-        await putUser(env, user);
-        const mail = loginCodeEmail(user.loginCode.code);
-        await sendEmail(env, email, mail.subject, mail.text, mail.html);
-      }
+    if (canMail) {
+      await sendLoginCode(env, user, email);
       const payload = {
         success: false,
         error: 'email-code-required',
         ctx: ticketOk ? ctx : await createCaptchaTicket(env, email),
-        passkey: Boolean(user.passkeys && user.passkeys.length),
+        passkey: hasPasskey,
       };
       if (env.MAIL_DEBUG === '1') payload.debugCode = user.loginCode.code;
       return json(payload, 401);
     }
-    const lc = user.loginCode;
-    if (!lc || lc.expires < Date.now()) {
-      return json({ success: false, error: 'code-expired' }, 403);
-    }
-    if (lc.attempts >= LOGIN_CODE_ATTEMPTS) {
-      delete user.loginCode;
-      await putUser(env, user);
-      return json({ success: false, error: 'too-many' }, 429);
-    }
-    if (!/^\d{6}$/.test(code) || !timingSafeEqualHex(lc.code, code)) {
-      lc.attempts += 1;
-      await putUser(env, user);
-      return json({ success: false, error: 'code-invalid' }, 403);
-    }
-    delete user.loginCode;
-    await putUser(env, user);
+    /* no mail and no authenticator: a passkey is the only way in */
+    return json({ success: false, error: 'no-factor', passkey: hasPasskey }, 401);
   }
+
+  /* step 2: verify the code — accept the authenticator code or the
+     emailed one, whichever the account can produce */
+  let verified = false;
+  if (hasTotp && /^\d{6}$/.test(code) && await verifyTotp(user.totp, code)) {
+    verified = true;
+  }
+  if (!verified) {
+    const lc = user.loginCode;
+    if (lc && lc.expires >= Date.now()) {
+      if (lc.attempts >= LOGIN_CODE_ATTEMPTS) {
+        delete user.loginCode;
+        await putUser(env, user);
+        return json({ success: false, error: 'too-many' }, 429);
+      }
+      if (/^\d{6}$/.test(code) && timingSafeEqualHex(lc.code, code)) {
+        verified = true;
+        delete user.loginCode;
+        await putUser(env, user);
+      } else {
+        lc.attempts += 1;
+        await putUser(env, user);
+      }
+    }
+  }
+  if (!verified) return json({ success: false, error: 'code-invalid' }, 403);
+
   if (ticketOk) await deleteCaptchaTicket(env, ctx);
 
   /* account scheduled for deletion: expired → gone; within the grace

@@ -159,12 +159,11 @@ async function handleSubmit(form, kind) {
   try {
     const payload = {
       email: form.querySelector('input[type="email"]').value.trim(),
-      password: form.querySelector('input[type="password"]').value,
       token,
     };
     if (kind === 'login' && captchaCtx) payload.ctx = captchaCtx;
-    const totpInput = form.querySelector('#login-totp');
-    if (totpInput && totpInput.value.trim()) payload.code = totpInput.value.trim();
+    const codeInput = form.querySelector('#login-totp');
+    if (codeInput && codeInput.value.trim()) payload.code = codeInput.value.trim();
 
     const res = await fetch(kind === 'login' ? '/api/login' : '/api/register', {
       method: 'POST',
@@ -195,14 +194,7 @@ async function handleSubmit(form, kind) {
       /* the server ticket lets code attempts skip the captcha */
       captchaCtx = data.ctx || null;
       const emailCode = data.error === 'email-code-required';
-      const showCode = () => {
-        document.getElementById('login-totp-group').hidden = false;
-        document.querySelector('#login-totp-group .otp-label').textContent =
-          KiliwUI.t(emailCode ? 'label.emailCode' : 'label.totp');
-        showFormError(form, KiliwUI.t(emailCode ? 'auth.emailCodePrompt' : 'auth.totpPrompt'));
-        KiliwUI.otpClear('login-totp-otp');
-        KiliwUI.otpFocus('login-totp-otp');
-      };
+      const showCode = () => showLoginCodeStep(emailCode ? 'email' : 'totp', Boolean(data.canEmail));
       if (data.passkey && passkeyAssert) {
         /* a passkey outranks any code: the field only appears if the
            passkey prompt is dismissed or fails */
@@ -213,9 +205,16 @@ async function handleSubmit(form, kind) {
       }
       return;
     }
-    if (data.error === 'totp-invalid' && captchaCtx) {
+    if (data.error === 'no-factor') {
+      /* nothing but a passkey can let this account in */
+      captchaCtx = null;
+      if (data.passkey && passkeyAssert && await passkeyAssert()) return;
+      showFormError(form, KiliwUI.t('auth.generic'));
+      return;
+    }
+    if ((data.error === 'code-invalid' || data.error === 'totp-invalid') && captchaCtx) {
       /* wrong code: the ticket still stands, no captcha round-trip */
-      showFormError(form, KiliwUI.t('api.totp-invalid'));
+      showFormError(form, KiliwUI.t('api.code-invalid'));
       KiliwUI.otpClear('login-totp-otp');
       KiliwUI.otpFocus('login-totp-otp');
       return;
@@ -336,200 +335,63 @@ document.getElementById('verify-back').addEventListener('click', (e) => {
   hideVerifyStep();
 });
 
-/* ---------- progressive password field ---------- */
+/* ---------- login code step (emailed code or authenticator) ---------- */
 
-function wirePwReveal(emailId, wrapId) {
-  const email = document.getElementById(emailId);
-  const wrap = document.getElementById(wrapId);
-  if (!email || !wrap) return;
-  const maybeReveal = () => {
-    if (!wrap.hidden) return;
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.value.trim())) {
-      wrap.hidden = false;
-    }
-  };
-  email.addEventListener('input', maybeReveal);
-  email.addEventListener('change', maybeReveal);
-  email.addEventListener('blur', maybeReveal);
-  maybeReveal();
-}
-wirePwReveal('login-email', 'login-pw-wrap');
-wirePwReveal('reg-email', 'reg-pw-wrap');
-
-/* ---------- QR sign-in (computer side) ---------- */
-
-/* Branded QR: rounded modules, rounded finder eyes and the mosaic K
-   on a dark tile in the middle (error level H absorbs the knockout). */
-function prettyQr(text) {
-  const qr = window.qrcode(0, 'H');
-  qr.addData(text);
-  qr.make();
-  const n = qr.getModuleCount();
-  const S = 8;
-  const Q = 2 * S; /* quiet zone */
-  const size = n * S + Q * 2;
-  const inFinder = (r, c) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
-  /* center knockout for the logo */
-  const hole = Math.floor(n * 0.22);
-  const h0 = Math.floor((n - hole) / 2);
-  const h1 = h0 + hole - 1;
-
-  const ink = '#F2F2F2'; /* light modules on the dark page */
-  let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`;
-  out += '<defs><linearGradient id="qrg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2A47B"/><stop offset=".55" stop-color="#D97757"/><stop offset="1" stop-color="#B4552F"/></linearGradient></defs>';
-
-  const d = S - 0.7;
-  const rx = d * 0.3;
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      if (!qr.isDark(r, c) || inFinder(r, c)) continue;
-      if (r >= h0 && r <= h1 && c >= h0 && c <= h1) continue;
-      out += `<rect x="${(Q + c * S + 0.35).toFixed(2)}" y="${(Q + r * S + 0.35).toFixed(2)}" width="${d}" height="${d}" rx="${rx.toFixed(1)}" fill="${ink}"/>`;
-    }
-  }
-
-  /* finder eyes: ring + pupil, rounded */
-  const roundedRectPath = (x, y, w, h, r) => (
-    `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 -${r} ${r}h${-(w - 2 * r)}a${r} ${r} 0 0 1 -${r} -${r}v${-(h - 2 * r)}a${r} ${r} 0 0 1 ${r} -${r}Z`
-  );
-  const eye = (x, y) => {
-    const o = 7 * S;
-    const i = 5 * S;
-    const p = 3 * S;
-    return `<path fill-rule="evenodd" fill="${ink}" d="`
-      + roundedRectPath(x, y, o, o, 2.4 * S)
-      + roundedRectPath(x + S, y + S, i, i, 1.7 * S)
-      + `"/><rect x="${x + 2 * S}" y="${y + 2 * S}" width="${p}" height="${p}" rx="${1.1 * S}" fill="${ink}"/>`;
-  };
-  out += eye(Q, Q);
-  out += eye(Q + (n - 7) * S, Q);
-  out += eye(Q, Q + (n - 7) * S);
-
-  /* center tile with the mosaic K */
-  const tile = hole * S;
-  const tx = Q + h0 * S;
-  const ty = Q + h0 * S;
-  /* mark content: x 5.7-18.3, y 3.45-20.55 in 24-units → scale into the tile */
-  const mScale = (tile * 0.66) / 17.1;
-  const mw = 12.6 * mScale;
-  const ox = tx + (tile - mw) / 2 - 5.7 * mScale;
-  const oy = ty + tile * 0.17 - 3.45 * mScale;
-  const cell = (cx, cy, grad) => {
-    const px = (ox + cx * mScale).toFixed(1);
-    const py = (oy + cy * mScale).toFixed(1);
-    const wl = (3.6 * mScale).toFixed(1);
-    const rr = (1.1 * mScale).toFixed(1);
-    return `<rect x="${px}" y="${py}" width="${wl}" height="${wl}" rx="${rr}" fill="${grad ? 'url(#qrg)' : '#F2F2F2'}"/>`;
-  };
-  out += cell(5.7, 3.45) + cell(5.7, 7.95) + cell(5.7, 12.45) + cell(5.7, 16.95);
-  out += cell(10.2, 7.95, 1) + cell(14.7, 3.45, 1) + cell(10.2, 12.45, 1) + cell(14.7, 16.95, 1);
-  out += '</svg>';
-  return out;
+/* reveal the six-box code field. mode 'email' shows a resend link; mode
+   'totp' asks for the authenticator code and, when the account also has an
+   email on file, offers to email a code instead. */
+function showLoginCodeStep(mode, canEmail) {
+  const emailMode = mode === 'email';
+  document.getElementById('login-totp-group').hidden = false;
+  document.querySelector('#login-totp-group .otp-label').textContent =
+    KiliwUI.t(emailMode ? 'label.emailCode' : 'label.totp');
+  showFormError(formLogin, KiliwUI.t(emailMode ? 'auth.emailCodePrompt' : 'auth.totpPrompt'));
+  document.getElementById('login-code-resend').hidden = !emailMode;
+  document.getElementById('login-email-instead').hidden = !(!emailMode && canEmail);
+  KiliwUI.otpClear('login-totp-otp');
+  KiliwUI.otpFocus('login-totp-otp');
 }
 
-/* A plain, standard-polarity QR (dark modules on a white card with the
-   full 4-module quiet zone). Phone cameras and the site's own scanner use
-   BarcodeDetector, which reads normal QRs reliably but often refuses the
-   inverted, stylized one above — so the sign-in QR stays this shape. */
-function plainQr(text) {
-  const qr = window.qrcode(0, 'M');
-  qr.addData(text);
-  qr.make();
-  const n = qr.getModuleCount();
-  const S = 8;
-  const Q = 4 * S; /* quiet zone: 4 modules, per spec */
-  const size = n * S + Q * 2;
-  let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`;
-  out += `<rect width="${size}" height="${size}" rx="16" fill="#ffffff"/>`;
-  out += '<path fill="#0C0C0C" d="';
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      if (!qr.isDark(r, c)) continue;
-      const x = Q + c * S;
-      const y = Q + r * S;
-      out += `M${x} ${y}h${S}v${S}h${-S}z`;
-    }
+/* ask the server to email a fresh sign-in code (resend, or the fallback
+   when the authenticator is out of reach) */
+async function requestLoginEmailCode() {
+  const email = formLogin.querySelector('input[type="email"]').value.trim();
+  const body = { email, wantEmail: true };
+  if (captchaCtx) {
+    body.ctx = captchaCtx;
+  } else {
+    const token = window.turnstile ? turnstile.getResponse(widgets.get(formLogin)) : '';
+    if (!token) { showFormError(formLogin, KiliwUI.t('auth.generic')); return; }
+    body.token = token;
   }
-  out += '"/></svg>';
-  return out;
-}
-
-
-(() => {
-  const link = document.getElementById('qr-link');
-  const panel = document.getElementById('qr-panel');
-  if (!link || !panel) return;
-  const stateEl = document.getElementById('qr-state');
-  const refreshBtn = document.getElementById('qr-refresh');
-  let pollTimer = null;
-
-  const stopPolling = () => {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-  };
-
-  const showPanel = (on) => {
-    panel.hidden = !on;
-    panel.classList.toggle('active', on);
-    formLogin.hidden = on;
-    formLogin.classList.toggle('active', !on);
-    if (!on) stopPolling();
-  };
-
-  async function startQr() {
-    stopPolling();
-    refreshBtn.hidden = true;
-    stateEl.textContent = 'Waiting for the scan…';
-    const box = document.getElementById('qr-code');
-    box.innerHTML = '';
-    let data;
-    try {
-      const res = await fetch('/api/qr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create' }),
-      });
-      data = await res.json();
-      if (!res.ok || !data.success) throw new Error('create failed');
-    } catch {
-      stateEl.textContent = 'Could not get a code. Try again.';
-      refreshBtn.hidden = false;
-      return;
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => null);
+    if (data && data.error === 'email-code-required') {
+      captchaCtx = data.ctx || captchaCtx;
+      document.getElementById('login-totp').value = '';
+      showLoginCodeStep('email', false);
+    } else {
+      showFormError(formLogin, KiliwUI.t('auth.generic'));
     }
-    if (window.qrcode) {
-      box.innerHTML = plainQr(`${window.location.origin}/qr#${data.token}`);
-    }
-    pollTimer = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/qr?token=${data.token}&poll=${data.poll}`);
-        const st = await res.json();
-        if (st.status === 'ok') {
-          stopPolling();
-          stateEl.textContent = 'Signed in ✓';
-          window.location.href = st.redirect || '/dash';
-        } else if (st.status === 'expired') {
-          stopPolling();
-          stateEl.textContent = 'The code expired.';
-          refreshBtn.hidden = false;
-        }
-      } catch { /* transient network hiccup: keep polling */ }
-    }, 2000);
-  }
-
-  link.addEventListener('click', () => { showPanel(true); startQr(); });
-  refreshBtn.addEventListener('click', () => startQr());
-  document.getElementById('qr-back').addEventListener('click', () => showPanel(false));
-})();
-
-/* ---------- social sign-in feedback ---------- */
-
-{
-  const reason = new URLSearchParams(window.location.search).get('oauth');
-  if (reason) {
-    const keys = { unavailable: 'auth.oauthUnavailable', failed: 'auth.oauthFailed', banned: 'api.banned' };
-    showFormError(formLogin, KiliwUI.t(keys[reason] || 'auth.oauthFailed'));
-    window.history.replaceState(null, '', window.location.pathname);
+  } catch {
+    showFormError(formLogin, KiliwUI.t('auth.network'));
   }
 }
+
+document.getElementById('login-code-resend')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  requestLoginEmailCode();
+});
+document.getElementById('login-email-instead')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  requestLoginEmailCode();
+});
+
 
 /* ---------- passkey sign-in (WebAuthn) ---------- */
 

@@ -1,11 +1,14 @@
 import {
-  json, randomHex, hashPassword, createSession, verifyTurnstile, afterAuthRedirect,
+  json, createSession, verifyTurnstile, afterAuthRedirect,
   storageReady, getUser, putUser,
   mailReady, sendEmail, newPending, putPending, verificationEmail,
 } from '../../lib/api.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/* Passwordless sign-up: the account is created once the emailed
+   verification code is confirmed. There is no password — the account
+   later secures itself with a passkey or an authenticator app. */
 export async function onRequestPost({ request, env }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
 
@@ -17,12 +20,8 @@ export async function onRequestPost({ request, env }) {
   }
 
   const email = String(body?.email || '').trim().toLowerCase();
-  const password = String(body?.password || '');
   if (!EMAIL_RE.test(email) || email.length > 254) {
     return json({ success: false, error: 'invalid-email' }, 400);
-  }
-  if (password.length < 8 || password.length > 256) {
-    return json({ success: false, error: 'invalid-password' }, 400);
   }
 
   const ip = request.headers.get('CF-Connecting-IP') || '';
@@ -35,12 +34,9 @@ export async function onRequestPost({ request, env }) {
     return json({ success: false, error: 'user-exists' }, 409);
   }
 
-  const salt = randomHex(16);
-  const hash = await hashPassword(password, salt);
-
   /* email verification: park the registration until the code is entered */
   if (mailReady(env)) {
-    const pending = newPending(email, salt, hash);
+    const pending = newPending(email, null, null);
     await putPending(env, pending);
     const mail = verificationEmail(pending.code);
     const sent = await sendEmail(env, email, mail.subject, mail.text, mail.html);
@@ -50,8 +46,8 @@ export async function onRequestPost({ request, env }) {
     return json(payload);
   }
 
-  /* mail not configured: register directly */
-  await putUser(env, { email, salt, hash, created: Date.now() });
+  /* mail not configured: create the account directly */
+  await putUser(env, { email, created: Date.now() });
   const { cookie } = await createSession(env, email, request);
   return json(
     { success: true, redirect: afterAuthRedirect(request) },

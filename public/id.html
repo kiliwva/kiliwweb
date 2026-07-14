@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=167">
+  <link rel="stylesheet" href="styles.css?v=168">
   <style>
     html { background: var(--bg-c); }
     body {
@@ -266,10 +266,6 @@
     <header class="id-bar">
       <span class="wordmark kid" style="font-size:24px">K<em>-ID</em></span>
       <span class="id-bar-actions">
-        <button type="button" class="ghost-btn id-scan-btn" id="scan-qr">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><path d="M14 14h3v3h-3zM21 14v.01M14 21h.01M18 18h3v3h-3z"/></svg>
-          Scan
-        </button>
         <button type="button" class="ghost-btn" id="logout">Log out</button>
       </span>
     </header>
@@ -302,27 +298,6 @@
       <h2 class="id-h">Security</h2>
 
       <div class="id-block">
-        <h3>Password</h3>
-        <form class="id-pass-form" id="pass-form" novalidate>
-          <div class="group">
-            <div class="field">
-              <input type="password" id="pass-current" placeholder=" " autocomplete="current-password" required>
-              <label for="pass-current">Current password</label>
-            </div>
-            <div class="divider"></div>
-            <div class="field">
-              <input type="password" id="pass-next" placeholder=" " autocomplete="new-password" minlength="8" required>
-              <label for="pass-next">New password (min 8 characters)</label>
-            </div>
-          </div>
-          <div class="id-actions">
-            <button type="submit" class="ghost-btn">Change password</button>
-            <span class="id-row-status" id="pass-status"></span>
-          </div>
-        </form>
-      </div>
-
-      <div class="id-block">
         <h3>Two-factor authentication <span class="id-row-status" id="totp-state"></span></h3>
         <p class="id-sec-note" id="totp-note">A 6-digit code from an authenticator app is asked at sign-in.</p>
         <div class="id-actions">
@@ -337,13 +312,6 @@
             <button type="button" class="ghost-btn" id="totp-confirm">Confirm</button>
           </div>
         </div>
-      </div>
-
-      <div class="id-block">
-        <h3>Linked accounts</h3>
-        <p class="id-sec-note">Sign in with these providers — linked to this account even if their email differs.</p>
-        <ul class="id-list" id="link-list"></ul>
-        <span class="id-row-status" id="link-status"></span>
       </div>
 
       <div class="id-block">
@@ -370,27 +338,13 @@
 
     <footer class="auth-foot id-foot">
       <p class="app-copy">© 2026 KiliwCloud · a product of Synestix, LLC<br>2200 Porter Rd, Bear, DE 19701-2022, USA</p>
-      <p class="auth-build">KW-119</p>
+      <p class="auth-build">KW-120</p>
     </footer>
 
   </div>
 
-  <!-- QR scanner overlay -->
-  <div class="scan-overlay" id="scan-overlay" hidden>
-    <div class="scan-head">
-      <p>Point the camera at the QR code on your computer</p>
-      <button type="button" class="ghost-btn" id="scan-close">Close</button>
-    </div>
-    <div class="scan-stage">
-      <video id="scan-video" playsinline muted></video>
-      <div class="scan-frame" aria-hidden="true"></div>
-    </div>
-    <p class="scan-status" id="scan-status"></p>
-  </div>
-
-  <script src="vendor/qrcode.min.js?v=167"></script>
-  <script src="vendor/jsqr.min.js?v=167"></script>
-  <script src="ui.js?v=167"></script>
-  <script src="id.js?v=167"></script>
+  <script src="vendor/qrcode.min.js?v=168"></script>
+  <script src="ui.js?v=168"></script>
+  <script src="id.js?v=168"></script>
 </body>
 </html>

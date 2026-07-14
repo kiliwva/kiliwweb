@@ -136,29 +136,7 @@ async function loadMe() {
   }
   renderTotp(Boolean(data.totp));
   renderProducts(data);
-  renderLinks(data.links || {});
 }
-
-/* ---------- password ---------- */
-
-$('pass-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const current = $('pass-current').value;
-  const next = $('pass-next').value;
-  if (next.length < 8) {
-    setStatus($('pass-status'), false, 'New password is too short.');
-    return;
-  }
-  const { ok, data } = await api('/api/password', { current, next });
-  if (ok) {
-    $('pass-current').value = '';
-    $('pass-next').value = '';
-    setStatus($('pass-status'), true, '✓ Password changed');
-  } else {
-    setStatus($('pass-status'), false, data.error === 'wrong-password'
-      ? 'Current password is wrong.' : 'Something went wrong.');
-  }
-});
 
 /* ---------- 2FA ---------- */
 
@@ -298,49 +276,6 @@ $('pk-add').addEventListener('click', async () => {
   }
 });
 
-/* ---------- linked accounts ---------- */
-
-function renderLinks(links) {
-  const list = $('link-list');
-  list.innerHTML = '';
-  for (const provider of ['google', 'github']) {
-    const bound = links && links[provider];
-    const li = document.createElement('li');
-    li.className = 'id-item';
-    const ico = document.createElement('span');
-    ico.className = 'id-link-ico';
-    ico.innerHTML = ICONS[provider];
-    const info = document.createElement('div');
-    info.className = 'id-item-info';
-    const b = document.createElement('b');
-    b.textContent = provider === 'google' ? 'Google' : 'GitHub';
-    const span = document.createElement('span');
-    span.textContent = bound ? `Linked · ${bound}` : 'Not linked';
-    info.append(b, span);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'ghost-btn';
-    btn.textContent = bound ? 'Unlink' : 'Link';
-    btn.addEventListener('click', async () => {
-      if (!bound) {
-        window.location.href = `/api/oauth?start=1&provider=${provider}&link=1`;
-        return;
-      }
-      if (!confirm(`Unlink ${b.textContent}? Signing in through it will stop working.`)) return;
-      const r = await api('/api/oauth', { action: 'unlink', provider });
-      if (r.ok) {
-        me.links = r.data.links || {};
-        renderLinks(me.links);
-        setStatus($('link-status'), true, '✓ Unlinked');
-      } else {
-        setStatus($('link-status'), false, 'Something went wrong.');
-      }
-    });
-    li.append(ico, info, btn);
-    list.appendChild(li);
-  }
-}
-
 /* ---------- devices ---------- */
 
 async function loadSessions() {
@@ -380,103 +315,6 @@ $('ses-others').addEventListener('click', async () => {
   setStatus($('ses-status'), ok, ok ? '✓ Other devices signed out' : 'Something went wrong.');
   if (ok) loadSessions();
 });
-
-/* ---------- QR scanner: approve a computer sign-in from here ---------- */
-
-(() => {
-  const btn = $('scan-qr');
-  const overlay = $('scan-overlay');
-  if (!btn || !overlay) return;
-  const video = $('scan-video');
-  const statusEl = $('scan-status');
-  let stream = null;
-  let scanning = false;
-
-  const stop = () => {
-    scanning = false;
-    overlay.hidden = true;
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      stream = null;
-    }
-    video.srcObject = null;
-  };
-
-  const found = (text) => {
-    /* only our own sign-in links: <any kiliw origin>/qr#<64 hex> */
-    const m = String(text).match(/^https?:\/\/[^/]+\/qr#([0-9a-f]{24,64})$/);
-    if (!m) {
-      statusEl.textContent = 'That is not a Kiliw sign-in code.';
-      return false;
-    }
-    stop();
-    window.location.href = `/qr#${m[1]}`;
-    return true;
-  };
-
-  async function scanLoop() {
-    const canvas = document.createElement('canvas');
-    const ctx2d = canvas.getContext('2d', { willReadFrequently: true });
-    let detector = null;
-    if ('BarcodeDetector' in window) {
-      try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch (e) { detector = null; }
-    }
-    while (scanning) {
-      if (video.readyState >= 2) {
-        try {
-          if (detector) {
-            const codes = await detector.detect(video);
-            if (codes.length && found(codes[0].rawValue)) return;
-          }
-          /* jsQR runs even when a native detector exists but missed, so a
-             stylized or light-on-dark code still reads */
-          if (window.jsQR) {
-            const w = Math.min(video.videoWidth, 1280);
-            const h = Math.round(video.videoHeight * (w / video.videoWidth));
-            canvas.width = w;
-            canvas.height = h;
-            ctx2d.drawImage(video, 0, 0, w, h);
-            const img = ctx2d.getImageData(0, 0, w, h);
-            const hit = window.jsQR(img.data, w, h);
-            if (hit && found(hit.data)) return;
-          }
-        } catch (e) { /* keep scanning */ }
-      }
-      await new Promise((r) => setTimeout(r, 160));
-    }
-  }
-
-  btn.addEventListener('click', async () => {
-    statusEl.textContent = '';
-    overlay.hidden = false;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
-      const [track] = stream.getVideoTracks();
-      /* ask the camera to keep refocusing on the code (where supported) */
-      try {
-        const caps = track.getCapabilities ? track.getCapabilities() : {};
-        if (Array.isArray(caps.focusMode) && caps.focusMode.includes('continuous')) {
-          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-        }
-      } catch (e) { /* optional */ }
-      video.srcObject = stream;
-      await video.play();
-      scanning = true;
-      scanLoop();
-    } catch (e) {
-      statusEl.textContent = 'Camera access was denied. Allow it in the browser settings and try again.';
-    }
-  });
-
-  $('scan-close').addEventListener('click', stop);
-})();
 
 /* ---------- logout ---------- */
 
