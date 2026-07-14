@@ -473,16 +473,19 @@ export async function onRequestPost({ request, env }) {
     /* players approve through the Telegram bot; the site page /mc stays
        as a fallback when the bot is not configured */
     const reqUrl = new URL(request.url);
-    /* the link/QR the plugin shows points to the web approval page, which
-       works without Telegram (sign in with K-ID) and also offers a
-       Telegram button — so t.me is never required to get in */
+    /* the chat link goes to the web approval page (sign in with K-ID),
+       so no Telegram is needed for the site route */
     const url = `${reqUrl.origin}/mc#${token}`;
+    /* the map QR goes to Telegram instead — scanning it with a phone
+       opens the bot; falls back to the web page if no bot is configured */
+    const bot = mcBotUsername(env);
+    const qrData = bot ? `https://t.me/${bot}?start=mc_${token}` : url;
     /* QR module matrix ("1" dark / "0" light rows) — the plugin draws
        it on an in-game map so the player can scan it with a phone */
     let qr = null;
     try {
       const q = qrcode(0, 'M');
-      q.addData(url);
+      q.addData(qrData);
       q.make();
       const n = q.getModuleCount();
       qr = [];
