@@ -1,5 +1,5 @@
 import {
-  json, storageReady, getSession, getUser, putUser, randomHex,
+  json, storageReady, getSession, getUser, putUser, randomHex, isOwner,
 } from '../../lib/api.js';
 import qrcode from '../../lib/qrcode.js';
 
@@ -28,6 +28,10 @@ const nickKey = (nick) => `_auth/mcnick/${nick.toLowerCase()}.json`;
 const tgNickKey = (tgId) => `_auth/mctg/${tgId}.json`;
 /* machine signature -> the nick registered on that computer */
 const deviceKey = (sig) => `_auth/mcdev/${sig}.json`;
+/* owner-banned nicknames (blocked from signing in at all) */
+const banKey = (nick) => `_auth/mcban/${nick.toLowerCase()}.json`;
+
+const isBanned = async (env, nick) => Boolean(await env.KILIW_FILES.get(banKey(nick)));
 
 /* Anti-multiaccounting at the computer level: has this machine
    signature already been claimed by a *different, still-active* nick?
@@ -204,6 +208,13 @@ export async function decideJoin(env, token, who, approve) {
 
   if (!who || (!who.email && !who.tgId)) return { error: 'unauthorized', http: 401 };
 
+  /* owner-banned nickname: refuse outright */
+  if (await isBanned(env, data.nick)) {
+    data.status = 'denied';
+    await env.KILIW_FILES.put(key(token), JSON.stringify(data));
+    return { error: 'nick-banned', http: 403, held: data.nick };
+  }
+
   /* nick binding: the first approval claims the nick — for the K-ID
      account when there is one, otherwise for the Telegram user */
   const bindObj = await env.KILIW_FILES.get(nickKey(data.nick));
@@ -253,6 +264,7 @@ export async function decideJoin(env, token, who, approve) {
     if (!bind || !bind.email) {
       await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
         ...(bind || {}),
+        nick: data.nick,
         email: who.email,
         tgId: who.tgId || (bind && bind.tgId) || null,
         created: (bind && bind.created) || Date.now(),
@@ -260,6 +272,7 @@ export async function decideJoin(env, token, who, approve) {
     }
   } else if (!bind) {
     await env.KILIW_FILES.put(nickKey(data.nick), JSON.stringify({
+      nick: data.nick,
       tgId: who.tgId,
       tgUsername: who.tgUsername || '',
       created: Date.now(),
@@ -292,6 +305,57 @@ export async function decideJoin(env, token, who, approve) {
   return { nick: data.nick };
 }
 
+/* everything the owner panel shows: nick bindings, registered
+   computers and the manual ban list */
+async function listMcAdmin(env) {
+  const readAll = async (prefix) => {
+    const out = [];
+    let cursor;
+    do {
+      const page = await env.KILIW_FILES.list({ prefix, cursor, limit: 1000 });
+      for (const obj of page.objects) {
+        const rec = await env.KILIW_FILES.get(obj.key);
+        const d = rec ? await rec.json().catch(() => null) : null;
+        out.push({ id: obj.key.slice(prefix.length).replace(/\.json$/, ''), d });
+      }
+      cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+    return out;
+  };
+  const [nicksRaw, devsRaw, bansRaw] = await Promise.all([
+    readAll('_auth/mcnick/'), readAll('_auth/mcdev/'), readAll('_auth/mcban/'),
+  ]);
+  const nicks = nicksRaw.map(({ id, d }) => ({
+    nick: (d && d.nick) || id,
+    tgId: (d && d.tgId) || null,
+    tgUsername: (d && d.tgUsername) || null,
+    email: (d && d.email) || null,
+    created: (d && d.created) || null,
+  })).sort((a, b) => (b.created || 0) - (a.created || 0));
+  const devices = devsRaw.map(({ id, d }) => ({
+    sig: id,
+    nick: (d && d.nick) || null,
+    ip: (d && d.ip) || null,
+    tgId: (d && d.tgId) || null,
+    created: (d && d.created) || null,
+  })).sort((a, b) => (b.created || 0) - (a.created || 0));
+  const bans = bansRaw.map(({ id, d }) => ({
+    nick: (d && d.nick) || id,
+    reason: (d && d.reason) || null,
+    created: (d && d.created) || null,
+  })).sort((a, b) => (b.created || 0) - (a.created || 0));
+  return { nicks, devices, bans };
+}
+
+/* release a nick's binding + its reverse Telegram index (its device
+   records free themselves on next use once the binding is gone) */
+async function releaseNick(env, nick) {
+  const bindObj = await env.KILIW_FILES.get(nickKey(nick));
+  const bind = bindObj ? await bindObj.json().catch(() => null) : null;
+  if (bind && bind.tgId) await env.KILIW_FILES.delete(tgNickKey(bind.tgId)).catch(() => {});
+  await env.KILIW_FILES.delete(nickKey(nick)).catch(() => {});
+}
+
 export async function onRequestPost({ request, env }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
   let body;
@@ -302,19 +366,74 @@ export async function onRequestPost({ request, env }) {
   }
   const action = String(body?.action || '');
 
+  /* --- owner moderation panel (session cookie) --- */
+  if (action.startsWith('admin-')) {
+    const session = await getSession(request, env);
+    if (!session || !isOwner(env, session.email)) {
+      return json({ success: false, error: 'forbidden' }, 403);
+    }
+    const nick = String(body?.nick || '');
+
+    if (action === 'admin-unlink') {
+      if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
+      await releaseNick(env, nick);
+      return json({ success: true, ...(await listMcAdmin(env)) });
+    }
+
+    if (action === 'admin-free-device') {
+      const sig = String(body?.sig || '').toLowerCase();
+      if (!DEVICE_RE.test(sig)) return json({ success: false, error: 'bad-request' }, 400);
+      await env.KILIW_FILES.delete(deviceKey(sig)).catch(() => {});
+      return json({ success: true, ...(await listMcAdmin(env)) });
+    }
+
+    if (action === 'admin-ban') {
+      if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
+      await env.KILIW_FILES.put(banKey(nick), JSON.stringify({
+        nick,
+        reason: String(body?.reason || '').slice(0, 120),
+        created: Date.now(),
+      }));
+      /* kick them out of any existing binding so the ban bites now */
+      await releaseNick(env, nick);
+      return json({ success: true, ...(await listMcAdmin(env)) });
+    }
+
+    if (action === 'admin-unban') {
+      if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
+      await env.KILIW_FILES.delete(banKey(nick)).catch(() => {});
+      return json({ success: true, ...(await listMcAdmin(env)) });
+    }
+
+    return json({ success: false, error: 'bad-request' }, 400);
+  }
+
   /* --- game server: issue a login link --- */
   if (action === 'create') {
     if (!serverAuthed(request, env)) return json({ success: false, error: 'unauthorized' }, 401);
     const nick = String(body?.nick || '');
     const server = String(body?.server || '').slice(0, 48) || 'Minecraft server';
     if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
+    /* owner-banned nickname: refuse before issuing a code */
+    if (await isBanned(env, nick)) {
+      const b = await (await env.KILIW_FILES.get(banKey(nick))).json().catch(() => null);
+      const reason = b && b.reason ? `\nReason: ${b.reason}` : '';
+      return json({ success: false, error: 'nick-banned', message: `This nickname is banned.${reason}` }, 403);
+    }
     const ip = String(body?.ip || '').slice(0, 45);
     const device = String(body?.device || '').toLowerCase();
     const dev = DEVICE_RE.test(device) ? device : '';
     /* computer-level hard block: reject before issuing a code if this
        machine already belongs to a different, still-active nick */
     const machineOwner = await deviceOwner(env, dev, nick);
-    if (machineOwner) return json({ success: false, error: 'device-taken', held: machineOwner }, 409);
+    if (machineOwner) {
+      return json({
+        success: false,
+        error: 'device-taken',
+        held: machineOwner,
+        message: `This computer is already registered to "${machineOwner}".\nOnly one account per computer.`,
+      }, 409);
+    }
     const geo = await lookupGeo(env, ip);
     const token = randomHex(12);
     const poll = randomHex(32);
@@ -401,6 +520,15 @@ export async function onRequestGet({ request, env }) {
   if (!storageReady(env)) return json({ success: false, error: 'not-configured' }, 503);
   const url = new URL(request.url);
   const token = url.searchParams.get('token');
+
+  /* owner panel: everything to moderate (session cookie) */
+  if (url.searchParams.get('admin') === '1') {
+    const session = await getSession(request, env);
+    if (!session || !isOwner(env, session.email)) {
+      return json({ success: false, error: 'forbidden' }, 403);
+    }
+    return json({ success: true, ...(await listMcAdmin(env)) });
+  }
 
   /* player page: what is being approved? */
   if (url.searchParams.get('info') === '1') {

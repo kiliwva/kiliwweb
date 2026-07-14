@@ -5,7 +5,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const PANES = ['tg-loading', 'tg-outside', 'tg-home', 'tg-ask',
-    'tg-done', 'tg-denied', 'tg-taken', 'tg-multi', 'tg-bad'];
+    'tg-done', 'tg-denied', 'tg-taken', 'tg-multi', 'tg-banned', 'tg-bad'];
   const show = (id) => PANES.forEach((p) => { $(p).hidden = p !== id; });
 
   /* the nickname currently tied to this Telegram (one per account) */
@@ -119,6 +119,7 @@
       if (r.ok && r.data.success) { haptic.notify('success'); show('tg-done'); }
       else if (r.data.error === 'device-taken') { haptic.notify('error'); showMulti(r.data.held, 'device'); }
       else if (r.data.error === 'multi-account') { haptic.notify('error'); showMulti(r.data.held, 'telegram'); }
+      else if (r.data.error === 'nick-banned') { haptic.notify('error'); show('tg-banned'); }
       else if (r.data.error === 'nick-taken') { haptic.notify('error'); show('tg-taken'); }
       else { haptic.notify('error'); show('tg-bad'); }
     };

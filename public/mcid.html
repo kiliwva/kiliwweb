@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>K-MCID — Moderation</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=142">
+  <style>
+    .mc-wrap { max-width: 860px; margin: 0 auto; padding: 22px 18px 60px; }
+    .mc-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 12px 0 20px;
+    }
+    .mc-bar a.home { text-decoration: none; display: inline-flex; align-items: center; gap: 9px; }
+    .mc-title { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .mc-sub { font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 18px; }
+
+    .mc-tiles {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px; margin-bottom: 22px;
+    }
+    .mc-tile {
+      padding: 15px 18px; background: var(--frost-soft);
+      border: 1px solid var(--hairline); border-radius: 16px;
+    }
+    .mc-tile b { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
+    .mc-tile span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .mc-card {
+      padding: 16px 18px; margin-bottom: 26px;
+      background: var(--frost-soft); border: 1px solid var(--hairline); border-radius: 16px;
+    }
+    .mc-card h2 { font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+    .mc-banbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mc-banbar input {
+      padding: 11px 14px; font: inherit; font-size: 14px; font-weight: 600;
+      color: var(--text); background: var(--frost-soft);
+      border: 1.5px solid var(--panel-border); border-radius: 12px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .mc-banbar input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+    #ban-nick { width: 170px; }
+    #ban-reason { flex: 1; min-width: 150px; }
+    .mc-status { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-top: 10px; min-height: 16px; }
+
+    .mc-sec { margin-bottom: 26px; }
+    .mc-sec-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+    .mc-sec-head h2 { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .mc-sec-head .count {
+      font-size: 12px; font-weight: 800; color: var(--muted);
+      background: var(--frost); border: 1px solid var(--hairline);
+      border-radius: 999px; padding: 1px 9px;
+    }
+    .mc-search {
+      width: 100%; padding: 11px 15px; margin-bottom: 12px;
+      font: inherit; font-size: 14px; font-weight: 600; color: var(--text);
+      background: var(--frost-soft); border: 1.5px solid var(--panel-border);
+      border-radius: 12px; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .mc-search:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-ring); }
+
+    .mc-list { list-style: none; }
+    .mc-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 15px; margin-bottom: 8px;
+      background: var(--frost-soft); border: 1px solid var(--hairline);
+      border-radius: 14px;
+      animation: row-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .mc-row > .main { flex: 1; min-width: 0; }
+    .mc-row .name { font-size: 14.5px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mc-row .meta { font-size: 12px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mc-acts { display: flex; gap: 6px; flex: none; }
+    .mc-act {
+      appearance: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700;
+      padding: 8px 14px; border-radius: 10px;
+      color: #16120E; background: var(--accent); border: 1px solid transparent;
+      transition: opacity 0.15s, background 0.15s;
+    }
+    .mc-act:hover { opacity: 0.9; }
+    .mc-act:disabled { opacity: 0.5; cursor: default; }
+    .mc-act.ghost { color: var(--text); background: transparent; border-color: var(--hairline); }
+    .mc-act.ghost:hover { background: var(--frost); }
+    .mc-act.danger { background: #E5484D; color: #fff; }
+    .mc-empty { padding: 22px; text-align: center; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+    .mc-note { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+  <div class="mc-wrap">
+    <div class="mc-bar">
+      <a class="home" href="/">
+        <span class="wordmark kid" style="font-size:20px">K<em>-MCID</em></span>
+        <span class="badge on">Moderation</span>
+      </a>
+      <a class="ghost-btn" href="/dash">Back to cloud</a>
+    </div>
+
+    <h1 class="mc-title">K-MCID moderation</h1>
+    <p class="mc-sub">Manage nickname bindings, registered computers and the ban list.</p>
+
+    <div class="mc-tiles" id="mc-tiles"></div>
+
+    <div class="mc-card">
+      <h2>Ban a nickname</h2>
+      <div class="mc-banbar">
+        <input id="ban-nick" placeholder="Nickname" autocomplete="off" spellcheck="false">
+        <input id="ban-reason" placeholder="Reason (optional)" autocomplete="off">
+        <button type="button" class="mc-act danger" id="ban-btn">Ban</button>
+      </div>
+      <p class="mc-status" id="ban-status"></p>
+      <p class="mc-note">A banned nickname can't sign in — the player is kicked on join. Any existing binding is released too.</p>
+    </div>
+
+    <div class="mc-sec">
+      <div class="mc-sec-head"><h2>Banned</h2><span class="count" id="c-bans">0</span></div>
+      <ul class="mc-list" id="list-bans"></ul>
+    </div>
+
+    <div class="mc-sec">
+      <div class="mc-sec-head"><h2>Nicknames</h2><span class="count" id="c-nicks">0</span></div>
+      <input type="search" class="mc-search" id="search-nicks" placeholder="Search nick or Telegram…" autocomplete="off">
+      <ul class="mc-list" id="list-nicks"></ul>
+    </div>
+
+    <div class="mc-sec">
+      <div class="mc-sec-head"><h2>Computers</h2><span class="count" id="c-devices">0</span></div>
+      <ul class="mc-list" id="list-devices"></ul>
+      <p class="mc-note">“Free” removes a computer's registration so it can create a new account again — use it to undo a wrong hard-block.</p>
+    </div>
+  </div>
+
+  <script src="mcid.js?v=142"></script>
+</body>
+</html>

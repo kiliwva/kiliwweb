@@ -27,7 +27,8 @@ export async function onRequest(context) {
   const isLegacyApp = ['/cloud.html', '/cloud'].includes(url.pathname);
   /* pages that require a session (the app + checkout + admin);
      the assets layer also serves them at extensionless clean URLs */
-  const isAdminPage = url.pathname === '/admin.html' || url.pathname === '/admin';
+  const isMcidPage = url.pathname === '/mcid.html' || url.pathname === '/mcid';
+  const isAdminPage = url.pathname === '/admin.html' || url.pathname === '/admin' || isMcidPage;
   const isCloudPage = isAdminPage
     || ['/dash.html', '/dash', '/checkout.html', '/checkout'].includes(url.pathname);
   /* the K-ID account hub page (session required) */

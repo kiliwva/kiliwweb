@@ -187,13 +187,11 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
                 "ip", joinIp,
                 "device", device
             )), null);
-            /* this computer already belongs to a different account */
-            if (res != null && res.has("error") && "device-taken".equals(res.get("error").getAsString())) {
-                String held = res.has("held") && !res.get("held").isJsonNull() ? res.get("held").getAsString() : null;
-                Bukkit.getScheduler().runTask(this, () -> player.kick(Component.text(
-                    held != null
-                        ? "This computer is already registered to \"" + held + "\".\nOnly one account per computer."
-                        : "This computer is already registered to another account.")));
+            /* the server refused this join (computer already registered,
+               banned nick, …) and handed us a message to show */
+            if (res != null && !res.has("token") && res.has("message") && !res.get("message").isJsonNull()) {
+                String m = res.get("message").getAsString();
+                Bukkit.getScheduler().runTask(this, () -> player.kick(Component.text(m)));
                 return;
             }
             if (res == null || !res.has("token")) {
