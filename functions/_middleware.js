@@ -86,6 +86,15 @@ export async function onRequest(context) {
   const isAuthHost = host.startsWith('auth.');
   const isCloudHost = host.startsWith('cloud.');
   const isIdHost = host.startsWith('id.');
+  const isMcidHost = host.startsWith('mcid.');
+
+  /* mcid.<domain>: the Telegram-login panel (moderation + player cabinet).
+     The page itself decides what to show from /api/mclogin?me=1, so we
+     just serve it at the root and let assets/API through. */
+  if (isMcidHost) {
+    if (isRoot) return env.ASSETS.fetch(new URL('/panel', url));
+    return next();
+  }
 
   /* id.<domain>: the shared account hub for the whole ecosystem */
   if (isIdHost) {

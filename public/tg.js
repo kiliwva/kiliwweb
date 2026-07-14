@@ -5,7 +5,8 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const PANES = ['tg-loading', 'tg-outside', 'tg-home', 'tg-ask',
-    'tg-done', 'tg-denied', 'tg-taken', 'tg-multi', 'tg-banned', 'tg-bad'];
+    'tg-done', 'tg-denied', 'tg-taken', 'tg-multi', 'tg-banned',
+    'tg-login', 'tg-login-done', 'tg-bad'];
   const show = (id) => PANES.forEach((p) => { $(p).hidden = p !== id; });
 
   /* the nickname currently tied to this Telegram (one per account) */
@@ -134,6 +135,27 @@
     const m = String(text || '').match(/(?:start=mc_|startapp=mc_|\/mc#)([0-9a-f]{24})/);
     return m ? m[1] : null;
   };
+
+  const loginFrom = (text) => {
+    const m = String(text || '').match(/login_([0-9a-f]{24})/);
+    return m ? m[1] : null;
+  };
+
+  /* --- confirming a web-panel sign-in (mcid.<domain>) --- */
+  let myName = 'Telegram';
+
+  function openLogin(token) {
+    $('tg-login-name').textContent = myName;
+    show('tg-login');
+    $('tg-login-approve').onclick = async () => {
+      $('tg-login-approve').disabled = true;
+      const r = await api({ action: 'weblogin', token });
+      $('tg-login-approve').disabled = false;
+      if (r.ok && r.data.success) { haptic.notify('success'); show('tg-login-done'); }
+      else { haptic.notify('error'); show('tg-bad'); }
+    };
+    $('tg-login-deny').onclick = () => { haptic.notify('warning'); show('tg-denied'); };
+  }
 
   /* --- QR from a picture (decoded right here with jsQR) --- */
 
@@ -465,13 +487,16 @@
   (async () => {
     const { data } = await api({ action: 'auth' });
     if (!data.success) { show('tg-outside'); return; }
-    $('tg-mail').textContent = data.tgName || 'Telegram';
+    myName = data.tgName || 'Telegram';
+    $('tg-mail').textContent = myName;
     setNick(data.mcNick || null);
     wireScan();
 
-    /* opened from a startapp deep link or a web_app button (#mc_<token>) */
+    /* opened from a startapp deep link or a web_app button */
     const startParam = (tg.initDataUnsafe && tg.initDataUnsafe.start_param) || '';
     const hashParam = (window.location.hash || '').slice(1);
+    const loginTok = loginFrom(startParam) || loginFrom(hashParam);
+    if (loginTok) { openLogin(loginTok); return; }
     const token = tokenFrom(`startapp=${startParam}`) || tokenFrom(`startapp=${hashParam}`);
     if (token) { openToken(token); return; }
     home();

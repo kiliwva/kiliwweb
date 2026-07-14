@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0C0C0C">
+  <title>K-MCID Panel</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css?v=143">
+  <style>
+    .pnl-wrap { max-width: 860px; margin: 0 auto; padding: 22px 18px 60px; }
+    .pnl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0 22px; }
+    .pnl-user { display: flex; align-items: center; gap: 10px; }
+    .pnl-user span { font-size: 13px; font-weight: 700; color: var(--muted); }
+
+    .pnl-card {
+      max-width: 420px; margin: 6vh auto 0; padding: 30px 26px; text-align: center;
+      background: var(--frost-soft); border: 1px solid var(--hairline); border-radius: 22px;
+    }
+    .pnl-card h1 { font-size: 22px; font-weight: 800; margin: 4px 0 8px; }
+    .pnl-card .subtitle { margin-bottom: 20px; }
+    .tg-ico {
+      width: 54px; height: 54px; margin: 2px auto 16px;
+      display: flex; align-items: center; justify-content: center; border-radius: 14px;
+      color: #E8A38B; background: rgba(217, 119, 87, .10); border: 1px solid rgba(217, 119, 87, .22);
+    }
+    .tg-ico svg { width: 26px; height: 26px; }
+
+    .mc-title { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .mc-sub { font-size: 13.5px; font-weight: 600; color: var(--muted); margin-bottom: 18px; }
+    .mc-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 22px; }
+    .mc-tile { padding: 15px 18px; background: var(--frost-soft); border: 1px solid var(--hairline); border-radius: 16px; }
+    .mc-tile b { display: block; font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
+    .mc-tile span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .mc-card { padding: 16px 18px; margin-bottom: 22px; background: var(--frost-soft); border: 1px solid var(--hairline); border-radius: 16px; }
+    .mc-card h2 { font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+    .mc-banbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mc-banbar input {
+      padding: 11px 14px; font: inherit; font-size: 14px; font-weight: 600; color: var(--text);
+      background: var(--frost-soft); border: 1.5px solid var(--panel-border); border-radius: 12px; outline: none;
+    }
+    #ban-nick { width: 170px; } #ban-reason { flex: 1; min-width: 150px; }
+    .mc-status { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-top: 10px; min-height: 16px; }
+    .mc-note { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+    .mc-sec { margin-bottom: 24px; }
+    .mc-sec-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+    .mc-sec-head h2 { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .mc-sec-head .count { font-size: 12px; font-weight: 800; color: var(--muted); background: var(--frost); border: 1px solid var(--hairline); border-radius: 999px; padding: 1px 9px; }
+    .mc-search {
+      width: 100%; padding: 11px 15px; margin-bottom: 12px; font: inherit; font-size: 14px; font-weight: 600;
+      color: var(--text); background: var(--frost-soft); border: 1.5px solid var(--panel-border); border-radius: 12px; outline: none;
+    }
+    .mc-list { list-style: none; }
+    .mc-row {
+      display: flex; align-items: center; gap: 12px; padding: 12px 15px; margin-bottom: 8px;
+      background: var(--frost-soft); border: 1px solid var(--hairline); border-radius: 14px;
+    }
+    .mc-row > .main { flex: 1; min-width: 0; }
+    .mc-row .name { font-size: 14.5px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mc-row .meta { font-size: 12px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mc-acts { display: flex; gap: 6px; flex: none; }
+    .mc-act {
+      appearance: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 10px 16px; border-radius: 11px; color: #16120E; background: var(--accent); border: 1px solid transparent;
+      transition: opacity 0.15s;
+    }
+    .mc-act:hover { opacity: 0.9; } .mc-act:disabled { opacity: 0.5; cursor: default; }
+    .mc-act.ghost { color: var(--text); background: transparent; border-color: var(--hairline); }
+    .mc-act.danger { background: #E5484D; color: #fff; }
+    .mc-empty { padding: 22px; text-align: center; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+
+    .pnl-row { display: flex; align-items: center; gap: 12px; }
+    .pnl-row > div { flex: 1; min-width: 0; }
+    .pnl-row b { display: block; font-size: 16px; font-weight: 700; }
+    .pnl-row span { font-size: 12.5px; color: var(--muted); }
+    .pnl-id { font-family: ui-monospace, monospace; font-size: 14px; color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <div class="pnl-wrap">
+    <div class="pnl-bar">
+      <span class="wordmark kid" style="font-size:22px">K<em>-MCID</em></span>
+      <div class="pnl-user" id="pnl-user" hidden>
+        <span id="pnl-username"></span>
+        <button type="button" class="mc-act ghost" id="pnl-logout">Log out</button>
+      </div>
+    </div>
+
+    <div id="view-loading" class="pnl-card"><p class="subtitle">One moment…</p></div>
+
+    <!-- signed out -->
+    <div id="view-login" class="pnl-card" hidden>
+      <span class="tg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></span>
+      <h1>Sign in</h1>
+      <p class="subtitle">Log in with the K-MCID Telegram bot. You confirm the sign-in inside Telegram.</p>
+      <button type="button" class="mc-act" id="btn-login">Sign in with Telegram</button>
+      <p class="mc-status" id="login-status"></p>
+    </div>
+
+    <!-- waiting for bot confirmation -->
+    <div id="view-wait" class="pnl-card" hidden>
+      <span class="tg-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></span>
+      <h1>Waiting for confirmation…</h1>
+      <p class="subtitle">Open the bot and tap <b>Confirm sign-in</b>. This page updates on its own.</p>
+      <a class="mc-act" id="bot-link" target="_blank" rel="noopener">Open the bot</a>
+      <p class="mc-status" id="wait-status"></p>
+    </div>
+
+    <!-- player cabinet -->
+    <div id="view-cabinet" hidden>
+      <h1 class="mc-title">Your account</h1>
+      <p class="mc-sub">Your Minecraft nickname linked to this Telegram.</p>
+      <div class="mc-card">
+        <div class="pnl-row">
+          <div><b id="cab-nick"></b><span id="cab-sub"></span></div>
+          <button type="button" class="mc-act danger" id="cab-unlink" hidden>Unlink</button>
+        </div>
+      </div>
+      <div class="mc-card">
+        <b>Telegram ID</b>
+        <p class="pnl-id" id="cab-tgid"></p>
+        <p class="mc-note">Send this ID to the server owner to get moderation access.</p>
+      </div>
+    </div>
+
+    <!-- moderation (admins) -->
+    <div id="view-mod" hidden>
+      <h1 class="mc-title">Moderation</h1>
+      <p class="mc-sub">Nickname bindings, registered computers and the ban list.</p>
+      <div class="mc-tiles" id="mc-tiles"></div>
+
+      <div class="mc-card">
+        <h2>Ban a nickname</h2>
+        <div class="mc-banbar">
+          <input id="ban-nick" placeholder="Nickname" autocomplete="off" spellcheck="false">
+          <input id="ban-reason" placeholder="Reason (optional)" autocomplete="off">
+          <button type="button" class="mc-act danger" id="ban-btn">Ban</button>
+        </div>
+        <p class="mc-status" id="ban-status"></p>
+      </div>
+
+      <div class="mc-sec">
+        <div class="mc-sec-head"><h2>Banned</h2><span class="count" id="c-bans">0</span></div>
+        <ul class="mc-list" id="list-bans"></ul>
+      </div>
+      <div class="mc-sec">
+        <div class="mc-sec-head"><h2>Nicknames</h2><span class="count" id="c-nicks">0</span></div>
+        <input type="search" class="mc-search" id="search-nicks" placeholder="Search nick or Telegram…" autocomplete="off">
+        <ul class="mc-list" id="list-nicks"></ul>
+      </div>
+      <div class="mc-sec">
+        <div class="mc-sec-head"><h2>Computers</h2><span class="count" id="c-devices">0</span></div>
+        <ul class="mc-list" id="list-devices"></ul>
+        <p class="mc-note">“Free” removes a computer's registration so it can create a new account again.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="panel.js?v=143"></script>
+</body>
+</html>

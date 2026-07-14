@@ -5,6 +5,7 @@ import {
   loadJoin, decideJoin, joinMeta, joinMetaLines, tgDeletePrev, tgStoreMsg,
   getTgNick, unlinkTgNick,
 } from './mc.js';
+import { approveLogin } from './mclogin.js';
 
 /* Telegram bot: Minecraft join approvals, tied to Telegram only —
    no site account is involved anywhere in the bot.
@@ -144,6 +145,18 @@ async function handleStart(env, bot, origin, msg, param) {
     return;
   }
 
+  /* deep link from the web panel login button: /start login_<token> */
+  if (param.startsWith('login_')) {
+    const token = param.slice(6);
+    await sendTracked(env, bot, chatId, {
+      text: `Panel sign-in\n\nSomeone is signing in to the K-MCID panel as ${tgName(from)}.\n\nOpen to confirm — only approve if this is you.`,
+      reply_markup: { inline_keyboard: [
+        [{ text: 'Review & confirm', web_app: { url: `${origin}/tg#login_${token}` } }],
+      ] },
+    });
+    return;
+  }
+
   /* plain /start */
   await sendTracked(env, bot, chatId, {
     text: 'Welcome to K-MCID.\n\nWhen you join a Minecraft server, the sign-in request appears here — nothing to set up. The first approval ties your nickname to this Telegram, so no one else can join under it.\n\nYou can also scan a sign-in code shown on a computer screen:',
@@ -199,6 +212,13 @@ export async function onRequestPost({ request, env }) {
   if (action === 'unlink') {
     const nick = await unlinkTgNick(env, tgUser.id);
     return json({ success: true, unlinked: nick });
+  }
+
+  /* confirm a web-panel sign-in (mcid.<domain>) */
+  if (action === 'weblogin') {
+    const res = await approveLogin(env, String(body?.token || ''), tgUser);
+    if (res.error) return json({ success: false, error: res.error }, 410);
+    return json({ success: true });
   }
 
   if (action === 'approve' || action === 'deny') {

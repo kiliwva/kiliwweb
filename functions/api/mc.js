@@ -1,5 +1,6 @@
 import {
   json, storageReady, getSession, getUser, putUser, randomHex, isOwner,
+  getMcidSession, isMcidAdmin,
 } from '../../lib/api.js';
 import qrcode from '../../lib/qrcode.js';
 
@@ -305,6 +306,16 @@ export async function decideJoin(env, token, who, approve) {
   return { nick: data.nick };
 }
 
+/* the moderation panel is reachable two ways: the site owner (email
+   session on cloud.<domain>/mcid) or an admin Telegram (panel session
+   on mcid.<domain>) */
+async function isMcAdmin(request, env) {
+  const session = await getSession(request, env);
+  if (session && isOwner(env, session.email)) return true;
+  const mcid = await getMcidSession(request, env);
+  return Boolean(mcid && isMcidAdmin(env, mcid.tgId));
+}
+
 /* everything the owner panel shows: nick bindings, registered
    computers and the manual ban list */
 async function listMcAdmin(env) {
@@ -366,10 +377,9 @@ export async function onRequestPost({ request, env }) {
   }
   const action = String(body?.action || '');
 
-  /* --- owner moderation panel (session cookie) --- */
+  /* --- moderation panel (owner email or admin Telegram) --- */
   if (action.startsWith('admin-')) {
-    const session = await getSession(request, env);
-    if (!session || !isOwner(env, session.email)) {
+    if (!await isMcAdmin(request, env)) {
       return json({ success: false, error: 'forbidden' }, 403);
     }
     const nick = String(body?.nick || '');
@@ -521,10 +531,9 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
   const token = url.searchParams.get('token');
 
-  /* owner panel: everything to moderate (session cookie) */
+  /* moderation panel data (owner email or admin Telegram) */
   if (url.searchParams.get('admin') === '1') {
-    const session = await getSession(request, env);
-    if (!session || !isOwner(env, session.email)) {
+    if (!await isMcAdmin(request, env)) {
       return json({ success: false, error: 'forbidden' }, 403);
     }
     return json({ success: true, ...(await listMcAdmin(env)) });
