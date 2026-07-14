@@ -7,7 +7,7 @@
   <title>Join the server — K-ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=156">
+  <link rel="stylesheet" href="styles.css?v=157">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -36,6 +36,20 @@
       <div class="auth-brand"><span class="wordmark kid">K<em>-ID</em></span></div>
 
       <div id="mc-loading"><p class="subtitle">One moment…</p></div>
+
+      <div id="mc-choose" hidden>
+        <span class="mc-ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>
+        </span>
+        <h1 class="title" style="font-size:24px">Approve your join</h1>
+        <p class="subtitle"><span class="mc-strong" id="mc-server2"></span> wants to log you in as
+          <span class="mc-strong" id="mc-nick2"></span>.<br>Choose how to confirm:</p>
+        <div class="mc-actions">
+          <button type="button" class="submit" id="mc-web">Approve on the website</button>
+          <a class="ghost-btn" id="mc-tg2" hidden rel="noopener" style="text-decoration:none">Approve in Telegram</a>
+        </div>
+        <p class="mc-note">Website uses your K-ID account. Telegram opens the bot.</p>
+      </div>
 
       <div id="mc-ask" hidden>
         <span class="mc-ico">
@@ -91,8 +105,9 @@
 
   <script>
     (async () => {
-      const panes = ['mc-loading', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-login', 'mc-bad'];
+      const panes = ['mc-loading', 'mc-choose', 'mc-ask', 'mc-done', 'mc-denied', 'mc-taken', 'mc-login', 'mc-bad'];
       const show = (id) => panes.forEach((s) => { document.getElementById(s).hidden = s !== id; });
+      const $ = (id) => document.getElementById(id);
       const token = (window.location.hash || '').slice(1);
       if (!/^[0-9a-f]{24,64}$/.test(token)) { show('mc-bad'); return; }
 
@@ -102,26 +117,41 @@
       ]);
       if (!info || info.status !== 'pending') { show('mc-bad'); return; }
 
-      /* Telegram option: open the app directly (works even when t.me web
-         is blocked). Shown on both the approve and the sign-in panes. */
+      const loggedIn = Boolean(me && me.email);
+
+      /* ---- two ways to approve: website (K-ID) or Telegram ---- */
+      $('mc-server2').textContent = info.server;
+      $('mc-nick2').textContent = info.nick;
+
+      /* Telegram: open the app directly (works even when t.me web is
+         blocked in the region) */
       if (info.bot) {
         const tgUrl = `tg://resolve?domain=${info.bot}&start=mc_${token}`;
-        const link = document.getElementById('mc-tg-link');
-        if (link) link.href = tgUrl;
-        const wrap = document.getElementById('mc-tg-wrap');
+        for (const id of ['mc-tg2', 'mc-tg-link']) {
+          const el = $(id);
+          if (el) { el.href = tgUrl; el.hidden = false; }
+        }
+        const wrap = $('mc-tg-wrap');
         if (wrap) wrap.hidden = false;
-        const loginTg = document.getElementById('mc-login-tg');
-        if (loginTg) { loginTg.href = tgUrl; loginTg.hidden = false; }
       }
 
-      if (!me || !me.email) { show('mc-login'); return; }
+      /* Website button: if signed in, go straight to the confirm; else
+         send them to sign in first, then back to this link. */
+      $('mc-web').textContent = loggedIn ? 'Approve on the website' : 'Sign in with K-ID';
+      $('mc-web').addEventListener('click', () => {
+        if (loggedIn) { openConfirm(); } else { window.location.href = '/login'; }
+      });
 
-      document.getElementById('mc-server').textContent = info.server;
-      document.getElementById('mc-nick').textContent = info.nick;
-      document.getElementById('mc-mail').textContent = me.email;
-      show('mc-ask');
+      show('mc-choose');
 
-      document.getElementById('mc-deny').addEventListener('click', async () => {
+      function openConfirm() {
+        $('mc-server').textContent = info.server;
+        $('mc-nick').textContent = info.nick;
+        $('mc-mail').textContent = me.email;
+        show('mc-ask');
+      }
+
+      $('mc-deny').addEventListener('click', async () => {
         await fetch('/api/mc', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
