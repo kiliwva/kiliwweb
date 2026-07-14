@@ -79,6 +79,16 @@ function serverAuthed(request, env) {
   return Boolean(env.MC_API_KEY) && auth === `Bearer ${env.MC_API_KEY}`;
 }
 
+/* normalize TG_BOT_USERNAME (bare / @name / full URL) so the web page can
+   build a working Telegram deep link */
+function mcBotUsername(env) {
+  return String(env.TG_BOT_USERNAME || '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/^(t\.me|telegram\.me)\//i, '')
+    .replace(/^@/, '')
+    .trim();
+}
+
 /* 2-letter country code -> flag emoji */
 function flagEmoji(cc) {
   if (!cc || cc.length !== 2) return '';
@@ -463,9 +473,10 @@ export async function onRequestPost({ request, env }) {
     /* players approve through the Telegram bot; the site page /mc stays
        as a fallback when the bot is not configured */
     const reqUrl = new URL(request.url);
-    const url = env.TG_BOT_USERNAME
-      ? `https://t.me/${env.TG_BOT_USERNAME}?start=mc_${token}`
-      : `${reqUrl.origin}/mc#${token}`;
+    /* the link/QR the plugin shows points to the web approval page, which
+       works without Telegram (sign in with K-ID) and also offers a
+       Telegram button — so t.me is never required to get in */
+    const url = `${reqUrl.origin}/mc#${token}`;
     /* QR module matrix ("1" dark / "0" light rows) — the plugin draws
        it on an in-game map so the player can scan it with a phone */
     let qr = null;
@@ -546,7 +557,13 @@ export async function onRequestGet({ request, env }) {
   if (url.searchParams.get('info') === '1') {
     const data = await loadJoin(env, token);
     if (!data) return json({ success: true, status: 'expired' });
-    return json({ success: true, status: data.status, nick: data.nick, server: data.server });
+    return json({
+      success: true,
+      status: data.status,
+      nick: data.nick,
+      server: data.server,
+      bot: mcBotUsername(env),
+    });
   }
 
   /* game server poll */

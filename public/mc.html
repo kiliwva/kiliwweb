@@ -7,7 +7,7 @@
   <title>Join the server — K-ID</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="styles.css?v=155">
+  <link rel="stylesheet" href="styles.css?v=156">
   <style>
     .mc-card { text-align: center; }
     .mc-ico {
@@ -51,6 +51,9 @@
         </div>
         <p class="mc-note">The first approval ties this nickname to your K-ID —
           nobody else will be able to join under it.</p>
+        <p class="mc-note" id="mc-tg-wrap" hidden style="margin-top:12px">
+          or <a id="mc-tg-link" rel="noopener" style="color:#E8A38B;text-decoration:underline">approve in Telegram</a>
+        </p>
       </div>
 
       <div id="mc-done" hidden>
@@ -71,10 +74,11 @@
       </div>
 
       <div id="mc-login" hidden>
-        <h1 class="title" style="font-size:24px">Sign in first</h1>
-        <p class="subtitle">Sign in to your K-ID, then open the link from the game chat again.</p>
+        <h1 class="title" style="font-size:24px">Approve your join</h1>
+        <p class="subtitle">Sign in with your K-ID to approve — or approve in Telegram.</p>
         <div class="mc-actions">
-          <a class="submit" style="display:block;text-decoration:none" href="/login">Sign in</a>
+          <a class="submit" style="display:block;text-decoration:none" href="/login">Sign in with K-ID</a>
+          <a class="ghost-btn" id="mc-login-tg" hidden rel="noopener" style="text-decoration:none">Approve in Telegram</a>
         </div>
       </div>
 
@@ -97,6 +101,19 @@
         fetch(`/api/mc?token=${token}&info=1`).then((r) => r.json()).catch(() => null),
       ]);
       if (!info || info.status !== 'pending') { show('mc-bad'); return; }
+
+      /* Telegram option: open the app directly (works even when t.me web
+         is blocked). Shown on both the approve and the sign-in panes. */
+      if (info.bot) {
+        const tgUrl = `tg://resolve?domain=${info.bot}&start=mc_${token}`;
+        const link = document.getElementById('mc-tg-link');
+        if (link) link.href = tgUrl;
+        const wrap = document.getElementById('mc-tg-wrap');
+        if (wrap) wrap.hidden = false;
+        const loginTg = document.getElementById('mc-login-tg');
+        if (loginTg) { loginTg.href = tgUrl; loginTg.hidden = false; }
+      }
+
       if (!me || !me.email) { show('mc-login'); return; }
 
       document.getElementById('mc-server').textContent = info.server;
