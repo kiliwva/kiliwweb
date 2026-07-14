@@ -138,20 +138,33 @@
 
   /* ---------- moderation ---------- */
 
-  let modState = { nicks: [], devices: [], bans: [] };
+  let modState = { nicks: [], devices: [], bans: [], requests: [] };
   const tgLabel = (n) => (n.tgUsername ? `@${n.tgUsername}` : (n.tgId ? `tg:${n.tgId}` : (n.email || 'unlinked')));
   const rowHtml = (name, meta, acts) => `<li class="mc-row"><div class="main">`
     + `<div class="name">${name}</div><div class="meta">${meta}</div></div>`
     + `<div class="mc-acts">${acts}</div></li>`;
   const emptyHtml = (m) => `<li class="mc-empty">${m}</li>`;
+  const reqMeta = (r) => {
+    const where = r.geo ? [r.geo.flag, r.geo.city, r.geo.cc].filter(Boolean).join(' ') : '';
+    const left = Math.max(0, Math.round((r.expires - Date.now()) / 1000));
+    return [esc(r.server), esc(r.ip), esc(where), `${left}s left`].filter(Boolean).join(' · ');
+  };
 
   function renderMod() {
-    $('mc-tiles').innerHTML = `<div class="mc-tile"><b>${modState.nicks.length}</b><span>Nicknames</span></div>`
+    $('mc-tiles').innerHTML = `<div class="mc-tile"><b>${modState.requests.length}</b><span>Requests</span></div>`
+      + `<div class="mc-tile"><b>${modState.nicks.length}</b><span>Nicknames</span></div>`
       + `<div class="mc-tile"><b>${modState.devices.length}</b><span>Computers</span></div>`
       + `<div class="mc-tile"><b>${modState.bans.length}</b><span>Banned</span></div>`;
+    $('c-reqs').textContent = modState.requests.length;
     $('c-nicks').textContent = modState.nicks.length;
     $('c-devices').textContent = modState.devices.length;
     $('c-bans').textContent = modState.bans.length;
+
+    $('list-reqs').innerHTML = modState.requests.length
+      ? modState.requests.map((r) => rowHtml(esc(r.nick), reqMeta(r),
+        `<button class="mc-act" data-act="approve" data-token="${esc(r.token)}">Approve</button>`
+        + `<button class="mc-act ghost" data-act="deny" data-token="${esc(r.token)}">Deny</button>`)).join('')
+      : emptyHtml('No pending join requests.');
 
     $('list-bans').innerHTML = modState.bans.length
       ? modState.bans.map((b) => rowHtml(esc(b.nick),
@@ -177,7 +190,9 @@
 
   const applyMod = (r) => {
     if (r && r.success && r.nicks) {
-      modState = { nicks: r.nicks, devices: r.devices, bans: r.bans };
+      modState = {
+        nicks: r.nicks, devices: r.devices, bans: r.bans, requests: r.requests || [],
+      };
       renderMod();
       return true;
     }
@@ -186,7 +201,12 @@
 
   async function loadMod() {
     const d = await getJSON('/api/mc?admin=1');
-    if (d.success) { modState = { nicks: d.nicks, devices: d.devices, bans: d.bans }; renderMod(); }
+    applyMod(d);
+    /* refresh so new join requests appear and the countdown ticks */
+    setInterval(async () => {
+      const r = await getJSON('/api/mc?admin=1');
+      if (r && r.success) applyMod(r);
+    }, 4000);
   }
 
   function wireMod() {
@@ -206,6 +226,10 @@
       } else if (act === 'free') {
         if (!window.confirm('Free this computer? It can create a new account again.')) return;
         payload = { action: 'admin-free-device', sig: btn.dataset.sig };
+      } else if (act === 'approve') {
+        payload = { action: 'admin-approve', token: btn.dataset.token };
+      } else if (act === 'deny') {
+        payload = { action: 'admin-deny', token: btn.dataset.token };
       }
       if (!payload) return;
       btn.disabled = true;

@@ -346,8 +346,9 @@ async function listMcAdmin(env) {
     } while (cursor);
     return out;
   };
-  const [nicksRaw, devsRaw, bansRaw] = await Promise.all([
+  const [nicksRaw, devsRaw, bansRaw, reqsRaw] = await Promise.all([
     readAll('_auth/mcnick/'), readAll('_auth/mcdev/'), readAll('_auth/mcban/'),
+    readAll('_auth/mc/'),
   ]);
   const nicks = nicksRaw.map(({ id, d }) => ({
     nick: (d && d.nick) || id,
@@ -368,7 +369,19 @@ async function listMcAdmin(env) {
     reason: (d && d.reason) || null,
     created: (d && d.created) || null,
   })).sort((a, b) => (b.created || 0) - (a.created || 0));
-  return { nicks, devices, bans };
+  /* live join requests awaiting confirmation */
+  const now = Date.now();
+  const requests = reqsRaw.map(({ id, d }) => ({
+    token: id,
+    nick: (d && d.nick) || '',
+    server: (d && d.server) || '',
+    ip: (d && d.ip) || '',
+    geo: (d && d.geo) || null,
+    status: (d && d.status) || '',
+    expires: (d && d.expires) || 0,
+  })).filter((r) => r.status === 'pending' && r.expires > now)
+    .sort((a, b) => b.expires - a.expires);
+  return { nicks, devices, bans, requests };
 }
 
 /* release a nick's binding + its reverse Telegram index (its device
@@ -425,6 +438,20 @@ export async function onRequestPost({ request, env }) {
     if (action === 'admin-unban') {
       if (!NICK_RE.test(nick)) return json({ success: false, error: 'bad-nick' }, 400);
       await env.KILIW_FILES.delete(banKey(nick)).catch(() => {});
+      return json({ success: true, ...(await listMcAdmin(env)) });
+    }
+
+    /* let a player in (or reject) straight from the panel, WITHOUT tying
+       the nick to any account — a pure admin override of one request */
+    if (action === 'admin-approve' || action === 'admin-deny') {
+      const token = String(body?.token || '');
+      if (!TOKEN_RE.test(token)) return json({ success: false, error: 'bad-request' }, 400);
+      const data = await loadJoin(env, token);
+      if (!data || data.status !== 'pending') return json({ success: false, error: 'mc-expired' }, 410);
+      data.status = action === 'admin-approve' ? 'approved' : 'denied';
+      data.email = null;
+      data.tgId = null;
+      await env.KILIW_FILES.put(key(token), JSON.stringify(data));
       return json({ success: true, ...(await listMcAdmin(env)) });
     }
 

@@ -16,7 +16,13 @@
 
   const tgLabel = (n) => (n.tgUsername ? `@${n.tgUsername}` : (n.tgId ? `tg:${n.tgId}` : (n.email || 'unlinked')));
 
-  let state = { nicks: [], devices: [], bans: [] };
+  let state = { nicks: [], devices: [], bans: [], requests: [] };
+
+  const reqMeta = (r) => {
+    const where = r.geo ? [r.geo.flag, r.geo.city, r.geo.cc].filter(Boolean).join(' ') : '';
+    const left = Math.max(0, Math.round((r.expires - Date.now()) / 1000));
+    return [esc(r.server), esc(r.ip), esc(where), `${left}s left`].filter(Boolean).join(' · ');
+  };
 
   const api = async (payload) => {
     try {
@@ -39,12 +45,23 @@
   const empty = (msg) => `<li class="mc-empty">${msg}</li>`;
 
   function render() {
-    $('mc-tiles').innerHTML = tile('Nicknames', state.nicks.length)
+    $('mc-tiles').innerHTML = tile('Requests', state.requests.length)
+      + tile('Nicknames', state.nicks.length)
       + tile('Computers', state.devices.length)
       + tile('Banned', state.bans.length);
+    $('c-reqs').textContent = state.requests.length;
     $('c-nicks').textContent = state.nicks.length;
     $('c-devices').textContent = state.devices.length;
     $('c-bans').textContent = state.bans.length;
+
+    $('list-reqs').innerHTML = state.requests.length
+      ? state.requests.map((r) => row(
+        esc(r.nick),
+        reqMeta(r),
+        `<button class="mc-act" data-act="approve" data-token="${esc(r.token)}">Approve</button>`
+        + `<button class="mc-act ghost" data-act="deny" data-token="${esc(r.token)}">Deny</button>`,
+      )).join('')
+      : empty('No pending join requests.');
 
     $('list-bans').innerHTML = state.bans.length
       ? state.bans.map((b) => row(
@@ -78,7 +95,9 @@
 
   const apply = (r) => {
     if (r && r.success && r.nicks) {
-      state = { nicks: r.nicks, devices: r.devices, bans: r.bans };
+      state = {
+        nicks: r.nicks, devices: r.devices, bans: r.bans, requests: r.requests || [],
+      };
       render();
       return true;
     }
@@ -104,6 +123,10 @@
     } else if (act === 'free') {
       if (!window.confirm('Free this computer? It will be able to create a new account again.')) return;
       payload = { action: 'admin-free-device', sig: btn.dataset.sig };
+    } else if (act === 'approve') {
+      payload = { action: 'admin-approve', token: btn.dataset.token };
+    } else if (act === 'deny') {
+      payload = { action: 'admin-deny', token: btn.dataset.token };
     }
     if (!payload) return;
 
@@ -152,7 +175,12 @@
       document.querySelector('.mc-wrap').innerHTML = '<p class="mc-empty">Could not load — is storage configured?</p>';
       return;
     }
-    state = { nicks: data.nicks, devices: data.devices, bans: data.bans };
-    render();
+    apply(data);
+
+    /* refresh so new join requests appear (and the countdown ticks) */
+    setInterval(async () => {
+      const r = await fetch('/api/mc?admin=1').then((x) => x.json()).catch(() => null);
+      if (r && r.success) apply(r);
+    }, 4000);
   })();
 })();
