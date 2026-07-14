@@ -36,6 +36,27 @@ The jar lands in `build/libs/KidAuth-1.0.0.jar`.
    set `server-name`, restart.
 4. `server.properties`: `online-mode=false`.
 
+## Essentials core
+
+Alongside sign-in, the plugin ships a set of everyday commands:
+
+- **Homes:** `/sethome [name]`, `/home [name]`, `/delhome <name>`, `/homes`
+- **Spawn / warps:** `/spawn`, `/setspawn`, `/warp [name]`, `/setwarp <name>`,
+  `/delwarp <name>`, `/warps`
+- **Teleport:** `/tpa`, `/tpahere`, `/tpaccept`, `/tpdeny`, `/back`
+- **State (op):** `/heal`, `/feed`, `/fly`, `/god`, `/gamemode` (`/gm`),
+  `/speed`, `/repair`
+- **Kits:** `/kit [name]`, `/kits` — defined under `kits:` in config.yml
+- **Chat:** `/msg` (`/w`, `/tell`), `/reply` (`/r`)
+- **Utility:** `/workbench` (`/wb`), `/enderchest` (`/ec`), `/hat`
+- **Moderation (op):** `/kick`, `/ban`, `/unban`, `/clearinventory` (`/ci`)
+
+Homes, warps and spawn are saved to `homes.yml` / `warps.yml` in the
+plugin folder; bans use the vanilla ban list. Permissions are the
+`kidauth.<command>` nodes (see plugin.yml); basic player commands default
+to everyone, powerful ones to operators. `max-homes` in config.yml caps
+homes per player (ops are unlimited).
+
 ## Notes
 
 - Nick binding lives on the Kiliw side (`_auth/mcnick/...`); to move a

@@ -2,5 +2,172 @@ name: KidAuth
 version: 1.0.0
 main: com.kiliw.kid.KidAuthPlugin
 api-version: '1.21'
-description: K-ID sign-in for offline-mode servers (id.kiliw.com)
+description: K-ID sign-in for offline-mode servers (id.kiliw.com) plus an essentials core
 author: Kiliw
+
+commands:
+  sethome:
+    description: Set a home at your location
+    usage: /sethome [name]
+    permission: kidauth.sethome
+  home:
+    description: Teleport to one of your homes
+    usage: /home [name]
+    permission: kidauth.home
+  delhome:
+    description: Delete a home
+    usage: /delhome <name>
+    permission: kidauth.delhome
+  homes:
+    description: List your homes
+    permission: kidauth.homes
+  spawn:
+    description: Teleport to spawn
+    permission: kidauth.spawn
+  setspawn:
+    description: Set the server spawn
+    permission: kidauth.setspawn
+  warp:
+    description: Teleport to a warp
+    usage: /warp [name]
+    permission: kidauth.warp
+  setwarp:
+    description: Create a warp
+    usage: /setwarp <name>
+    permission: kidauth.setwarp
+  delwarp:
+    description: Delete a warp
+    usage: /delwarp <name>
+    permission: kidauth.delwarp
+  warps:
+    description: List warps
+    permission: kidauth.warps
+  tpa:
+    description: Request to teleport to a player
+    usage: /tpa <player>
+    permission: kidauth.tpa
+  tpahere:
+    description: Request a player to teleport to you
+    usage: /tpahere <player>
+    permission: kidauth.tpahere
+  tpaccept:
+    description: Accept a teleport request
+    aliases: [tpyes]
+    permission: kidauth.tpaccept
+  tpdeny:
+    description: Deny a teleport request
+    aliases: [tpno]
+    permission: kidauth.tpdeny
+  back:
+    description: Return to your previous location
+    permission: kidauth.back
+  heal:
+    description: Restore health and hunger
+    usage: /heal [player]
+    permission: kidauth.heal
+  feed:
+    description: Restore hunger
+    usage: /feed [player]
+    permission: kidauth.feed
+  fly:
+    description: Toggle flight
+    usage: /fly [player]
+    permission: kidauth.fly
+  god:
+    description: Toggle invulnerability
+    usage: /god [player]
+    permission: kidauth.god
+  gamemode:
+    description: Change game mode
+    usage: /gamemode <mode> [player]
+    aliases: [gm]
+    permission: kidauth.gamemode
+  speed:
+    description: Set walk or fly speed (0-10)
+    usage: /speed <0-10> [player]
+    permission: kidauth.speed
+  kit:
+    description: Claim a kit
+    usage: /kit [name]
+    permission: kidauth.kit
+  kits:
+    description: List available kits
+    permission: kidauth.kit
+  msg:
+    description: Send a private message
+    usage: /msg <player> <message>
+    aliases: [w, tell, pm]
+    permission: kidauth.msg
+  reply:
+    description: Reply to the last private message
+    usage: /reply <message>
+    aliases: [r]
+    permission: kidauth.reply
+  workbench:
+    description: Open a crafting table
+    aliases: [wb, craft]
+    permission: kidauth.workbench
+  enderchest:
+    description: Open your ender chest
+    aliases: [ec, echest]
+    permission: kidauth.enderchest
+  repair:
+    description: Repair the held item
+    aliases: [fix]
+    permission: kidauth.repair
+  hat:
+    description: Wear the held item
+    permission: kidauth.hat
+  kick:
+    description: Kick a player
+    usage: /kick <player> [reason]
+    permission: kidauth.kick
+  ban:
+    description: Ban a player
+    usage: /ban <player> [reason]
+    permission: kidauth.ban
+  unban:
+    description: Unban a player
+    usage: /unban <player>
+    aliases: [pardon]
+    permission: kidauth.unban
+  clearinventory:
+    description: Clear an inventory
+    usage: /clearinventory [player]
+    aliases: [ci, clearinv]
+    permission: kidauth.clearinventory
+
+permissions:
+  kidauth.sethome: { default: true }
+  kidauth.home: { default: true }
+  kidauth.delhome: { default: true }
+  kidauth.homes: { default: true }
+  kidauth.spawn: { default: true }
+  kidauth.setspawn: { default: op }
+  kidauth.warp: { default: true }
+  kidauth.warps: { default: true }
+  kidauth.setwarp: { default: op }
+  kidauth.delwarp: { default: op }
+  kidauth.tpa: { default: true }
+  kidauth.tpahere: { default: true }
+  kidauth.tpaccept: { default: true }
+  kidauth.tpdeny: { default: true }
+  kidauth.back: { default: true }
+  kidauth.heal: { default: op }
+  kidauth.feed: { default: op }
+  kidauth.fly: { default: op }
+  kidauth.god: { default: op }
+  kidauth.gamemode: { default: op }
+  kidauth.speed: { default: op }
+  kidauth.repair: { default: op }
+  kidauth.kit: { default: true }
+  kidauth.msg: { default: true }
+  kidauth.reply: { default: true }
+  kidauth.workbench: { default: true }
+  kidauth.enderchest: { default: true }
+  kidauth.hat: { default: true }
+  kidauth.kick: { default: op }
+  kidauth.ban: { default: op }
+  kidauth.unban: { default: op }
+  kidauth.clearinventory: { default: op }
+  kidauth.admin: { default: op }

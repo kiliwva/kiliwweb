@@ -17,3 +17,26 @@ auth-timeout-seconds: 240
 # Remember a successful sign-in for the same nick + IP this long.
 # 0 = ask on every join.
 remember-hours: 12
+
+# --- Essentials core ---
+
+# How many homes a player may keep (ops are unlimited). 0 = unlimited.
+max-homes: 5
+
+# Kits claimable with /kit <name>. cooldown is in seconds (0 = no
+# cooldown, ops bypass). Each item is "MATERIAL [amount]".
+kits:
+  starter:
+    cooldown: 0
+    items:
+      - STONE_SWORD
+      - STONE_PICKAXE
+      - STONE_AXE
+      - BREAD 16
+      - TORCH 32
+  daily:
+    cooldown: 86400
+    items:
+      - COOKED_BEEF 32
+      - IRON_INGOT 8
+      - OAK_LOG 32

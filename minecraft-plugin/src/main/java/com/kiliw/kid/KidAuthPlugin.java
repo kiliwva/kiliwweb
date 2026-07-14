@@ -72,6 +72,8 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
     /** nick(lower) -> connecting IP, captured at pre-login (most reliable) */
     private final Map<String, String> loginIps = new ConcurrentHashMap<>();
 
+    private EssentialsModule essentials;
+
     private String apiUrl;
     private String apiKey;
     private String serverName;
@@ -96,7 +98,16 @@ public final class KidAuthPlugin extends JavaPlugin implements Listener {
             getLogger().severe("api-key is empty — set it in config.yml (the MC_API_KEY from your Kiliw dashboard).");
         }
         Bukkit.getPluginManager().registerEvents(this, this);
+
+        essentials = new EssentialsModule(this);
+        essentials.register();
+
         getLogger().info("K-ID auth enabled, endpoint: " + apiUrl);
+    }
+
+    @Override
+    public void onDisable() {
+        if (essentials != null) essentials.save();
     }
 
     /* ---------- capture the connecting IP as early as possible ---------- */
