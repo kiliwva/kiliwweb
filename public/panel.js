@@ -59,7 +59,8 @@
       }
     }
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">`
-      + `<path fill="#F2F2F2" d="${path}"/></svg>`;
+      + `<rect width="${size}" height="${size}" rx="${3 * S}" fill="#ffffff"/>`
+      + `<path fill="#0C0C0C" d="${path}"/></svg>`;
   }
 
   function renderQr(url) {
