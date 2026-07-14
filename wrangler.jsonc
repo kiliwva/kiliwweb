@@ -23,7 +23,10 @@
   },
   "vars": {
     // the site owner gets a permanent 1 TB Pro plan
-    "OWNER_EMAIL": "denislybin3@gmail.com"
+    "OWNER_EMAIL": "denislybin3@gmail.com",
+    // Minecraft nicks whose linked Telegram is a K-MCID panel admin
+    // (comma-separated; the panel at mcid.<domain> checks this)
+    "MCID_ADMIN_NICKS": "kiliwva"
   },
   // never wipe dashboard-added variables (OAuth client ids etc.) on deploy
   "keep_vars": true,

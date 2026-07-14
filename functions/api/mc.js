@@ -1,6 +1,6 @@
 import {
   json, storageReady, getSession, getUser, putUser, randomHex, isOwner,
-  getMcidSession, isMcidAdmin,
+  getMcidSession, isMcidAdmin, isMcidAdminNick,
 } from '../../lib/api.js';
 import qrcode from '../../lib/qrcode.js';
 
@@ -313,7 +313,9 @@ async function isMcAdmin(request, env) {
   const session = await getSession(request, env);
   if (session && isOwner(env, session.email)) return true;
   const mcid = await getMcidSession(request, env);
-  return Boolean(mcid && isMcidAdmin(env, mcid.tgId));
+  if (!mcid) return false;
+  if (isMcidAdmin(env, mcid.tgId)) return true;
+  return isMcidAdminNick(env, await getTgNick(env, mcid.tgId));
 }
 
 /* everything the owner panel shows: nick bindings, registered

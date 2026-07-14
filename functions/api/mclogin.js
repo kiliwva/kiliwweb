@@ -1,6 +1,6 @@
 import {
   json, storageReady, randomHex,
-  createMcidSession, getMcidSession, destroyMcidSession, isMcidAdmin,
+  createMcidSession, getMcidSession, destroyMcidSession, isMcidAdmin, isMcidAdminNick,
 } from '../../lib/api.js';
 import { getTgNick, unlinkTgNick } from './mc.js';
 
@@ -96,13 +96,14 @@ export async function onRequestGet({ request, env }) {
   if (url.searchParams.get('me') === '1') {
     const s = await getMcidSession(request, env);
     if (!s) return json({ success: true, authed: false });
+    const nick = await getTgNick(env, s.tgId);
     return json({
       success: true,
       authed: true,
       tgId: s.tgId,
       tgUsername: s.tgUsername || '',
-      admin: isMcidAdmin(env, s.tgId),
-      nick: await getTgNick(env, s.tgId),
+      admin: isMcidAdmin(env, s.tgId) || isMcidAdminNick(env, nick),
+      nick,
     });
   }
 
